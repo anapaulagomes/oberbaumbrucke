@@ -1,0 +1,22 @@
+[project]
+name = "oberbaum"
+version = "0.1.0"
+description = "A multilingual bridge between ICD-10 versions."
+readme = "README.md"
+authors = [
+    { name = "Ana Paula Gomes", email = "apgomes88@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+oberbaum = "oberbaum.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
