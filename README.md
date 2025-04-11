@@ -1,5 +1,7 @@
 # Oberbaumbrücke[^1]
 
+[![Tests](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml/badge.svg)](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml)
+
 A multilingual bridge between ICD-10 versions.
 
 [^1]: https://en.wikipedia.org/wiki/Oberbaum_Bridge
