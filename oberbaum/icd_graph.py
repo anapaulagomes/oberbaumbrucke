@@ -49,6 +49,11 @@ class ICDGraph(ABC):
             level: len(layer) for level, layer in enumerate(layers) if level != 0
         }  # remove root node
 
+    def export(self):
+        gml_file = f"{self.version_name}.gml"
+        nx.write_gml(self.graph, gml_file)
+        return gml_file
+
 
 @dataclass
 class WHOICDGraph(ICDGraph):

@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import networkx as nx
 import pytest
 
@@ -60,6 +62,18 @@ class TestWHOICD10Graph:
         expected_levels = {1: 5, 2: 1, 3: 2}
 
         assert levels == expected_levels
+
+    def test_export_graph(self, icd_file_dir, monkeypatch):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        mock_write_gml = Mock()
+        monkeypatch.setattr(nx, "write_gml", mock_write_gml)
+
+        assert mock_write_gml.called is False
+
+        exported_path = graph.export()
+
+        assert mock_write_gml.called is True
+        assert exported_path == "icd-10-who.gml"
 
 
 class TestGetGraph:

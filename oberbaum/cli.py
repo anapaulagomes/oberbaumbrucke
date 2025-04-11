@@ -25,6 +25,10 @@ def create(icd_files_dir: str, export: bool = False):
     table.add_row("# codes", str(len(graph.codes())))
     console.print(table)
 
+    if export:
+        export_path = graph.export()
+        console.print(f"Graph exported to {export_path}")
+
 
 if __name__ == "__main__":
     app()
