@@ -21,6 +21,12 @@ uv run oberbaum "icd-10-gm" "icd-10-cm" --output "icd-10-gm___icd-10-cm.csv"
 uv sync
 ```
 
+### Activate the virtual environment
+
+```bash
+source .venv/bin/activate
+```
+
 ### Run tests
 
 ```bash
