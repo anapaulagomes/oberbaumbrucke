@@ -32,12 +32,8 @@ class TestWHOICD10Graph:
     def test_get_all_chapters(self, icd_file_dir):
         graph = WHOICDGraph(files_dir=icd_file_dir)
         chapters = graph.chapters()
-        assert isinstance(chapters, set)
+        assert isinstance(chapters, list)
         assert len(chapters) == 5
-
-    def test_add_chapters(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
-        assert len(graph.graph.nodes) == 6  # root and 5 chapters
 
     def test_add_codes(self, icd_file_dir):
         graph = WHOICDGraph(files_dir=icd_file_dir)
@@ -47,6 +43,23 @@ class TestWHOICD10Graph:
         assert graph.graph.has_node("A001")
         assert graph.graph.has_edge("A00", "A000")
         assert graph.graph.has_edge("A00", "A001")
+
+    def test_get_codes(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        codes = graph.codes()
+
+        assert isinstance(codes, set)
+        assert len(codes) == 3
+        assert "A00" in codes
+        assert "A000" in codes
+        assert "A001" in codes
+
+    def test_levels(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        levels = graph.levels()
+        expected_levels = {1: 5, 2: 1, 3: 2}
+
+        assert levels == expected_levels
 
 
 class TestGetGraph:

@@ -9,10 +9,11 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "networkx>=3.4.2",
+    "typer>=0.15.2",
 ]
 
 [project.scripts]
-oberbaum = "oberbaum.cli:main"
+oberbaum = "oberbaum.cli:app"
 
 [build-system]
 requires = ["hatchling"]

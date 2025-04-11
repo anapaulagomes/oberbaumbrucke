@@ -10,9 +10,16 @@ A multilingual bridge between ICD-10 versions.
 
 First, install [uv](https://docs.astral.sh/uv/).
 
+Create a graph from the data:
+
 ```bash
-# find the CM code corresponding to the GM code
-uv run oberbaum "icd-10-gm" "icd-10-cm" --output "icd-10-gm___icd-10-cm.csv"
+oberbaum graph create data/icd102019enMeta
+```
+
+Finding the CM code corresponding to the GM code:
+
+```bash
+oberbaum match "icd-10-gm" "icd-10-cm" --output "icd-10-gm___icd-10-cm.csv"
 ```
 
 ## Development

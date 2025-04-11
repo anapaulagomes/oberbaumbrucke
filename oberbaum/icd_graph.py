@@ -29,7 +29,25 @@ class ICDGraph(ABC):
         self.graph.add_node(self._root_node)
 
     def chapters(self):
-        return nx.descendants(self.graph, self._root_node)
+        root_descendants = list(
+            nx.dfs_tree(
+                self.graph, source=self._root_node, depth_limit=1, sort_neighbors=sorted
+            )
+        )
+        root_descendants.remove(self._root_node)
+        return root_descendants
+
+    def codes(self):
+        all_codes = set()
+        for chapter in self.chapters():
+            all_codes.update(nx.descendants(self.graph, chapter))
+        return all_codes
+
+    def levels(self):
+        layers = list(nx.bfs_layers(self.graph, self._root_node))
+        return {
+            level: len(layer) for level, layer in enumerate(layers) if level != 0
+        }  # remove root node
 
 
 @dataclass
@@ -65,7 +83,7 @@ class WHOICDGraph(ICDGraph):
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
             data = {
-                "chapter_number": fields[3],
+                "chapter": fields[3],
                 "block": fields[4],
                 "formatted_code": fields[5],
                 "code": fields[7],  # code without dot
@@ -74,6 +92,7 @@ class WHOICDGraph(ICDGraph):
                 "subtitle": fields[10],
             }
             self.graph.add_node(data["code"], name=data["full_title"], **data)
+            self.graph.add_edge(data["chapter"], data["block"])
             self.graph.add_edge(data["block"], data["code"])
 
 
