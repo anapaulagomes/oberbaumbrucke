@@ -1,6 +1,5 @@
 import typer
 from rich.console import Console
-from rich.table import Table
 from rich.tree import Tree
 
 from oberbaum.icd_graph import WHOICDGraph
@@ -11,19 +10,28 @@ app.add_typer(graph_app, name="graph")
 console = Console()
 
 
+def summary(a_list):
+    n = 10
+    if len(a_list) > n:
+        return ", ".join(a_list[:n]) + "..."
+    return ", ".join(a_list)
+
+
 @graph_app.command()
 def create(icd_files_dir: str, export: bool = False):
     graph = WHOICDGraph(files_dir=icd_files_dir)
 
     tree = Tree(graph.version_name)
-    for level, number_of_nodes in graph.levels().items():
-        tree.add(f"[green] {level} ({number_of_nodes})")
-
-    table = Table("Key", "Values")
-    table.add_row("chapters", ", ".join(graph.chapters()))
-    table.add_row("levels", tree)
-    table.add_row("codes", str(len(graph.codes())))
-    console.print(table)
+    levels = graph.levels()
+    tree.add(f"[gold3] 1. Chapters ({levels[1]}): [/gold3] {summary(graph.chapters())}")
+    tree.add(f"[gold3] 2. Blocks ({levels[2]}): [/gold3] {summary(graph.blocks())}")
+    tree.add(
+        f"[gold3] 3. Three-character categories ({levels[3]}): [/gold3] {summary(graph.three_char_codes())}"
+    )
+    tree.add(
+        f"[gold3] 4. Four-character categories ({levels[4]}): [/gold3] {summary(graph.four_char_codes())}"
+    )
+    console.print(tree)
 
     if export:
         export_path = graph.export()
