@@ -104,6 +104,31 @@ class TestWHOICD10Graph:
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
 
+    def test_codes_per_level(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        codes_per_level = graph.codes_per_level()
+
+        expected = {
+            1: ["01", "02", "03", "04", "05"],
+            2: ["A00-A09"],
+            3: ["A00"],
+            4: ["A000", "A001", "A009"],
+        }
+
+        assert codes_per_level == expected
+
+    def test_three_char_codes(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        three_char_codes = graph.three_char_codes()
+
+        assert three_char_codes == ["A00"]
+
+    def test_four_char_codes(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        three_char_codes = graph.four_char_codes()
+
+        assert three_char_codes == ["A000", "A001", "A009"]
+
     def test_export_graph(self, icd_file_dir, monkeypatch):
         graph = WHOICDGraph(files_dir=icd_file_dir)
         mock_write_gml = Mock()

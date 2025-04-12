@@ -33,13 +33,7 @@ class ICDGraph(ABC):
         self.graph.add_node(self._root_node)
 
     def chapters(self):
-        root_descendants = list(
-            nx.dfs_tree(
-                self.graph, source=self._root_node, depth_limit=1, sort_neighbors=sorted
-            )
-        )
-        root_descendants.remove(self._root_node)
-        return root_descendants
+        return self.codes_per_level()[1]  # chapters are at level 1
 
     def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
@@ -63,18 +57,22 @@ class ICDGraph(ABC):
         return all_codes
 
     def levels(self):
+        layers = self.codes_per_level()
+        return {level: len(layer) for level, layer in layers.items()}
+
+    def codes_per_level(self):
         layers = list(nx.bfs_layers(self.graph, self._root_node))
-        return {
-            level: len(layer) for level, layer in enumerate(layers) if level != 0
-        }  # remove root node
+        return {level: layer for level, layer in enumerate(layers) if level != 0}
 
     def blocks(self):
         """Get all blocks in the graph."""
-        blocks = set()
-        for node, data in self.graph.nodes(data=True):
-            if data.get("is_block"):
-                blocks.add(node)
-        return blocks
+        return self.codes_per_level()[2]  # blocks are at level 2
+
+    def three_char_codes(self):
+        return self.codes_per_level()[3]
+
+    def four_char_codes(self):
+        return self.codes_per_level()[4]
 
     def export(self):
         gml_file = f"{self.version_name}.gml"
@@ -129,7 +127,7 @@ class WHOICDGraph(ICDGraph):
             data = {
                 "chapter": fields[3],
                 "block": block,
-                "3_char_category": fields[4],
+                "three_char_category": fields[4],
                 "formatted_code": fields[5],
                 "code": fields[7],  # 3 or 4 char category
                 "full_title": fields[8],
@@ -142,7 +140,7 @@ class WHOICDGraph(ICDGraph):
             if len(data["code"]) == 3:
                 self.graph.add_edge(data["block"], data["code"])
             else:
-                self.graph.add_edge(data["3_char_category"], data["code"])
+                self.graph.add_edge(data["three_char_category"], data["code"])
 
     def _find_block(self, start):
         for node in self.graph.nodes:
