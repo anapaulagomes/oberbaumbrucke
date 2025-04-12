@@ -2,7 +2,7 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
-from oberbaum.icd_graph import WHOICDGraph
+from oberbaum.icd_graph import get_graph
 
 app = typer.Typer()
 graph_app = typer.Typer()
@@ -18,8 +18,8 @@ def summary(a_list):
 
 
 @graph_app.command()
-def create(icd_files_dir: str, export: bool = False):
-    graph = WHOICDGraph(files_dir=icd_files_dir)
+def create(version: str, icd_files_dir: str, export: bool = False):
+    graph = get_graph(version, icd_files_dir)
 
     tree = Tree(graph.version_name)
     levels = graph.levels()
