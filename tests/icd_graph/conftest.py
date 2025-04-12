@@ -43,6 +43,22 @@ def real_icd10_who_file_dir():
     yield icd_file_dir
 
 
+@pytest.fixture(scope="class")
+def real_cid10_bra_file_dir():
+    icd_file_dir = "data/CID10CSV"
+    if Path(icd_file_dir).exists() is False:
+        response = requests.get(
+            "http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip"
+        )
+        response.raise_for_status()
+        Path(icd_file_dir).mkdir(parents=True, exist_ok=True)
+        with open(f"{icd_file_dir}/CID10CSV.zip", "wb") as output_file:
+            output_file.write(response.content)
+        with zipfile.ZipFile(f"{icd_file_dir}/CID10CSV.zip", "r") as zip_ref:
+            zip_ref.extractall(icd_file_dir)
+    yield icd_file_dir
+
+
 @pytest.fixture
 def cid10_bra_file_dir(tmp_path):
     chapters_file = tmp_path / "CID-10-CAPITULOS.CSV"

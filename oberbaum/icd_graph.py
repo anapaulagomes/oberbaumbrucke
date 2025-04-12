@@ -114,16 +114,35 @@ class ICDGraph(ABC):
 
         Every chapter has a start and end category code.
         Use this method to find the chapter for a given code."""
+        # FIXME super slow, improve the performance
         letter = code[0]
         for chapter in self.chapters():
+            if "start" not in self.graph.nodes[chapter].keys():
+                continue
+            if "end" not in self.graph.nodes[chapter].keys():
+                continue
             start = self.graph.nodes[chapter]["start"]
             end = self.graph.nodes[chapter]["end"]
-            if start.startswith(letter) or end.startswith(letter):
-                number = code[1:]
-                start_number = start[1:]
-                end_number = end[1:]
+
+            number = int(code[1:3])
+            start_number = int(start[1:])
+            end_number = int(end[1:])
+            start_letter = start[0]
+            end_letter = end[0]
+
+            if letter == start_letter == end_letter:
                 if start_number <= number <= end_number:
                     return chapter
+            else:
+                if letter == start_letter:
+                    if number >= start_number:
+                        return chapter
+                elif letter == end_letter:
+                    if number <= end_number:
+                        return chapter
+                else:
+                    if start_letter < letter < end_letter:
+                        return chapter
         return
 
     def find_block(self, code):
@@ -138,7 +157,7 @@ class ICDGraph(ABC):
             start = data["start"]
             end = data["end"]
             if start.startswith(letter) or end.startswith(letter):
-                number = code[1:]
+                number = code[1:3]
                 start_number = start[1:]
                 end_number = end[1:]
                 if start_number <= number <= end_number:
@@ -286,6 +305,7 @@ class CID10Graph(ICDGraph):
                     :3
                 ],  # also from CID-10-CATEGORIAS.CSV
             }
+
             self.graph.add_node(data["code"], name=data["full_title"], **data)
             self.graph.add_edge(data["chapter"], data["block"])
             self.graph.add_edge(data["block"], data["three_char_category"])
