@@ -37,10 +37,16 @@ class ICDGraph(ABC):
         root_descendants.remove(self._root_node)
         return root_descendants
 
-    def codes(self):
+    def codes(self, from_chapter=None):
         all_codes = set()
         for chapter in self.chapters():
-            all_codes.update(nx.descendants(self.graph, chapter))
+            if from_chapter is None:  # all codes
+                all_codes.update(nx.descendants(self.graph, chapter))
+                continue
+
+            if chapter == from_chapter:  # specific chapter
+                all_codes.update(nx.descendants(self.graph, chapter))
+                break
         return all_codes
 
     def levels(self):

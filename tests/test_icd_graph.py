@@ -1,7 +1,10 @@
+import zipfile
+from pathlib import Path
 from unittest.mock import Mock
 
 import networkx as nx
 import pytest
+import requests
 
 from oberbaum.icd_graph import ICDGraph, get_graph, WHOICDGraph
 
@@ -23,6 +26,20 @@ def icd_file_dir(tmp_path):
         "4;T;X;01;A00;A00.1;A00.1;A001;Cholera due to Vibrio cholerae 01, biovar eltor;Cholera;Cholera due to Vibrio cholerae 01, biovar eltor;;001;4-002;3-003;2-001;1-002\n"
     )
     return str(tmp_path)
+
+
+@pytest.fixture(scope="class")
+def real_icd_file_dir():
+    icd_file_dir = "data/icd102019enMeta"
+    if Path(icd_file_dir).exists() is False:
+        response = requests.get("https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip")
+        response.raise_for_status()
+        Path(icd_file_dir).mkdir(parents=True, exist_ok=True)
+        with open(f"{icd_file_dir}/icd102019enMeta.zip", "wb") as output_file:
+            output_file.write(response.content)
+        with zipfile.ZipFile(f"{icd_file_dir}/icd102019enMeta.zip", "r") as zip_ref:
+            zip_ref.extractall(icd_file_dir)
+    yield icd_file_dir
 
 
 class TestWHOICD10Graph:
@@ -74,6 +91,57 @@ class TestWHOICD10Graph:
 
         assert mock_write_gml.called is True
         assert exported_path == "icd-10-who.gml"
+
+    @pytest.mark.skip
+    def test_handle_loops(self):
+        raise Exception("Can block and code be the same? And considered a loop?")
+
+    @pytest.mark.integration
+    def test_all_codes_needs_to_start_with_a_letter(self, real_icd_file_dir):
+        """
+        The classification is divided into 21 chapters. The first character of the ICD
+        code is a letter, and each letter is associated with a particular chapter, except
+        for the letter D, which is used in both Chapter II, Neoplasms, and Chapter III,
+        Diseases of the blood and blood-forming organs and certain disorders
+        involving the immune mechanism, and the letter H, which is used in both
+        Chapter VII, Diseases of the eye and adnexa and Chapter VIII, Diseases of
+        the ear and mastoid process
+
+        World Health Organization. (2010). International statistical classification of diseases and related health
+        problems (10th revision, 6th ed., Vol. 2). World Health Organization.
+
+        Even though the guideline states 21 chapters, the file has 22 chapters.
+        Also in: https://icd.who.int/browse10/2019/en
+        """
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        codes = graph.codes()
+        for code in codes:
+            assert code[0].isalpha(), f"Code {code} does not start with a letter"
+
+    @pytest.mark.integration
+    def test_more_than_one_letter_in_the_first_position(self, real_icd_file_dir):
+        """
+         Four chapters (Chapters I, II, XIX and XX) use more than one letter in the first position of their codes.
+
+        World Health Organization. (2010). International statistical classification of diseases and related health
+        problems (10th revision, 6th ed., Vol. 2). World Health Organization.
+        """
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        more_than_one = ["01", "02", "19", "20"]
+        for chapter in graph.chapters():
+            codes = graph.codes(from_chapter=chapter)
+            letters = []
+            for code in codes:
+                letters.append(code[0])
+
+            if chapter in more_than_one:
+                assert len(set(letters)) > 1, (
+                    f"Code {chapter} does not have than one letter in their chapter"
+                )
+            else:
+                assert len(set(letters)) == 1, (
+                    f"Code {chapter} have than one letter in their chapter"
+                )
 
 
 class TestGetGraph:
