@@ -13,7 +13,8 @@ First, install [uv](https://docs.astral.sh/uv/).
 Create a graph from the data:
 
 ```bash
-oberbaum graph create data/icd102019enMeta
+oberbaum graph create icd-10-who data/icd102019enMeta
+oberbaum graph create cid-10-bra data/CID10CSV
 ```
 
 Finding the CM code corresponding to the GM code:
