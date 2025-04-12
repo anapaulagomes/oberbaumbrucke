@@ -1,3 +1,4 @@
+import csv
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
@@ -108,6 +109,42 @@ class ICDGraph(ABC):
         nx.write_gml(self.graph, gml_file)
         return gml_file
 
+    def find_chapter(self, code):
+        """Find the chapter for a given code.
+
+        Every chapter has a start and end category code.
+        Use this method to find the chapter for a given code."""
+        letter = code[0]
+        for chapter in self.chapters():
+            start = self.graph.nodes[chapter]["start"]
+            end = self.graph.nodes[chapter]["end"]
+            if start.startswith(letter) or end.startswith(letter):
+                number = code[1:]
+                start_number = start[1:]
+                end_number = end[1:]
+                if start_number <= number <= end_number:
+                    return chapter
+        return
+
+    def find_block(self, code):
+        """Find the block for a given code.
+
+        Every block has a start and end category code.
+        Use this method to find the block for a given code."""
+        letter = code[0]
+        for item, data in self.graph.nodes(data=True):
+            if not data.get("is_block"):
+                continue
+            start = data["start"]
+            end = data["end"]
+            if start.startswith(letter) or end.startswith(letter):
+                number = code[1:]
+                start_number = start[1:]
+                end_number = end[1:]
+                if start_number <= number <= end_number:
+                    return item
+        return
+
 
 @dataclass
 class WHOICDGraph(ICDGraph):
@@ -126,7 +163,7 @@ class WHOICDGraph(ICDGraph):
         chapters_file = Path(self.files_dir) / "icd102019syst_chapters.txt"
         for line in chapters_file.read_text().splitlines():
             chapter_code, chapter_name = line.split(";", 1)
-            self.graph.add_node(chapter_code, name=chapter_name)
+            self.graph.add_node(chapter_code, name=chapter_name)  # FIXME make it int
             self.graph.add_edge(self._root_node, chapter_code)
 
     def add_blocks(self):
@@ -179,4 +216,79 @@ class WHOICDGraph(ICDGraph):
 
 
 def get_graph(version: str, files_dir: str) -> ICDGraph:
-    return WHOICDGraph(version_name=version, files_dir=files_dir)
+    subclasses = {
+        subclass.version_name: subclass for subclass in ICDGraph.__subclasses__()
+    }
+    return subclasses[version](files_dir=files_dir)
+
+
+@dataclass
+class CID10Graph(ICDGraph):
+    """Class for representing the Brazilian ICD-10 version structure as a graph.
+
+    The version implemented here is the 2019.
+    Files for download: http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip
+    ICD-10 metadata Format: http://www2.datasus.gov.br/cid10/V2008/cid10.htm
+    Guidelines: https://www.saude.df.gov.br/documents/37101/0/E_book_CID_10__2_.pdf
+    """
+
+    version_name: str = "cid-10-bra"
+
+    def add_chapters(self):
+        """The instructions mention 21 chapters but the file has 22."""
+        chapter_file_dir = f"{self.files_dir}/CID-10-CAPITULOS.CSV"
+        reader = csv.DictReader(
+            open(chapter_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
+        )
+        for line in reader:
+            chapter_code = line["NUMCAP"]  # FIXME make it int
+            chapter_name = line["DESCRABREV"]
+            data = {
+                "start": line["CATINIC"],
+                "end": line["CATFIM"],
+                "description": line["DESCRICAO"],
+                "is_chapter": True,
+            }
+            self.graph.add_node(chapter_code, name=chapter_name, **data)
+            self.graph.add_edge(self._root_node, chapter_code)
+
+    def add_blocks(self):
+        blocks_file_dir = f"{self.files_dir}/CID-10-GRUPOS.CSV"
+        reader = csv.DictReader(
+            open(blocks_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
+        )
+        for line in reader:
+            data = {
+                "start": line["CATINIC"],
+                "end": line["CATFIM"],
+                "description": line["DESCRICAO"],
+                "title": line["DESCRABREV"],
+                "is_block": True,  # TODO maybe type=block?
+            }
+            node = f"{data['start']}-{data['end']}"  # TODO extract to a function
+            name = f"{line['DESCRABREV']} ({node})"  # TODO extract to a function
+            self.graph.add_node(node, name=name, **data)
+
+    def add_codes(self):
+        """Add all codes to the graph."""
+        codes_file_dir = f"{self.files_dir}/CID-10-SUBCATEGORIAS.CSV"
+        reader = csv.DictReader(
+            open(codes_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
+        )
+        for line in reader:
+            data = {
+                "code": line["SUBCAT"],  # subcategory = 4 char
+                "full_title": line["DESCRICAO"],
+                "title": line["DESCRABREV"],
+                "chapter": self.find_chapter(line["SUBCAT"]),
+                "block": self.find_block(line["SUBCAT"]),
+                "three_char_category": line["SUBCAT"][
+                    :3
+                ],  # also from CID-10-CATEGORIAS.CSV
+            }
+            self.graph.add_node(data["code"], name=data["full_title"], **data)
+            self.graph.add_edge(data["chapter"], data["block"])
+            self.graph.add_edge(data["block"], data["three_char_category"])
+            self.graph.add_edge(data["three_char_category"], data["code"])
+
+            # FIXME text encoding

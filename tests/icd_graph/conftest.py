@@ -41,3 +41,40 @@ def real_icd10_who_file_dir():
         with zipfile.ZipFile(f"{icd_file_dir}/icd102019enMeta.zip", "r") as zip_ref:
             zip_ref.extractall(icd_file_dir)
     yield icd_file_dir
+
+
+@pytest.fixture
+def cid10_bra_file_dir(tmp_path):
+    chapters_file = tmp_path / "CID-10-CAPITULOS.CSV"
+    chapters_file.write_text(
+        "NUMCAP;CATINIC;CATFIM;DESCRICAO;DESCRABREV;\n"
+        "1;A00;B99;Capítulo I - Algumas doenças infecciosas e parasitárias;I.   Algumas doenças infecciosas e parasitárias;\n"
+        "2;C00;D48;Capítulo II - Neoplasias [tumores];II.  Neoplasias (tumores);\n"
+        "3;D50;D89;Capítulo III  - Doenças do sangue e dos órgãos hematopoéticos e alguns transtornos imunitários;III. Doenças sangue órgãos hemat e transt imunitár;\n"
+    )
+    categories_file = tmp_path / "CID-10-CATEGORIAS.CSV"
+    categories_file.write_text(
+        "CAT;CLASSIF;DESCRICAO;DESCRABREV;REFER;EXCLUIDOS;\n"
+        "A00;;Cólera;A00   Colera;;;\n"
+        "A01;;Febres tifóide e paratifóide;A01   Febres tifoide e paratifoide;;;\n"
+        "A02;;Outras infecções por Salmonella;A02   Outr infecc p/Salmonella;;;\n"
+        "A03;;Shiguelose;A03   Shiguelose;;;\n"
+        "A04;;Outras infecções intestinais bacterianas;A04   Outr infecc intestinais bacter;;;\n"
+    )
+    subcategories_file = tmp_path / "CID-10-SUBCATEGORIAS.CSV"
+    subcategories_file.write_text(
+        "SUBCAT;CLASSIF;RESTRSEXO;CAUSAOBITO;DESCRICAO;DESCRABREV;REFER;EXCLUIDOS;\n"
+        "A000;;;;Cólera devida a Vibrio cholerae 01, biótipo cholerae;A00.0 Colera dev Vibrio cholerae 01 biot cholerae;;;\n"
+        "A001;;;;Cólera devida a Vibrio cholerae 01, biótipo El Tor;A00.1 Colera dev Vibrio cholerae 01 biot El Tor;;;\n"
+        "A009;;;;Cólera não especificada;A00.9 Colera NE;;;\n"
+        "A010;;;;Febre tifóide;A01.0 Febre tifoide;;;\n"
+    )
+
+    blocks_file = tmp_path / "CID-10-GRUPOS.CSV"
+    blocks_file.write_text(
+        "CATINIC;CATFIM;DESCRICAO;DESCRABREV;\n"
+        "A00;A09;Doenças infecciosas intestinais;Doenças infecciosas intestinais;\n"
+        "A15;A19;Tuberculose;Tuberculose;\n"
+        "A20;A28;Algumas doenças bacterianas zoonóticas;Algumas doenças bacterianas zoonóticas;\n"
+    )
+    return str(tmp_path)
