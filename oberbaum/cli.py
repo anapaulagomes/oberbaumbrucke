@@ -19,10 +19,10 @@ def create(icd_files_dir: str, export: bool = False):
     for level, number_of_nodes in graph.levels().items():
         tree.add(f"[green] {level} ({number_of_nodes})")
 
-    table = Table("Name", "Item")
-    table.add_row("Chapters", str(graph.chapters()))
-    table.add_row("# levels", tree)
-    table.add_row("# codes", str(len(graph.codes())))
+    table = Table("Key", "Values")
+    table.add_row("chapters", ", ".join(graph.chapters()))
+    table.add_row("levels", tree)
+    table.add_row("codes", str(len(graph.codes())))
     console.print(table)
 
     if export:
