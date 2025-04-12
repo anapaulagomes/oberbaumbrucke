@@ -24,6 +24,11 @@ def icd_file_dir(tmp_path):
         "3;N;X;01;A00;A00.-;A00;A00;Cholera;Cholera;;;001;4-002;3-003;2-001;1-002\n"
         "4;T;X;01;A00;A00.0;A00.0;A000;Cholera due to Vibrio cholerae 01, biovar cholerae;Cholera;Cholera due to Vibrio cholerae 01, biovar cholerae;;001;4-002;3-003;2-001;1-002\n"
         "4;T;X;01;A00;A00.1;A00.1;A001;Cholera due to Vibrio cholerae 01, biovar eltor;Cholera;Cholera due to Vibrio cholerae 01, biovar eltor;;001;4-002;3-003;2-001;1-002\n"
+        "4;T;X;01;A00;A00.9;A00.9;A009;Cholera, unspecified;Cholera;Cholera, unspecified;;001;4-002;3-003;2-001;1-002\n"
+    )
+    blocks_file = tmp_path / "icd102019syst_groups.txt"
+    blocks_file.write_text(
+        "A00;A09;01;Intestinal infectious diseases\nA15;A19;01;Tuberculosis\n"
     )
     return str(tmp_path)
 
@@ -60,8 +65,11 @@ class TestWHOICD10Graph:
         assert graph.graph.has_node("A00")
         assert graph.graph.has_node("A000")
         assert graph.graph.has_node("A001")
-        assert graph.graph.has_edge("A00", "A000")
-        assert graph.graph.has_edge("A00", "A001")
+        assert graph.graph.has_edge("01", "A00-A09")  # chapter - block
+        assert graph.graph.has_edge("A00-A09", "A00")  # block - 3-char
+        assert graph.graph.has_edge("A00", "A000")  # 3-char - 4-char
+        assert graph.graph.has_edge("A00", "A001")  # 3-char - 4-char
+        assert graph.graph.has_edge("A00", "A009")  # 3-char - 4-char
 
     def test_get_codes(self, icd_file_dir):
         graph = WHOICDGraph(files_dir=icd_file_dir)
@@ -69,16 +77,32 @@ class TestWHOICD10Graph:
 
         assert isinstance(codes, set)
         assert len(codes) == 3
-        assert "A00" in codes
+        assert "A00" not in codes  # 3-char code
+        assert "A000" in codes
+        assert "A001" in codes
+
+    def test_get_codes_including_3_char(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+        codes = graph.codes(exclude_3_char=False)
+
+        assert isinstance(codes, set)
+        assert len(codes) == 5
+        assert "A00" in codes  # 3-char code
         assert "A000" in codes
         assert "A001" in codes
 
     def test_levels(self, icd_file_dir):
         graph = WHOICDGraph(files_dir=icd_file_dir)
         levels = graph.levels()
-        expected_levels = {1: 5, 2: 1, 3: 2}
+        expected_levels = {1: 5, 2: 1, 3: 1, 4: 3}
 
         assert levels == expected_levels
+
+    def test_blocks(self, icd_file_dir):
+        graph = WHOICDGraph(files_dir=icd_file_dir)
+
+        code = graph.graph.nodes["A009"]
+        assert code["block"] == "A00-A09"
 
     def test_export_graph(self, icd_file_dir, monkeypatch):
         graph = WHOICDGraph(files_dir=icd_file_dir)
@@ -92,9 +116,10 @@ class TestWHOICD10Graph:
         assert mock_write_gml.called is True
         assert exported_path == "icd-10-who.gml"
 
-    @pytest.mark.skip
-    def test_handle_loops(self):
-        raise Exception("Can block and code be the same? And considered a loop?")
+    @pytest.mark.integration
+    def test_handle_loops(self, real_icd_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        assert list(nx.nodes_with_selfloops(graph.graph)) == []
 
     @pytest.mark.integration
     def test_all_codes_needs_to_start_with_a_letter(self, real_icd_file_dir):
@@ -121,7 +146,7 @@ class TestWHOICD10Graph:
     @pytest.mark.integration
     def test_more_than_one_letter_in_the_first_position(self, real_icd_file_dir):
         """
-         Four chapters (Chapters I, II, XIX and XX) use more than one letter in the first position of their codes.
+        Four chapters (Chapters I, II, XIX and XX) use more than one letter in the first position of their codes.
 
         World Health Organization. (2010). International statistical classification of diseases and related health
         problems (10th revision, 6th ed., Vol. 2). World Health Organization.
@@ -142,6 +167,20 @@ class TestWHOICD10Graph:
                 assert len(set(letters)) == 1, (
                     f"Code {chapter} have than one letter in their chapter"
                 )
+
+    @pytest.mark.integration
+    def test_get_blocks(self, real_icd_file_dir):
+        """
+        The chapters are divided into blocks of three-character codes.
+
+        World Health Organization. (2010). International statistical classification of diseases and related health
+        problems (10th revision, 6th ed., Vol. 2). World Health Organization.
+        """
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+
+        code = graph.graph.nodes["A009"]
+        assert code["block"] == "A00-A09"
+        assert len(graph.blocks()) == 263
 
 
 class TestGetGraph:

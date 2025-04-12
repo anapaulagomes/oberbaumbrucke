@@ -17,12 +17,16 @@ class ICDGraph(ABC):
     def __post_init__(self):
         self.add_root_node()
         self.add_chapters()
+        self.add_blocks()
         self.add_codes()
 
     def add_chapters(self):
         raise NotImplementedError("Version Graph class must implement this method.")
 
     def add_codes(self):
+        raise NotImplementedError("Version Graph class must implement this method.")
+
+    def add_blocks(self):
         raise NotImplementedError("Version Graph class must implement this method.")
 
     def add_root_node(self):
@@ -37,7 +41,7 @@ class ICDGraph(ABC):
         root_descendants.remove(self._root_node)
         return root_descendants
 
-    def codes(self, from_chapter=None):
+    def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
         for chapter in self.chapters():
             if from_chapter is None:  # all codes
@@ -47,6 +51,15 @@ class ICDGraph(ABC):
             if chapter == from_chapter:  # specific chapter
                 all_codes.update(nx.descendants(self.graph, chapter))
                 break
+
+        # remove blocks and chapters
+        if exclude_3_char:
+            all_codes = {
+                node
+                for node in all_codes
+                if self.graph.out_degree(node) == 0
+                and self.graph.in_degree(node) == 1  # leaf
+            }
         return all_codes
 
     def levels(self):
@@ -54,6 +67,14 @@ class ICDGraph(ABC):
         return {
             level: len(layer) for level, layer in enumerate(layers) if level != 0
         }  # remove root node
+
+    def blocks(self):
+        """Get all blocks in the graph."""
+        blocks = set()
+        for node, data in self.graph.nodes(data=True):
+            if data.get("is_block"):
+                blocks.add(node)
+        return blocks
 
     def export(self):
         gml_file = f"{self.version_name}.gml"
@@ -81,6 +102,17 @@ class WHOICDGraph(ICDGraph):
             self.graph.add_node(chapter_code, name=chapter_name)
             self.graph.add_edge(self._root_node, chapter_code)
 
+    def add_blocks(self):
+        blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
+        for line in blocks_file.read_text().splitlines():
+            start, end, block_code, title = line.split(";")
+            # e.g. Intestinal infectious diseases (A00-A09)
+            name = f"{title} ({start}-{end})"
+            node = f"{start}-{end}"
+            self.graph.add_node(
+                node, name=name, start=start, end=end, title=title, is_block=True
+            )
+
     def add_codes(self):
         """Add all codes to the graph.
 
@@ -93,18 +125,29 @@ class WHOICDGraph(ICDGraph):
         codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
+            block = self._find_block(fields[4])
             data = {
                 "chapter": fields[3],
-                "block": fields[4],
+                "block": block,
+                "3_char_category": fields[4],
                 "formatted_code": fields[5],
-                "code": fields[7],  # code without dot
+                "code": fields[7],  # 4 char category
                 "full_title": fields[8],
                 "title": fields[9],
                 "subtitle": fields[10],
             }
             self.graph.add_node(data["code"], name=data["full_title"], **data)
             self.graph.add_edge(data["chapter"], data["block"])
-            self.graph.add_edge(data["block"], data["code"])
+            self.graph.add_edge(data["block"], data["3_char_category"])
+            if data["3_char_category"] == data["code"]:
+                continue
+            self.graph.add_edge(data["3_char_category"], data["code"])
+
+    def _find_block(self, start):
+        for node in self.graph.nodes:
+            if node.startswith(start):
+                return node
+        return
 
 
 def get_graph(version: str, files_dir: str) -> ICDGraph:
