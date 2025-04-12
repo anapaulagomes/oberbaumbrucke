@@ -1,6 +1,6 @@
 import csv
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import networkx as nx
@@ -38,7 +38,7 @@ class ICDGraph(ABC):
 
     files_dir: str
     version_name: str
-    graph: nx.DiGraph = nx.DiGraph()
+    graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _root_node: str = "root"
 
     def __post_init__(self):
