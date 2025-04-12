@@ -131,17 +131,18 @@ class WHOICDGraph(ICDGraph):
                 "block": block,
                 "3_char_category": fields[4],
                 "formatted_code": fields[5],
-                "code": fields[7],  # 4 char category
+                "code": fields[7],  # 3 or 4 char category
                 "full_title": fields[8],
                 "title": fields[9],
                 "subtitle": fields[10],
             }
             self.graph.add_node(data["code"], name=data["full_title"], **data)
             self.graph.add_edge(data["chapter"], data["block"])
-            self.graph.add_edge(data["block"], data["3_char_category"])
-            if data["3_char_category"] == data["code"]:
-                continue
-            self.graph.add_edge(data["3_char_category"], data["code"])
+
+            if len(data["code"]) == 3:
+                self.graph.add_edge(data["block"], data["code"])
+            else:
+                self.graph.add_edge(data["3_char_category"], data["code"])
 
     def _find_block(self, start):
         for node in self.graph.nodes:

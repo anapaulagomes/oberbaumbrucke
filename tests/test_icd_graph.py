@@ -182,6 +182,14 @@ class TestWHOICD10Graph:
         assert code["block"] == "A00-A09"
         assert len(graph.blocks()) == 263
 
+    @pytest.mark.integration
+    def test_levels_with_real_file(self, real_icd_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        levels = graph.levels()
+        expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10165}
+
+        assert levels == expected_levels
+
 
 class TestGetGraph:
     def test_get_graph_by_name(self, icd_file_dir):
