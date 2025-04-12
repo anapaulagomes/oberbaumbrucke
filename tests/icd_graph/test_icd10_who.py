@@ -1,66 +1,25 @@
-import zipfile
-from pathlib import Path
 from unittest.mock import Mock
 
 import networkx as nx
 import pytest
-import requests
 
-from oberbaum.icd_graph import ICDGraph, get_graph, WHOICDGraph
-
-
-@pytest.fixture
-def icd_file_dir(tmp_path):
-    chapters_file = tmp_path / "icd102019syst_chapters.txt"
-    chapters_file.write_text(
-        "01;Certain infectious and parasitic diseases\n"
-        "02;Neoplasms\n"
-        "03;Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism\n"
-        "04;Endocrine, nutritional and metabolic diseases\n"
-        "05;Mental and behavioural disorders\n"
-    )
-    codes_file = tmp_path / "icd102019syst_codes.txt"
-    codes_file.write_text(
-        "3;N;X;01;A00;A00.-;A00;A00;Cholera;Cholera;;;001;4-002;3-003;2-001;1-002\n"
-        "4;T;X;01;A00;A00.0;A00.0;A000;Cholera due to Vibrio cholerae 01, biovar cholerae;Cholera;Cholera due to Vibrio cholerae 01, biovar cholerae;;001;4-002;3-003;2-001;1-002\n"
-        "4;T;X;01;A00;A00.1;A00.1;A001;Cholera due to Vibrio cholerae 01, biovar eltor;Cholera;Cholera due to Vibrio cholerae 01, biovar eltor;;001;4-002;3-003;2-001;1-002\n"
-        "4;T;X;01;A00;A00.9;A00.9;A009;Cholera, unspecified;Cholera;Cholera, unspecified;;001;4-002;3-003;2-001;1-002\n"
-    )
-    blocks_file = tmp_path / "icd102019syst_groups.txt"
-    blocks_file.write_text(
-        "A00;A09;01;Intestinal infectious diseases\nA15;A19;01;Tuberculosis\n"
-    )
-    return str(tmp_path)
-
-
-@pytest.fixture(scope="class")
-def real_icd_file_dir():
-    icd_file_dir = "data/icd102019enMeta"
-    if Path(icd_file_dir).exists() is False:
-        response = requests.get("https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip")
-        response.raise_for_status()
-        Path(icd_file_dir).mkdir(parents=True, exist_ok=True)
-        with open(f"{icd_file_dir}/icd102019enMeta.zip", "wb") as output_file:
-            output_file.write(response.content)
-        with zipfile.ZipFile(f"{icd_file_dir}/icd102019enMeta.zip", "r") as zip_ref:
-            zip_ref.extractall(icd_file_dir)
-    yield icd_file_dir
+from oberbaum.icd_graph import WHOICDGraph
 
 
 class TestWHOICD10Graph:
-    def test_create_who_icd10_graph(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_create_who_icd10_graph(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         assert graph.version_name == "icd-10-who"
         assert isinstance(graph.graph, nx.DiGraph)
 
-    def test_get_all_chapters(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_get_all_chapters(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         chapters = graph.chapters()
         assert isinstance(chapters, list)
         assert len(chapters) == 5
 
-    def test_add_codes(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_add_codes(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
 
         assert graph.graph.has_node("A00")
         assert graph.graph.has_node("A000")
@@ -71,8 +30,8 @@ class TestWHOICD10Graph:
         assert graph.graph.has_edge("A00", "A001")  # 3-char - 4-char
         assert graph.graph.has_edge("A00", "A009")  # 3-char - 4-char
 
-    def test_get_codes(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_get_codes(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         codes = graph.codes()
 
         assert isinstance(codes, set)
@@ -81,8 +40,8 @@ class TestWHOICD10Graph:
         assert "A000" in codes
         assert "A001" in codes
 
-    def test_get_codes_including_3_char(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_get_codes_including_3_char(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         codes = graph.codes(exclude_3_char=False)
 
         assert isinstance(codes, set)
@@ -91,21 +50,21 @@ class TestWHOICD10Graph:
         assert "A000" in codes
         assert "A001" in codes
 
-    def test_levels(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_levels(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         levels = graph.levels()
         expected_levels = {1: 5, 2: 1, 3: 1, 4: 3}
 
         assert levels == expected_levels
 
-    def test_blocks(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_blocks(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
 
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
 
-    def test_codes_per_level(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_codes_per_level(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         codes_per_level = graph.codes_per_level()
 
         expected = {
@@ -117,20 +76,20 @@ class TestWHOICD10Graph:
 
         assert codes_per_level == expected
 
-    def test_three_char_codes(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_three_char_codes(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         three_char_codes = graph.three_char_codes()
 
         assert three_char_codes == ["A00"]
 
-    def test_four_char_codes(self, icd_file_dir):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_four_char_codes(self, icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         three_char_codes = graph.four_char_codes()
 
         assert three_char_codes == ["A000", "A001", "A009"]
 
-    def test_export_graph(self, icd_file_dir, monkeypatch):
-        graph = WHOICDGraph(files_dir=icd_file_dir)
+    def test_export_graph(self, icd10_who_file_dir, monkeypatch):
+        graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         mock_write_gml = Mock()
         monkeypatch.setattr(nx, "write_gml", mock_write_gml)
 
@@ -142,12 +101,12 @@ class TestWHOICD10Graph:
         assert exported_path == "icd-10-who.gml"
 
     @pytest.mark.integration
-    def test_handle_loops(self, real_icd_file_dir):
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+    def test_handle_loops(self, real_icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         assert list(nx.nodes_with_selfloops(graph.graph)) == []
 
     @pytest.mark.integration
-    def test_all_codes_needs_to_start_with_a_letter(self, real_icd_file_dir):
+    def test_all_codes_needs_to_start_with_a_letter(self, real_icd10_who_file_dir):
         """
         The classification is divided into 21 chapters. The first character of the ICD
         code is a letter, and each letter is associated with a particular chapter, except
@@ -163,20 +122,20 @@ class TestWHOICD10Graph:
         Even though the guideline states 21 chapters, the file has 22 chapters.
         Also in: https://icd.who.int/browse10/2019/en
         """
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         codes = graph.codes()
         for code in codes:
             assert code[0].isalpha(), f"Code {code} does not start with a letter"
 
     @pytest.mark.integration
-    def test_more_than_one_letter_in_the_first_position(self, real_icd_file_dir):
+    def test_more_than_one_letter_in_the_first_position(self, real_icd10_who_file_dir):
         """
         Four chapters (Chapters I, II, XIX and XX) use more than one letter in the first position of their codes.
 
         World Health Organization. (2010). International statistical classification of diseases and related health
         problems (10th revision, 6th ed., Vol. 2). World Health Organization.
         """
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         more_than_one = ["01", "02", "19", "20"]
         for chapter in graph.chapters():
             codes = graph.codes(from_chapter=chapter)
@@ -194,22 +153,22 @@ class TestWHOICD10Graph:
                 )
 
     @pytest.mark.integration
-    def test_get_blocks(self, real_icd_file_dir):
+    def test_get_blocks(self, real_icd10_who_file_dir):
         """
         The chapters are divided into blocks of three-character codes.
 
         World Health Organization. (2010). International statistical classification of diseases and related health
         problems (10th revision, 6th ed., Vol. 2). World Health Organization.
         """
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
 
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
         assert len(graph.blocks()) == 263
 
     @pytest.mark.integration
-    def test_levels_with_real_file(self, real_icd_file_dir):
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+    def test_levels_with_real_file(self, real_icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         levels = graph.levels()
         expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10165}
 
@@ -217,9 +176,9 @@ class TestWHOICD10Graph:
 
     @pytest.mark.skip(reason="Bigger block not found in the code data")
     @pytest.mark.integration
-    def test_support_sub_blocks(self, real_icd_file_dir):
+    def test_support_sub_blocks(self, real_icd10_who_file_dir):
         # XX > Y40-Y84 > Y40-Y59 > Y40 > Y40.0
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         assert "10" in graph.graph.nodes()
         assert "Y40-Y84" in graph.graph.nodes()
         assert "Y40-Y59" in graph.graph.nodes()
@@ -231,8 +190,8 @@ class TestWHOICD10Graph:
             return set(left_list).difference(set(right_list))
         return set(right_list).difference(set(left_list))
 
-    def test_return_chapters_in_roman_numerals(self, real_icd_file_dir):
-        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+    def test_return_chapters_in_roman_numerals(self, real_icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         chapters_in_roman = [
             "I",
             "II",
@@ -259,11 +218,3 @@ class TestWHOICD10Graph:
         ]
 
         assert graph.chapters(roman_numerals=True) == chapters_in_roman
-
-
-class TestGetGraph:
-    def test_get_graph_by_name(self, icd_file_dir):
-        graph = get_graph("icd-10-who", icd_file_dir)
-        assert isinstance(graph, ICDGraph)
-        assert isinstance(graph, WHOICDGraph)
-        assert graph.version_name == "icd-10-who"
