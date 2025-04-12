@@ -23,7 +23,9 @@ def create(icd_files_dir: str, export: bool = False):
 
     tree = Tree(graph.version_name)
     levels = graph.levels()
-    tree.add(f"[gold3] 1. Chapters ({levels[1]}): [/gold3] {summary(graph.chapters())}")
+    tree.add(
+        f"[gold3] 1. Chapters ({levels[1]}): [/gold3] {summary(graph.chapters(roman_numerals=True))}"
+    )
     tree.add(f"[gold3] 2. Blocks ({levels[2]}): [/gold3] {summary(graph.blocks())}")
     tree.add(
         f"[gold3] 3. Three-character categories ({levels[3]}): [/gold3] {summary(graph.three_char_codes())}"
@@ -32,6 +34,9 @@ def create(icd_files_dir: str, export: bool = False):
         f"[gold3] 4. Four-character categories ({levels[4]}): [/gold3] {summary(graph.four_char_codes())}"
     )
     console.print(tree)
+    console.print(
+        f"\nNr. of codes: {len(graph.three_char_codes()) + len(graph.four_char_codes())}"
+    )
 
     if export:
         export_path = graph.export()

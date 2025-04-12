@@ -215,6 +215,51 @@ class TestWHOICD10Graph:
 
         assert levels == expected_levels
 
+    @pytest.mark.skip(reason="Bigger block not found in the code data")
+    @pytest.mark.integration
+    def test_support_sub_blocks(self, real_icd_file_dir):
+        # XX > Y40-Y84 > Y40-Y59 > Y40 > Y40.0
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        assert "10" in graph.graph.nodes()
+        assert "Y40-Y84" in graph.graph.nodes()
+        assert "Y40-Y59" in graph.graph.nodes()
+        assert "Y40" in graph.graph.nodes()
+        assert "Y400" in graph.graph.nodes()
+
+    def diff(self, left_list, right_list):
+        if len(left_list) > len(right_list):
+            return set(left_list).difference(set(right_list))
+        return set(right_list).difference(set(left_list))
+
+    def test_return_chapters_in_roman_numerals(self, real_icd_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd_file_dir)
+        chapters_in_roman = [
+            "I",
+            "II",
+            "III",
+            "IV",
+            "V",
+            "VI",
+            "VII",
+            "VIII",
+            "IX",
+            "X",
+            "XI",
+            "XII",
+            "XIII",
+            "XIV",
+            "XV",
+            "XVI",
+            "XVII",
+            "XVIII",
+            "XIX",
+            "XX",
+            "XXI",
+            "XXII",
+        ]
+
+        assert graph.chapters(roman_numerals=True) == chapters_in_roman
+
 
 class TestGetGraph:
     def test_get_graph_by_name(self, icd_file_dir):

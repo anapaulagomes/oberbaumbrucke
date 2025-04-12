@@ -5,6 +5,32 @@ from pathlib import Path
 import networkx as nx
 
 
+ROMAN_NUMERALS = {
+    1: "I",
+    2: "II",
+    3: "III",
+    4: "IV",
+    5: "V",
+    6: "VI",
+    7: "VII",
+    8: "VIII",
+    9: "IX",
+    10: "X",
+    11: "XI",
+    12: "XII",
+    13: "XIII",
+    14: "XIV",
+    15: "XV",
+    16: "XVI",
+    17: "XVII",
+    18: "XVIII",
+    19: "XIX",
+    20: "XX",
+    21: "XXI",
+    22: "XXII",
+}
+
+
 @dataclass
 class ICDGraph(ABC):
     """Class for representing the ICD structure as a graph."""
@@ -32,8 +58,11 @@ class ICDGraph(ABC):
     def add_root_node(self):
         self.graph.add_node(self._root_node)
 
-    def chapters(self):
-        return self.codes_per_level()[1]  # chapters are at level 1
+    def chapters(self, roman_numerals=False):
+        codes = self.codes_per_level()[1]  # chapters are at level 1
+        if roman_numerals:
+            return [ROMAN_NUMERALS[int(code)] for code in codes]
+        return codes
 
     def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
