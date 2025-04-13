@@ -61,9 +61,11 @@ class TestWHOICD10Graph:
 
     def test_blocks(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
+        blocks = graph.blocks()
 
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
+        assert "A00-A09" in blocks
 
     def test_codes_per_level(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
@@ -181,11 +183,13 @@ class TestWHOICD10Graph:
     def test_support_sub_blocks(self, real_icd10_who_file_dir):
         # XX > Y40-Y84 > Y40-Y59 > Y40 > Y40.0
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
-        assert "10" in graph.graph.nodes()
-        assert "Y40-Y84" in graph.graph.nodes()
-        assert "Y40-Y59" in graph.graph.nodes()
-        assert "Y40" in graph.graph.nodes()
-        assert "Y400" in graph.graph.nodes()
+        blocks = graph.blocks()
+        codes = graph.codes(exclude_3_char=False)
+
+        assert "Y40-Y84" in blocks  # not supported
+        assert "Y40-Y59" in blocks
+        assert "Y40" in codes
+        assert "Y400" in codes
 
     def test_return_chapters_in_roman_numerals(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)

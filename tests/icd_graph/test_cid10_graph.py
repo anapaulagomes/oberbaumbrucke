@@ -17,7 +17,9 @@ class TestCID10Graph:
     def test_blocks(self, cid10_bra_file_dir):
         graph = CID10Graph(files_dir=cid10_bra_file_dir)
 
-        assert graph.blocks()
+        assert "A00-A09" in graph.blocks()
+        assert "A15-A19" in graph.blocks()
+        assert "A20-A28" in graph.blocks()
 
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
