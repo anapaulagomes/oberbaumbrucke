@@ -219,3 +219,12 @@ class TestWHOICD10Graph:
         ]
 
         assert graph.chapters(roman_numerals=True) == chapters_in_roman
+
+    @pytest.mark.integration
+    def test_check_real_graph(self, real_icd10_who_file_dir):
+        graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
+
+        assert len(graph.chapters()) == 22
+        assert len(graph.blocks()) == 263
+        assert len(graph.three_char_codes()) == 2050
+        assert len(graph.four_char_codes()) == 10165

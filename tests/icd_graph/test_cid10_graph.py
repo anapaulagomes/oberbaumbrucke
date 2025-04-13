@@ -24,6 +24,7 @@ class TestCID10Graph:
         code = graph.graph.nodes["A009"]
         assert code["block"] == "A00-A09"
 
+    @pytest.mark.integration
     @pytest.mark.parametrize(
         "chapter,code,message",
         [
@@ -52,3 +53,12 @@ class TestCID10Graph:
         codes = graph.codes(exclude_3_char=True)
 
         assert codes == expected
+
+    @pytest.mark.integration
+    def test_check_real_graph(self, real_cid10_bra_file_dir):
+        graph = CID10Graph(files_dir=real_cid10_bra_file_dir)
+
+        assert len(graph.chapters()) == 22
+        assert len(graph.blocks()) == 275
+        assert len(graph.three_char_codes()) == 2045
+        assert len(graph.four_char_codes()) == 12188
