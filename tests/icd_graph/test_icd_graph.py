@@ -1,6 +1,6 @@
 import pytest
 
-from oberbaum.icd_graph import ICDGraph, get_graph, WHOICDGraph, CID10Graph
+from oberbaum.icd_graph import CID10Graph, ICDGraph, WHOICDGraph, get_graph
 
 
 class TestGetGraph:

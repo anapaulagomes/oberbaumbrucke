@@ -5,7 +5,6 @@ from pathlib import Path
 
 import networkx as nx
 
-
 ROMAN_NUMERALS = {
     1: "I",
     2: "II",
