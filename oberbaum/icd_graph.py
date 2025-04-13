@@ -40,12 +40,18 @@ class ICDGraph(ABC):
     version_name: str
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _root_node: str = "root"
+    _chapters: dict = field(default_factory=dict)
+    _blocks: dict = field(default_factory=dict)
+    _levels: dict = field(default_factory=dict)
 
     def __post_init__(self):
+        """Initialize the graph and add nodes and edges."""
+        self._graph_ready = False
         self.add_root_node()
         self.add_chapters()
         self.add_blocks()
         self.add_codes()
+        self._graph_ready = True
 
     def add_chapters(self):
         raise NotImplementedError("Version Graph class must implement this method.")
@@ -59,8 +65,10 @@ class ICDGraph(ABC):
     def add_root_node(self):
         self.graph.add_node(self._root_node)
 
-    def chapters(self, roman_numerals=False):
-        codes = self.codes_per_level()[1]  # chapters are at level 1
+    def chapters(self, roman_numerals=False, data=False):
+        if data:
+            return self._chapters.items()
+        codes = list(self._chapters.keys())
         if roman_numerals:
             return [ROMAN_NUMERALS[int(code)] for code in codes]
         return codes
@@ -91,12 +99,29 @@ class ICDGraph(ABC):
         return {level: len(layer) for level, layer in layers.items()}
 
     def codes_per_level(self):
-        layers = list(nx.bfs_layers(self.graph, self._root_node))
-        return {level: layer for level, layer in enumerate(layers) if level != 0}
+        if self._graph_ready and not self._levels:
+            layers = list(nx.bfs_layers(self.graph, self._root_node))
+            self._levels = {
+                level: layer for level, layer in enumerate(layers) if level != 0
+            }
+            return self._levels
+        return self._levels
 
-    def blocks(self):
+    def blocks(self, data=False):
         """Get all blocks in the graph."""
-        return self.codes_per_level()[2]  # blocks are at level 2
+        if data:
+            return self._blocks.items()
+        return list(self._blocks.keys())
+
+    @staticmethod
+    def block_name(start, end):
+        """Get the block name for a given start and end code."""
+        return f"{start}-{end}"
+
+    @staticmethod
+    def block_description(node, description):
+        """Get the block description for a given start and end code."""
+        return f"{description} ({node})"
 
     def three_char_codes(self):
         return self.codes_per_level()[3]
@@ -114,15 +139,22 @@ class ICDGraph(ABC):
 
         Every chapter has a start and end category code.
         Use this method to find the chapter for a given code."""
-        # FIXME super slow, improve the performance
+        return self._find_in(self.chapters(data=True), code)
+
+    def find_block(self, code):
+        """Find the block for a given code.
+
+        Every block has a start and end category code.
+        Use this method to find the block for a given code."""
+        return self._find_in(self.blocks(data=True), code)
+
+    def _find_in(self, data_set: dict, code: str):
         letter = code[0]
-        for chapter in self.chapters():
-            if "start" not in self.graph.nodes[chapter].keys():
+        for item, data in data_set:
+            start = data.get("start")
+            end = data.get("end")
+            if not start and not end:
                 continue
-            if "end" not in self.graph.nodes[chapter].keys():
-                continue
-            start = self.graph.nodes[chapter]["start"]
-            end = self.graph.nodes[chapter]["end"]
 
             number = int(code[1:3])
             start_number = int(start[1:])
@@ -132,36 +164,17 @@ class ICDGraph(ABC):
 
             if letter == start_letter == end_letter:
                 if start_number <= number <= end_number:
-                    return chapter
+                    return item
             else:
                 if letter == start_letter:
                     if number >= start_number:
-                        return chapter
+                        return item
                 elif letter == end_letter:
                     if number <= end_number:
-                        return chapter
+                        return item
                 else:
                     if start_letter < letter < end_letter:
-                        return chapter
-        return
-
-    def find_block(self, code):
-        """Find the block for a given code.
-
-        Every block has a start and end category code.
-        Use this method to find the block for a given code."""
-        letter = code[0]
-        for item, data in self.graph.nodes(data=True):
-            if not data.get("is_block"):
-                continue
-            start = data["start"]
-            end = data["end"]
-            if start.startswith(letter) or end.startswith(letter):
-                number = code[1:3]
-                start_number = start[1:]
-                end_number = end[1:]
-                if start_number <= number <= end_number:
-                    return item
+                        return item
         return
 
 
@@ -184,17 +197,26 @@ class WHOICDGraph(ICDGraph):
             chapter_code, chapter_name = line.split(";", 1)
             self.graph.add_node(chapter_code, name=chapter_name)  # FIXME make it int
             self.graph.add_edge(self._root_node, chapter_code)
+            self._chapters[chapter_code] = {"description": chapter_name}
 
     def add_blocks(self):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
         for line in blocks_file.read_text().splitlines():
-            start, end, block_code, title = line.split(";")
+            start, end, chapter_code, title = line.split(";")
             # e.g. Intestinal infectious diseases (A00-A09)
-            name = f"{title} ({start}-{end})"
-            node = f"{start}-{end}"
-            self.graph.add_node(
-                node, name=name, start=start, end=end, title=title, is_block=True
-            )
+            data = {
+                "start": start,
+                "end": end,
+                "chapter_code": chapter_code,
+                "title": line,
+                "is_block": True,  # TODO maybe type=block?
+            }
+            node = self.block_name(start, end)
+            description = self.block_description(node, title)
+            self.graph.add_node(node, name=description, **data)
+            del data["is_block"]
+            self._blocks[node] = data
+            self.graph.add_edge(chapter_code, node)
 
     def add_codes(self):
         """Add all codes to the graph.
@@ -208,7 +230,7 @@ class WHOICDGraph(ICDGraph):
         codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
-            block = self._find_block(fields[4])
+            block = self.find_block(fields[4])
             data = {
                 "chapter": fields[3],
                 "block": block,
@@ -226,12 +248,6 @@ class WHOICDGraph(ICDGraph):
                 self.graph.add_edge(data["block"], data["code"])
             else:
                 self.graph.add_edge(data["three_char_category"], data["code"])
-
-    def _find_block(self, start):
-        for node in self.graph.nodes:
-            if node.startswith(start):
-                return node
-        return
 
 
 def get_graph(version: str, files_dir: str) -> ICDGraph:
@@ -269,6 +285,8 @@ class CID10Graph(ICDGraph):
                 "is_chapter": True,
             }
             self.graph.add_node(chapter_code, name=chapter_name, **data)
+            del data["is_chapter"]
+            self._chapters[chapter_code] = data
             self.graph.add_edge(self._root_node, chapter_code)
 
     def add_blocks(self):
@@ -284,9 +302,11 @@ class CID10Graph(ICDGraph):
                 "title": line["DESCRABREV"],
                 "is_block": True,  # TODO maybe type=block?
             }
-            node = f"{data['start']}-{data['end']}"  # TODO extract to a function
-            name = f"{line['DESCRABREV']} ({node})"  # TODO extract to a function
-            self.graph.add_node(node, name=name, **data)
+            block = self.block_name(data["start"], data["end"])
+            description = self.block_description(block, line["DESCRABREV"])
+            self.graph.add_node(block, name=description, **data)
+            del data["is_block"]
+            self._blocks[block] = data
 
     def add_codes(self):
         """Add all codes to the graph."""

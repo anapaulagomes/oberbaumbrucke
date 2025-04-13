@@ -35,17 +35,19 @@ class TestWHOICD10Graph:
         codes = graph.codes()
 
         assert isinstance(codes, set)
-        assert len(codes) == 3
-        assert "A00" not in codes  # 3-char code
+        assert len(codes) == 4
+        assert "A00" not in codes  # 3-char code # TODO define if this is correct
+        assert "A15-A19" in codes  # block
         assert "A000" in codes
         assert "A001" in codes
+        assert "A009" in codes
 
     def test_get_codes_including_3_char(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         codes = graph.codes(exclude_3_char=False)
 
         assert isinstance(codes, set)
-        assert len(codes) == 5
+        assert len(codes) == 6
         assert "A00" in codes  # 3-char code
         assert "A000" in codes
         assert "A001" in codes
@@ -53,7 +55,7 @@ class TestWHOICD10Graph:
     def test_levels(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         levels = graph.levels()
-        expected_levels = {1: 5, 2: 1, 3: 1, 4: 3}
+        expected_levels = {1: 5, 2: 2, 3: 1, 4: 3}
 
         assert levels == expected_levels
 
@@ -69,7 +71,7 @@ class TestWHOICD10Graph:
 
         expected = {
             1: ["01", "02", "03", "04", "05"],
-            2: ["A00-A09"],
+            2: ["A00-A09", "A15-A19"],
             3: ["A00"],
             4: ["A000", "A001", "A009"],
         }
