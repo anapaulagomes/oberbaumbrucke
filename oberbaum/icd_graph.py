@@ -102,6 +102,33 @@ class ICDGraph(ABC):
         if chapter_code:
             self.connect_chapter_block(chapter_code, block_name)
 
+    def add_code(
+        self,
+        code,
+        chapter=None,
+        block=None,
+        three_char_category=None,
+        description=None,
+        title=None,
+        **kwargs,
+    ):
+        data = {
+            "chapter": chapter,
+            "block": block,
+            "three_char_category": three_char_category,
+            "description": description,
+            "name": title,
+        }
+        self.graph.add_node(code, **data, **kwargs)
+
+    def connect_block_three_char_category(self, block, three_char_category):
+        """Create the edge between chapter and block."""
+        self.graph.add_edge(block, three_char_category)
+
+    def connect_three_char_category_code(self, three_char_category, code):
+        """Create the edge between chapter and block."""
+        self.graph.add_edge(three_char_category, code)
+
     def connect_chapter_block(self, chapter_code, block_name):
         """Create the edge between chapter and block."""
         self.graph.add_edge(chapter_code, block_name)
@@ -259,24 +286,29 @@ class WHOICDGraph(ICDGraph):
         codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
-            block = self.find_block(fields[4])
-            data = {
-                "chapter": fields[3],
-                "block": block,
-                "three_char_category": fields[4],
-                "formatted_code": fields[5],
-                "code": fields[7],  # 3 or 4 char category
-                "full_title": fields[8],
-                "title": fields[9],
-                "subtitle": fields[10],
-            }
-            self.graph.add_node(data["code"], name=data["full_title"], **data)
-            self.graph.add_edge(data["chapter"], data["block"])
+            three_char_category = fields[4]
+            block = self.find_block(three_char_category)
+            chapter = fields[3]
+            code = fields[7]  # 3 or 4 char category
+            description = fields[8]
+            title = fields[9]
+            extra_data = {"subtitle": fields[10], "formatted_code": fields[5]}
 
-            if len(data["code"]) == 3:
-                self.graph.add_edge(data["block"], data["code"])
+            self.add_code(
+                code,
+                chapter,
+                block,
+                three_char_category,
+                description,
+                title,
+                **extra_data,
+            )
+            self.connect_chapter_block(chapter, block)
+
+            if len(code) == 3:
+                self.connect_block_three_char_category(block, code)
             else:
-                self.graph.add_edge(data["three_char_category"], data["code"])
+                self.connect_three_char_category_code(three_char_category, code)
 
 
 def get_graph(version: str, files_dir: str) -> ICDGraph:
@@ -330,20 +362,15 @@ class CID10Graph(ICDGraph):
             open(codes_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
         )
         for line in reader:
-            data = {
-                "code": line["SUBCAT"],  # subcategory = 4 char
-                "full_title": line["DESCRICAO"],
-                "title": line["DESCRABREV"],
-                "chapter": self.find_chapter(line["SUBCAT"]),
-                "block": self.find_block(line["SUBCAT"]),
-                "three_char_category": line["SUBCAT"][
-                    :3
-                ],  # also from CID-10-CATEGORIAS.CSV
-            }
-
-            self.graph.add_node(data["code"], name=data["full_title"], **data)
-            self.connect_chapter_block(data["chapter"], data["block"])
-            self.graph.add_edge(data["block"], data["three_char_category"])
-            self.graph.add_edge(data["three_char_category"], data["code"])
-
             # FIXME text encoding
+            code = line["SUBCAT"]
+            description = line["DESCRICAO"]
+            title = line["DESCRABREV"]
+            chapter = self.find_chapter(code)
+            block = self.find_block(code)
+            three_char_category = code[:3]  # also from CID-10-CATEGORIAS.CSV
+
+            self.add_code(code, chapter, block, three_char_category, description, title)
+            self.connect_chapter_block(chapter, block)
+            self.connect_block_three_char_category(block, three_char_category)
+            self.connect_three_char_category_code(three_char_category, code)
