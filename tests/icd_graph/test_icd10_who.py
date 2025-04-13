@@ -187,11 +187,6 @@ class TestWHOICD10Graph:
         assert "Y40" in graph.graph.nodes()
         assert "Y400" in graph.graph.nodes()
 
-    def diff(self, left_list, right_list):
-        if len(left_list) > len(right_list):
-            return set(left_list).difference(set(right_list))
-        return set(right_list).difference(set(left_list))
-
     def test_return_chapters_in_roman_numerals(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         chapters_in_roman = [
