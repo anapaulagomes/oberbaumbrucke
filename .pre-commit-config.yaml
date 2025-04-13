@@ -12,3 +12,11 @@ repos:
     - id: ruff
       args: [ "--fix" ]
     - id: ruff-format
+- repo: https://github.com/crate-ci/typos
+  rev: v1.31.1
+  hooks:
+    - id: typos
+- repo: https://github.com/pycqa/isort
+  rev: 6.0.1
+  hooks:
+    - id: isort
