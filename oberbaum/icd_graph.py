@@ -82,6 +82,30 @@ class ICDGraph(ABC):
         self._chapters[chapter_code] = data
         self.graph.add_edge(self._root_node, chapter_code)
 
+    def add_block(self, start, end, chapter_code=None, title=None):
+        """Add blocks to the graph.
+
+        If the chapter code is provided, it will be used to create the edge between chapter and block."""
+        block_name = self.block_name(start, end)
+        description = self.block_description(block_name, title)
+        data = {
+            "start": start,
+            "end": end,
+            "chapter_code": chapter_code,
+            "name": title,
+            "description": description,
+            "is_block": True,  # TODO maybe type=block?
+        }
+        self.graph.add_node(block_name, **data)
+        del data["is_block"]
+        self._blocks[block_name] = data
+        if chapter_code:
+            self.connect_chapter_block(chapter_code, block_name)
+
+    def connect_chapter_block(self, chapter_code, block_name):
+        """Create the edge between chapter and block."""
+        self.graph.add_edge(chapter_code, block_name)
+
     def chapters(self, roman_numerals=False, data=False):
         if data:
             return self._chapters.items()
@@ -137,7 +161,10 @@ class ICDGraph(ABC):
 
     @staticmethod
     def block_description(node, description):
-        """Get the block description for a given start and end code."""
+        """Get the block description for a given start and end code.
+
+        Example: Intestinal infectious diseases (A00-A09)
+        """
         return f"{description} ({node})"
 
     def three_char_codes(self):
@@ -218,20 +245,7 @@ class WHOICDGraph(ICDGraph):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
         for line in blocks_file.read_text().splitlines():
             start, end, chapter_code, title = line.split(";")
-            # e.g. Intestinal infectious diseases (A00-A09)
-            data = {
-                "start": start,
-                "end": end,
-                "chapter_code": chapter_code,
-                "title": line,
-                "is_block": True,  # TODO maybe type=block?
-            }
-            node = self.block_name(start, end)
-            description = self.block_description(node, title)
-            self.graph.add_node(node, name=description, **data)
-            del data["is_block"]
-            self._blocks[node] = data
-            self.graph.add_edge(chapter_code, node)
+            self.add_block(start, end, chapter_code, title)
 
     def add_codes(self):
         """Add all codes to the graph.
@@ -304,18 +318,10 @@ class CID10Graph(ICDGraph):
             open(blocks_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
         )
         for line in reader:
-            data = {
-                "start": line["CATINIC"],
-                "end": line["CATFIM"],
-                "description": line["DESCRICAO"],
-                "title": line["DESCRABREV"],
-                "is_block": True,  # TODO maybe type=block?
-            }
-            block = self.block_name(data["start"], data["end"])
-            description = self.block_description(block, line["DESCRABREV"])
-            self.graph.add_node(block, name=description, **data)
-            del data["is_block"]
-            self._blocks[block] = data
+            start = line["CATINIC"]
+            end = line["CATFIM"]
+            title = line["DESCRABREV"]
+            self.add_block(start, end, title=title)
 
     def add_codes(self):
         """Add all codes to the graph."""
@@ -336,7 +342,7 @@ class CID10Graph(ICDGraph):
             }
 
             self.graph.add_node(data["code"], name=data["full_title"], **data)
-            self.graph.add_edge(data["chapter"], data["block"])
+            self.connect_chapter_block(data["chapter"], data["block"])
             self.graph.add_edge(data["block"], data["three_char_category"])
             self.graph.add_edge(data["three_char_category"], data["code"])
 
