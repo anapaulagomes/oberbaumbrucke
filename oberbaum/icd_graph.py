@@ -53,6 +53,9 @@ class ICDGraph(ABC):
         self._graph_ready = True
 
     def add_chapters(self):
+        """Add chapters to the graph.
+
+        The chapters should be added using the method `add_chapter`."""
         raise NotImplementedError("Version Graph class must implement this method.")
 
     def add_codes(self):
@@ -63,6 +66,21 @@ class ICDGraph(ABC):
 
     def add_root_node(self):
         self.graph.add_node(self._root_node)
+
+    def add_chapter(
+        self, chapter_code, chapter_name=None, start=None, end=None, description=None
+    ):
+        data = {
+            "start": start,
+            "end": end,
+            "name": chapter_name,
+            "description": description,
+            "is_chapter": True,
+        }
+        self.graph.add_node(chapter_code, **data)
+        del data["is_chapter"]
+        self._chapters[chapter_code] = data
+        self.graph.add_edge(self._root_node, chapter_code)
 
     def chapters(self, roman_numerals=False, data=False):
         if data:
@@ -194,9 +212,7 @@ class WHOICDGraph(ICDGraph):
         chapters_file = Path(self.files_dir) / "icd102019syst_chapters.txt"
         for line in chapters_file.read_text().splitlines():
             chapter_code, chapter_name = line.split(";", 1)
-            self.graph.add_node(chapter_code, name=chapter_name)  # FIXME make it int
-            self.graph.add_edge(self._root_node, chapter_code)
-            self._chapters[chapter_code] = {"description": chapter_name}
+            self.add_chapter(chapter_code, chapter_name)
 
     def add_blocks(self):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
@@ -277,16 +293,10 @@ class CID10Graph(ICDGraph):
         for line in reader:
             chapter_code = line["NUMCAP"]  # FIXME make it int
             chapter_name = line["DESCRABREV"]
-            data = {
-                "start": line["CATINIC"],
-                "end": line["CATFIM"],
-                "description": line["DESCRICAO"],
-                "is_chapter": True,
-            }
-            self.graph.add_node(chapter_code, name=chapter_name, **data)
-            del data["is_chapter"]
-            self._chapters[chapter_code] = data
-            self.graph.add_edge(self._root_node, chapter_code)
+            start = line["CATINIC"]
+            end = line["CATFIM"]
+            description = line["DESCRICAO"]
+            self.add_chapter(chapter_code, chapter_name, start, end, description)
 
     def add_blocks(self):
         blocks_file_dir = f"{self.files_dir}/CID-10-GRUPOS.CSV"
