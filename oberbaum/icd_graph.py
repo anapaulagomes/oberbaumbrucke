@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import networkx as nx
+from rich.console import Console
+from rich.text import Text
+from rich.tree import Tree
 
 ROMAN_NUMERALS = {
     1: "I",
@@ -374,3 +377,27 @@ class CID10Graph(ICDGraph):
             self.connect_chapter_block(chapter, block)
             self.connect_block_three_char_category(block, three_char_category)
             self.connect_three_char_category_code(three_char_category, code)
+
+
+def print_graph(graph, root_node=None):
+    """
+    Print an ICDGraph in the terminal.
+
+    Args:
+        graph: A ICDGraph that is a tree
+        root_node: The root node to start from (if None, will try to find a root)
+    """
+    console = Console()
+    root_node = root_node or graph._root_node
+    rich_tree = Tree(Text(str(root_node), style="bold"))
+    G = graph.graph
+
+    def add_children(parent_node, rich_parent):
+        for child in G.successors(parent_node):
+            child_text = Text(child)
+            child_text.stylize("gray")
+            rich_child = rich_parent.add(child_text)
+            add_children(child, rich_child)
+
+    add_children(root_node, rich_tree)
+    console.print(rich_tree)
