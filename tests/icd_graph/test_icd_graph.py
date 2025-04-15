@@ -18,3 +18,5 @@ class TestGetGraph:
         assert isinstance(graph, ICDGraph)
         assert isinstance(graph, expected_class)
         assert graph.version_name == version
+
+    # TODO check leafs all the way up: chapter > block > sub-block > 3category > 4category...

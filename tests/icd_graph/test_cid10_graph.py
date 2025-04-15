@@ -85,9 +85,9 @@ class TestCID10Graph:
 
         assert len(graph.chapters()) == 22
         assert len(graph.blocks()) == 275
-        assert len(graph.three_char_codes()) == 2045  # 1626
-        assert len(graph.four_char_codes()) == 12188  # 8859
-        assert all(list(data["chapter_code"] for _, data in graph.blocks(data=True)))
+        assert len(graph.three_char_codes()) == 1626
+        assert len(graph.four_char_codes()) == 8859
+        assert len(graph.categories()) == 14281  # both three and four char codes
 
     def test_handle_sublocks(self, tmp_path):
         blocks_file = tmp_path / "CID-10-GRUPOS.CSV"

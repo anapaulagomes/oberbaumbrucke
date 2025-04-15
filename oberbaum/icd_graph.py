@@ -191,6 +191,15 @@ class ICDGraph(ABC):
             return [ROMAN_NUMERALS[int(code)] for code in codes]
         return codes
 
+    def categories(self, from_block=None):
+        """Get all categories in the graph."""
+        all_categories = set()
+        for block in self.blocks():
+            if from_block and block != from_block:
+                continue
+            all_categories.update(nx.descendants(self.graph, block))
+        return all_categories
+
     def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
         for chapter in self.chapters():
