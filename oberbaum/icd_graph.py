@@ -78,10 +78,10 @@ class ICDGraph(ABC):
             "end": end,
             "name": chapter_name,
             "description": description,
-            "is_chapter": True,
+            "type": "chapter",
         }
         self.graph.add_node(chapter_code, **data)
-        del data["is_chapter"]
+        del data["type"]
         self._chapters[chapter_code] = data
         self.graph.add_edge(self._root_node, chapter_code)
 
@@ -97,10 +97,10 @@ class ICDGraph(ABC):
             "chapter_code": chapter_code,
             "name": title,
             "description": description,
-            "is_block": True,  # TODO maybe type=block?
+            "type": "block",
         }
         self.graph.add_node(block_name, **data)
-        del data["is_block"]
+        del data["type"]
         self._blocks[block_name] = data
 
         parent_block = self.find_parent_block(block_name)
@@ -266,14 +266,26 @@ class ICDGraph(ABC):
         nx.write_gml(graph_copy, gml_file)
         return gml_file
 
+    def predecessors(self, node, _track=None):
+        if _track is None:
+            _track = []
+        result = nx.predecessor(self.graph, self._root_node, node)
+        _track.extend(result)
+
+        if not result:
+            if self._root_node in _track:
+                _track.remove(self._root_node)
+            return _track
+        return self.predecessors(result[0], _track)
+
     def _from_none_to_empty(self, a_graph, data_dict):
         """Convert all None values to empty strings in a dictionary."""
         for item, data in data_dict:
             if item == self._root_node:
                 continue
-            for k, v in data.items():
-                if v is None:
-                    data[k] = ""
+            for key, value in data.items():
+                if value is None:
+                    data[key] = ""
         return a_graph
 
     def find_chapter(self, code):
@@ -365,6 +377,11 @@ class WHOICDGraph(ICDGraph):
     def add_codes(self):
         """Add all codes to the graph.
 
+        Assumption: Use the first three digits of the code to find the block,
+        given that the file has some misplaced codes.
+        Example: code D56.1 have as first_3_block_code 55 instead of 56, displayed
+        in https://icd.who.int/browse10/2016/en#/D56.1.
+
         Fields:
             hierarchy_level;tree_place;terminal_node_type;chapter_number;
             first_3_block_code;code;code_without_asterisk;code_without_dot;
@@ -374,10 +391,10 @@ class WHOICDGraph(ICDGraph):
         codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
-            three_char_category = fields[4]
+            code = fields[7]  # 3 or 4 char category
+            three_char_category = code[:3]
             block = self.find_block(three_char_category)
             chapter = fields[3]
-            code = fields[7]  # 3 or 4 char category
             description = fields[8]
             title = fields[9]
             extra_data = {"subtitle": fields[10], "formatted_code": fields[5]}
@@ -392,6 +409,8 @@ class WHOICDGraph(ICDGraph):
                 **extra_data,
             )
             self.connect_chapter_block(chapter, block)
+
+            # TODO update block, sub-block, chapter?
 
             if len(code) == 3:
                 self.connect_block_three_char_category(block, code)
@@ -425,7 +444,7 @@ class CID10Graph(ICDGraph):
             open(chapter_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
         )
         for line in reader:
-            chapter_code = line["NUMCAP"]  # FIXME make it int
+            chapter_code = line["NUMCAP"]
             chapter_name = line["DESCRABREV"]
             start = line["CATINIC"]
             end = line["CATFIM"]
@@ -462,8 +481,7 @@ class CID10Graph(ICDGraph):
                 sub_block = blocks[1]
             three_char_category = code[:3]  # also from CID-10-CATEGORIAS.CSV
 
-            # FIXME three cat nao tem dados
-            # FIXME sub_block nao tem chapter code
+            # TODO let each item have its own data
 
             self.add_code(
                 code,

@@ -174,7 +174,7 @@ class TestWHOICD10Graph:
     def test_levels_with_real_file(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         levels = graph.levels()
-        expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10165}
+        expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10171}
 
         assert levels == expected_levels
 
@@ -227,4 +227,25 @@ class TestWHOICD10Graph:
         assert len(graph.chapters()) == 22
         assert len(graph.blocks()) == 263
         assert len(graph.three_char_codes()) == 2050
-        assert len(graph.four_char_codes()) == 10165
+        assert len(graph.four_char_codes()) == 10171
+
+        assert graph.predecessors("A152") == ["A15", "A15-A19", "01"]
+        assert graph.predecessors("C439") == ["C43", "C43-C44", "02"]
+        assert graph.predecessors("D561") == ["D56", "D55-D59", "03"]
+        assert graph.predecessors("E112") == ["E11", "E10-E14", "04"]
+        assert graph.predecessors("F202") == ["F20", "F20-F29", "05"]
+        assert graph.predecessors("G473") == ["G47", "G40-G47", "06"]
+        assert graph.predecessors("H251") == ["H25", "H25-H28", "07"]
+        assert graph.predecessors("H810") == ["H81", "H80-H83", "08"]
+        assert graph.predecessors("I252") == ["I25", "I20-I25", "09"]
+        assert graph.predecessors("J459") == ["J45", "J40-J47", "10"]
+        assert graph.predecessors("K704") == ["K70", "K70-K77", "11"]
+        assert graph.predecessors("L408") == ["L40", "L40-L45", "12"]
+        assert graph.predecessors("M320") == ["M32", "M30-M36", "13"]
+        assert graph.predecessors("N185") == ["N18", "N17-N19", "14"]
+        assert graph.predecessors("O141") == ["O14", "O10-O16", "15"]
+        assert graph.predecessors("P220") == ["P22", "P20-P29", "16"]
+        assert graph.predecessors("Q242") == ["Q24", "Q20-Q28", "17"]
+        assert graph.predecessors("R572") == ["R57", "R50-R69", "18"]
+        assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
+        assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]

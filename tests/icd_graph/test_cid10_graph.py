@@ -89,6 +89,27 @@ class TestCID10Graph:
         assert len(graph.four_char_codes()) == 8859
         assert len(graph.categories()) == 14281  # both three and four char codes
 
+        assert graph.predecessors("A278") == ["A27", "A20-A28", "1"]
+        assert graph.predecessors("B520") == ["B52", "B50-B64", "1"]
+        assert graph.predecessors("C773") == ["C77", "C76-C80", "C00-C97", "2"]
+        assert graph.predecessors("D690") == ["D69", "D65-D69", "3"]
+        assert graph.predecessors("E222") == ["E22", "E20-E35", "4"]
+        assert graph.predecessors("F101") == ["F10", "F10-F19", "5"]
+        assert graph.predecessors("G555") == []
+        assert graph.predecessors("H350") == ["H35", "H30-H36", "7"]
+        assert graph.predecessors("H918") == ["H91", "H90-H95", "8"]
+        assert graph.predecessors("I619") == ["I61", "I60-I69", "9"]
+        assert graph.predecessors("J126") == []
+        assert graph.predecessors("K294") == ["K29", "K20-K31", "11"]
+        assert graph.predecessors("L271") == ["L27", "L20-L30", "12"]
+        assert graph.predecessors("M478") == ["M47", "M45-M49", "M40-M54", "13"]
+        assert graph.predecessors("N390") == ["N39", "N30-N39", "14"]
+        assert graph.predecessors("O031") == ["O03", "O00-O08", "15"]
+        assert graph.predecessors("P369") == ["P36", "P35-P39", "16"]
+        assert graph.predecessors("Q031") == ["Q03", "Q00-Q07", "17"]
+        assert graph.predecessors("R619") == ["R61", "R50-R69", "18"]
+        assert graph.predecessors("Y655") == ["Y65", "Y60-Y69", "Y40-Y84", "20"]
+
     def test_handle_sublocks(self, tmp_path):
         blocks_file = tmp_path / "CID-10-GRUPOS.CSV"
         blocks_file.write_text(
