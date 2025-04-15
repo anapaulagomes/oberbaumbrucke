@@ -34,9 +34,7 @@ def create(version: str, icd_files_dir: str, export: bool = False):
         f"[gold3] 4. Four-character categories ({levels[4]}): [/gold3] {summary(graph.four_char_codes())}"
     )
     console.print(tree)
-    console.print(
-        f"\nNr. of codes: {len(graph.three_char_codes()) + len(graph.four_char_codes())}"
-    )
+    console.print(f"\nNr. of codes: {len(graph.categories())}")
 
     if export:
         export_path = graph.export()
