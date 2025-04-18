@@ -19,6 +19,10 @@ class TestGetGraph:
         assert isinstance(graph, expected_class)
         assert graph.version_name == version
 
+    def test_graph_class_from_graph_file(self):
+        graph = get_graph("cid-10-bra", gml_filepath="subgraph_B180_cid10.gml")
+        assert isinstance(graph, CID10Graph)
+
 
 class TestLoadGraphFromFile:
     def test_load_graph_from_file(self):
