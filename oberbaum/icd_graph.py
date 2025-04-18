@@ -87,8 +87,11 @@ class ICDGraph(ABC):
 
         chapter_code = chapter_code.lstrip("0")  # remove leading zero e.g. "01" -> "1"
         if self._chapters.get(chapter_code):
-            # update
-            self.graph.nodes[chapter_code].update(data)
+            # update chapter's data
+            updated_data = {
+                key: value for key, value in data.items() if value is not None
+            }
+            self.graph.nodes[chapter_code].update(updated_data)
             return chapter_code
 
         data["type"] = "chapter"
@@ -98,11 +101,13 @@ class ICDGraph(ABC):
         self.graph.add_edge(self._root_node, chapter_code)
         return chapter_code
 
-    def add_block(self, start, end, chapter_code=None, title=None):
+    def add_or_update_block(
+        self, start=None, end=None, chapter_code=None, title=None, block_name=None
+    ):
         """Add blocks to the graph.
 
         If the chapter code is provided, it will be used to create the edge between chapter and block."""
-        block_name = self.block_name(start, end)
+        block_name = block_name or self.block_name(start, end)
         description = self.block_description(block_name, title)
         data = {
             "start": start,
@@ -110,12 +115,25 @@ class ICDGraph(ABC):
             "chapter_code": chapter_code,
             "name": title,
             "description": description,
-            "type": "block",
         }
+
+        if self._blocks.get(block_name):
+            # update block's data
+            updated_data = {
+                key: value for key, value in data.items() if value is not None
+            }
+            self.graph.nodes[block_name].update(updated_data)
+            return block_name
+
+        if not all([start, end]):
+            raise Exception("Cannot create block without start and end codes")
+
+        data["type"] = "block"
         self.graph.add_node(block_name, **data)
         del data["type"]
         self._blocks[block_name] = data
 
+        # FIXME currently find the parent block, if any, connect chapter with parent block; or chapter with block
         parent_block = self.find_parent_block(block_name)
         if parent_block:
             if chapter_code:
@@ -123,9 +141,10 @@ class ICDGraph(ABC):
                     chapter_code, parent_block
                 )  # chapter and block
             self.connect_blocks(parent_block, block_name)  # block and sub-block
-            return
+            return block_name
         if chapter_code:
             self.connect_chapter_block(chapter_code, block_name)
+        return block_name
 
     def find_parent_block(self, block):
         """Find the parent of a given block.
@@ -184,11 +203,9 @@ class ICDGraph(ABC):
 
         If the chapter code is not present in the block, it will be added to the block node
         for convenience."""
-        if not self.graph.nodes[block_name].get(chapter_code):
-            # FIXME update_block()
-            self.graph.nodes[block_name]["chapter_code"] = chapter_code
-            self._blocks[block_name]["chapter_code"] = chapter_code
-
+        block_name = self.add_or_update_block(
+            block_name=block_name, chapter_code=chapter_code
+        )
         chapter_code = self.add_or_update_chapter(chapter_code)
         self.graph.add_edge(chapter_code, block_name)
 
@@ -386,7 +403,7 @@ class WHOICDGraph(ICDGraph):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
         for line in blocks_file.read_text().splitlines():
             start, end, chapter_code, title = line.split(";")
-            self.add_block(start, end, chapter_code, title)
+            self.add_or_update_block(start, end, chapter_code, title)
 
     def add_codes(self):
         """Add all codes to the graph.
@@ -474,7 +491,7 @@ class CID10Graph(ICDGraph):
             start = line["CATINIC"]
             end = line["CATFIM"]
             title = line["DESCRABREV"]
-            self.add_block(start, end, title=title)
+            self.add_or_update_block(start, end, title=title)
 
     def add_codes(self):
         """Add all codes to the graph."""
