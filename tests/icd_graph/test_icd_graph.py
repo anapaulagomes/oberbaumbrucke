@@ -18,3 +18,12 @@ class TestGetGraph:
         assert isinstance(graph, ICDGraph)
         assert isinstance(graph, expected_class)
         assert graph.version_name == version
+
+
+class TestLoadGraphFromFile:
+    def test_load_graph_from_file(self):
+        graph = CID10Graph(gml_filepath="tests/fixtures/subgraph_B180_cid10.gml")
+
+        assert graph.chapters()
+        assert graph.blocks()
+        assert graph.codes()

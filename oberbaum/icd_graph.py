@@ -38,9 +38,10 @@ ROMAN_NUMERALS = {
 class ICDGraph(ABC):
     """Class for representing the ICD structure as a graph."""
 
-    files_dir: str
     version_name: str
     year: int
+    files_dir: str = field(default_factory=str)
+    gml_filepath: str = field(default_factory=str)
     _graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _root_node: str = "root"
     _chapters: dict = field(default_factory=dict)
@@ -50,6 +51,18 @@ class ICDGraph(ABC):
     def __post_init__(self):
         """Initialize the graph and add nodes and edges."""
         self._graph_ready = False
+        if self.gml_filepath:
+            self._graph = nx.read_gml(self.gml_filepath)
+
+            # load cache
+            for node, data in self._graph.nodes(data=True):
+                if data.get("type") == "chapter":
+                    self._chapters[node] = data
+                elif data.get("type") == "block":
+                    self._blocks[node] = data
+
+            self._graph_ready = True
+            return
         self.add_root_node()
         self.add_chapters()
         self.add_blocks()
