@@ -303,8 +303,11 @@ class ICDGraph(ABC):
 
     def export(self):
         gml_file = f"{self.version_name}.gml"
+        root_node = self._root_node
         graph_copy = self._graph.copy()
-        graph_copy = self._from_none_to_empty(graph_copy, graph_copy.nodes(data=True))
+        graph_copy = from_none_to_empty(
+            graph_copy, root_node, graph_copy.nodes(data=True)
+        )
         nx.write_gml(graph_copy, gml_file)
         return gml_file
 
@@ -319,16 +322,6 @@ class ICDGraph(ABC):
                 _track.remove(self._root_node)
             return _track
         return self.predecessors(result[0], _track)
-
-    def _from_none_to_empty(self, a_graph, data_dict):
-        """Convert all None values to empty strings in a dictionary."""
-        for item, data in data_dict:
-            if item == self._root_node:
-                continue
-            for key, value in data.items():
-                if value is None:
-                    data[key] = ""
-        return a_graph
 
     def find_chapter(self, code):
         """Find the chapter for a given code.
@@ -564,3 +557,23 @@ def get_graph(version: str, files_dir: str) -> ICDGraph:
         subclass.version_name: subclass for subclass in ICDGraph.__subclasses__()
     }
     return subclasses[version](files_dir=files_dir)
+
+
+def from_none_to_empty(a_graph, root_node, data_dict):
+    """Convert all None values to empty strings in a dictionary."""
+    for item, data in data_dict:
+        if item == root_node:
+            continue
+        for key, value in data.items():
+            if value is None:
+                data[key] = ""
+    return a_graph
+
+
+def get_subgraph(graph, from_, to_, filename=None):
+    if not filename:
+        filename = "subgraph.gml"
+    path = nx.shortest_path(graph._graph, from_, to_)
+    subgraph = nx.subgraph(graph._graph, path)
+    from_none_to_empty(subgraph, graph._root_node, subgraph.nodes(data=True))
+    nx.write_gml(subgraph, filename)
