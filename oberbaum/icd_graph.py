@@ -176,6 +176,7 @@ class ICDGraph(ABC):
             "three_char_category": three_char_category,
             "description": description,
             "name": title,
+            "type": "code",
         }
         self.graph.add_node(code, **data, **kwargs)
 
