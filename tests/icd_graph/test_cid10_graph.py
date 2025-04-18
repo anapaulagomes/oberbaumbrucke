@@ -1,6 +1,6 @@
 import pytest
 
-from oberbaum.icd_graph import CID10Graph
+from oberbaum.icd_graph.graph import CID10Graph
 
 
 class TestCID10Graph:

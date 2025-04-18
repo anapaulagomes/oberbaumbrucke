@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import networkx as nx
 import pytest
 
-from oberbaum.icd_graph import WHOICDGraph
+from oberbaum.icd_graph.graph import WHOICDGraph
 
 
 class TestWHOICD10Graph:
@@ -249,3 +249,4 @@ class TestWHOICD10Graph:
         assert graph.predecessors("R572") == ["R57", "R50-R69", "18"]
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
+        # assert graph.predecessors("B1809") == ['B180', 'B18', 'B15-B19', '1']  # FIXME
