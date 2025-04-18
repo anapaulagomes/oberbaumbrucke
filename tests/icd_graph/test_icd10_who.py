@@ -24,7 +24,7 @@ class TestWHOICD10Graph:
         assert graph.graph.has_node("A00")
         assert graph.graph.has_node("A000")
         assert graph.graph.has_node("A001")
-        assert graph.graph.has_edge("01", "A00-A09")  # chapter - block
+        assert graph.graph.has_edge("1", "A00-A09")  # chapter - block
         assert graph.graph.has_edge("A00-A09", "A00")  # block - 3-char
         assert graph.graph.has_edge("A00", "A000")  # 3-char - 4-char
         assert graph.graph.has_edge("A00", "A001")  # 3-char - 4-char
@@ -72,7 +72,7 @@ class TestWHOICD10Graph:
         codes_per_level = graph.codes_per_level()
 
         expected = {
-            1: ["01", "02", "03", "04", "05"],
+            1: ["1", "2", "3", "4", "5"],
             2: ["A00-A09", "A15-A19"],
             3: ["A00"],
             4: ["A000", "A001", "A009"],
@@ -140,7 +140,7 @@ class TestWHOICD10Graph:
         problems (10th revision, 6th ed., Vol. 2). World Health Organization.
         """
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
-        more_than_one = ["01", "02", "19", "20"]
+        more_than_one = ["1", "2", "19", "20"]
         for chapter in graph.chapters():
             codes = graph.codes(from_chapter=chapter)
             letters = []
@@ -229,15 +229,15 @@ class TestWHOICD10Graph:
         assert len(graph.three_char_codes()) == 2050
         assert len(graph.four_char_codes()) == 10171
 
-        assert graph.predecessors("A152") == ["A15", "A15-A19", "01"]
-        assert graph.predecessors("C439") == ["C43", "C43-C44", "02"]
-        assert graph.predecessors("D561") == ["D56", "D55-D59", "03"]
-        assert graph.predecessors("E112") == ["E11", "E10-E14", "04"]
-        assert graph.predecessors("F202") == ["F20", "F20-F29", "05"]
-        assert graph.predecessors("G473") == ["G47", "G40-G47", "06"]
-        assert graph.predecessors("H251") == ["H25", "H25-H28", "07"]
-        assert graph.predecessors("H810") == ["H81", "H80-H83", "08"]
-        assert graph.predecessors("I252") == ["I25", "I20-I25", "09"]
+        assert graph.predecessors("A152") == ["A15", "A15-A19", "1"]
+        assert graph.predecessors("C439") == ["C43", "C43-C44", "2"]
+        assert graph.predecessors("D561") == ["D56", "D55-D59", "3"]
+        assert graph.predecessors("E112") == ["E11", "E10-E14", "4"]
+        assert graph.predecessors("F202") == ["F20", "F20-F29", "5"]
+        assert graph.predecessors("G473") == ["G47", "G40-G47", "6"]
+        assert graph.predecessors("H251") == ["H25", "H25-H28", "7"]
+        assert graph.predecessors("H810") == ["H81", "H80-H83", "8"]
+        assert graph.predecessors("I252") == ["I25", "I20-I25", "9"]
         assert graph.predecessors("J459") == ["J45", "J40-J47", "10"]
         assert graph.predecessors("K704") == ["K70", "K70-K77", "11"]
         assert graph.predecessors("L408") == ["L40", "L40-L45", "12"]

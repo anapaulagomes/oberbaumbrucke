@@ -9,28 +9,28 @@ from rich.text import Text
 from rich.tree import Tree
 
 ROMAN_NUMERALS = {
-    1: "I",
-    2: "II",
-    3: "III",
-    4: "IV",
-    5: "V",
-    6: "VI",
-    7: "VII",
-    8: "VIII",
-    9: "IX",
-    10: "X",
-    11: "XI",
-    12: "XII",
-    13: "XIII",
-    14: "XIV",
-    15: "XV",
-    16: "XVI",
-    17: "XVII",
-    18: "XVIII",
-    19: "XIX",
-    20: "XX",
-    21: "XXI",
-    22: "XXII",
+    "1": "I",
+    "2": "II",
+    "3": "III",
+    "4": "IV",
+    "5": "V",
+    "6": "VI",
+    "7": "VII",
+    "8": "VIII",
+    "9": "IX",
+    "10": "X",
+    "11": "XI",
+    "12": "XII",
+    "13": "XIII",
+    "14": "XIV",
+    "15": "XV",
+    "16": "XVI",
+    "17": "XVII",
+    "18": "XVIII",
+    "19": "XIX",
+    "20": "XX",
+    "21": "XXI",
+    "22": "XXII",
 }
 
 
@@ -70,20 +70,33 @@ class ICDGraph(ABC):
     def add_root_node(self):
         self.graph.add_node(self._root_node)
 
-    def add_chapter(
-        self, chapter_code, chapter_name=None, start=None, end=None, description=None
+    def add_or_update_chapter(
+        self,
+        chapter_code: str,
+        chapter_name=None,
+        start=None,
+        end=None,
+        description=None,
     ):
         data = {
-            "start": start,
-            "end": end,
+            "start": start,  # blocks start
+            "end": end,  # blocks end
             "name": chapter_name,
             "description": description,
-            "type": "chapter",
         }
+
+        chapter_code = chapter_code.lstrip("0")  # remove leading zero e.g. "01" -> "1"
+        if self._chapters.get(chapter_code):
+            # update
+            self.graph.nodes[chapter_code].update(data)
+            return chapter_code
+
+        data["type"] = "chapter"
         self.graph.add_node(chapter_code, **data)
         del data["type"]
         self._chapters[chapter_code] = data
         self.graph.add_edge(self._root_node, chapter_code)
+        return chapter_code
 
     def add_block(self, start, end, chapter_code=None, title=None):
         """Add blocks to the graph.
@@ -176,6 +189,7 @@ class ICDGraph(ABC):
             self.graph.nodes[block_name]["chapter_code"] = chapter_code
             self._blocks[block_name]["chapter_code"] = chapter_code
 
+        chapter_code = self.add_or_update_chapter(chapter_code)
         self.graph.add_edge(chapter_code, block_name)
 
     def connect_blocks(self, block, sub_block):
@@ -188,7 +202,7 @@ class ICDGraph(ABC):
             return self._chapters.items()
         codes = list(self._chapters.keys())
         if roman_numerals:
-            return [ROMAN_NUMERALS[int(code)] for code in codes]
+            return [ROMAN_NUMERALS[code] for code in codes]
         return codes
 
     def categories(self, from_block=None):
@@ -366,7 +380,7 @@ class WHOICDGraph(ICDGraph):
         chapters_file = Path(self.files_dir) / "icd102019syst_chapters.txt"
         for line in chapters_file.read_text().splitlines():
             chapter_code, chapter_name = line.split(";", 1)
-            self.add_chapter(chapter_code, chapter_name)
+            self.add_or_update_chapter(chapter_code, chapter_name)
 
     def add_blocks(self):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
@@ -410,8 +424,6 @@ class WHOICDGraph(ICDGraph):
             )
             self.connect_chapter_block(chapter, block)
 
-            # TODO update block, sub-block, chapter?
-
             if len(code) == 3:
                 self.connect_block_three_char_category(block, code)
             else:
@@ -449,7 +461,9 @@ class CID10Graph(ICDGraph):
             start = line["CATINIC"]
             end = line["CATFIM"]
             description = line["DESCRICAO"]
-            self.add_chapter(chapter_code, chapter_name, start, end, description)
+            self.add_or_update_chapter(
+                chapter_code, chapter_name, start, end, description
+            )
 
     def add_blocks(self):
         blocks_file_dir = f"{self.files_dir}/CID-10-GRUPOS.CSV"
