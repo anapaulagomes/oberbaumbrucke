@@ -79,14 +79,14 @@ class ICDGraph(ABC):
         end=None,
         description=None,
     ):
+        chapter_code = chapter_code.lstrip("0")  # remove leading zero e.g. "01" -> "1"
         data = {
             "start": start,  # blocks start
             "end": end,  # blocks end
-            "name": chapter_name,
+            "name": chapter_code,
+            "title": chapter_name,
             "description": description,
         }
-
-        chapter_code = chapter_code.lstrip("0")  # remove leading zero e.g. "01" -> "1"
         if self._chapters.get(chapter_code):
             # update chapter's data
             updated_data = {
@@ -114,7 +114,8 @@ class ICDGraph(ABC):
             "start": start,
             "end": end,
             "chapter_code": chapter_code,
-            "name": title,
+            "name": block_name,
+            "title": title,
             "description": description,
         }
 
@@ -176,7 +177,8 @@ class ICDGraph(ABC):
             "block": block,
             "three_char_category": three_char_category,
             "description": description,
-            "name": title,
+            "name": code,
+            "title": title,
             "type": "code",
         }
         self._graph.add_node(code, **data, **kwargs)
