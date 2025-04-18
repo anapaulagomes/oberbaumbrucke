@@ -10,7 +10,7 @@ class TestWHOICD10Graph:
     def test_create_who_icd10_graph(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         assert graph.version_name == "icd-10-who"
-        assert isinstance(graph.graph, nx.DiGraph)
+        assert isinstance(graph._graph, nx.DiGraph)
 
     def test_get_all_chapters(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
@@ -21,14 +21,14 @@ class TestWHOICD10Graph:
     def test_add_codes(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
 
-        assert graph.graph.has_node("A00")
-        assert graph.graph.has_node("A000")
-        assert graph.graph.has_node("A001")
-        assert graph.graph.has_edge("1", "A00-A09")  # chapter - block
-        assert graph.graph.has_edge("A00-A09", "A00")  # block - 3-char
-        assert graph.graph.has_edge("A00", "A000")  # 3-char - 4-char
-        assert graph.graph.has_edge("A00", "A001")  # 3-char - 4-char
-        assert graph.graph.has_edge("A00", "A009")  # 3-char - 4-char
+        assert graph._graph.has_node("A00")
+        assert graph._graph.has_node("A000")
+        assert graph._graph.has_node("A001")
+        assert graph._graph.has_edge("1", "A00-A09")  # chapter - block
+        assert graph._graph.has_edge("A00-A09", "A00")  # block - 3-char
+        assert graph._graph.has_edge("A00", "A000")  # 3-char - 4-char
+        assert graph._graph.has_edge("A00", "A001")  # 3-char - 4-char
+        assert graph._graph.has_edge("A00", "A009")  # 3-char - 4-char
 
     def test_get_codes(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
@@ -63,7 +63,7 @@ class TestWHOICD10Graph:
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
         blocks = graph.blocks()
 
-        code = graph.graph.nodes["A009"]
+        code = graph._graph.nodes["A009"]
         assert code["block"] == "A00-A09"
         assert "A00-A09" in blocks
 
@@ -107,7 +107,7 @@ class TestWHOICD10Graph:
     @pytest.mark.integration
     def test_handle_loops(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
-        assert list(nx.nodes_with_selfloops(graph.graph)) == []
+        assert list(nx.nodes_with_selfloops(graph._graph)) == []
 
     @pytest.mark.integration
     def test_all_codes_needs_to_start_with_a_letter(self, real_icd10_who_file_dir):
@@ -166,7 +166,7 @@ class TestWHOICD10Graph:
         """
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
 
-        code = graph.graph.nodes["A009"]
+        code = graph._graph.nodes["A009"]
         assert code["block"] == "A00-A09"
         assert len(graph.blocks()) == 263
 

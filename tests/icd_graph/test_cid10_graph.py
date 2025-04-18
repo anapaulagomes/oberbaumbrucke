@@ -21,7 +21,7 @@ class TestCID10Graph:
         assert "A15-A19" in graph.blocks()
         assert "A20-A28" in graph.blocks()
 
-        code = graph.graph.nodes["A009"]
+        code = graph._graph.nodes["A009"]
         assert code["block"] == "A00-A09"
 
     @pytest.mark.integration
@@ -134,7 +134,7 @@ class TestCID10Graph:
         )
         graph = CID10Graph(files_dir=str(tmp_path))
 
-        assert graph.graph.has_edge("T20-T32", "T20-T25")  # block and sub-blocks
-        assert graph.graph.has_edge("T20-T32", "T26-T28")
-        assert graph.graph.has_edge("T20-T32", "T29-T32")
-        assert graph.graph.has_edge("19", "T20-T32")  # chapter and block
+        assert graph._graph.has_edge("T20-T32", "T20-T25")  # block and sub-blocks
+        assert graph._graph.has_edge("T20-T32", "T26-T28")
+        assert graph._graph.has_edge("T20-T32", "T29-T32")
+        assert graph._graph.has_edge("19", "T20-T32")  # chapter and block

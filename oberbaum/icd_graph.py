@@ -40,7 +40,8 @@ class ICDGraph(ABC):
 
     files_dir: str
     version_name: str
-    graph: nx.DiGraph = field(default_factory=nx.DiGraph)
+    year: int
+    _graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _root_node: str = "root"
     _chapters: dict = field(default_factory=dict)
     _blocks: dict = field(default_factory=dict)
@@ -68,7 +69,7 @@ class ICDGraph(ABC):
         raise NotImplementedError("Version Graph class must implement this method.")
 
     def add_root_node(self):
-        self.graph.add_node(self._root_node)
+        self._graph.add_node(self._root_node)
 
     def add_or_update_chapter(
         self,
@@ -91,14 +92,14 @@ class ICDGraph(ABC):
             updated_data = {
                 key: value for key, value in data.items() if value is not None
             }
-            self.graph.nodes[chapter_code].update(updated_data)
+            self._graph.nodes[chapter_code].update(updated_data)
             return chapter_code
 
         data["type"] = "chapter"
-        self.graph.add_node(chapter_code, **data)
+        self._graph.add_node(chapter_code, **data)
         del data["type"]
         self._chapters[chapter_code] = data
-        self.graph.add_edge(self._root_node, chapter_code)
+        self._graph.add_edge(self._root_node, chapter_code)
         return chapter_code
 
     def add_or_update_block(
@@ -122,14 +123,14 @@ class ICDGraph(ABC):
             updated_data = {
                 key: value for key, value in data.items() if value is not None
             }
-            self.graph.nodes[block_name].update(updated_data)
+            self._graph.nodes[block_name].update(updated_data)
             return block_name
 
         if not all([start, end]):
             raise Exception("Cannot create block without start and end codes")
 
         data["type"] = "block"
-        self.graph.add_node(block_name, **data)
+        self._graph.add_node(block_name, **data)
         del data["type"]
         self._blocks[block_name] = data
 
@@ -158,7 +159,7 @@ class ICDGraph(ABC):
 
     def get(self, node):
         """Get the data for a given element in the graph."""
-        return self.graph.nodes[node]
+        return self._graph.nodes[node]
 
     def add_code(
         self,
@@ -178,7 +179,7 @@ class ICDGraph(ABC):
             "name": title,
             "type": "code",
         }
-        self.graph.add_node(code, **data, **kwargs)
+        self._graph.add_node(code, **data, **kwargs)
 
     def connect_blocks_sub_blocks(
         self, block_name, sub_block_name=None, chapter_code=None
@@ -203,11 +204,11 @@ class ICDGraph(ABC):
 
     def connect_block_three_char_category(self, block, three_char_category):
         """Create the edge between chapter and block."""
-        self.graph.add_edge(block, three_char_category)
+        self._graph.add_edge(block, three_char_category)
 
     def connect_three_char_category_code(self, three_char_category, code):
         """Create the edge between chapter and block."""
-        self.graph.add_edge(three_char_category, code)
+        self._graph.add_edge(three_char_category, code)
 
     def connect_chapter_block(self, chapter_code, block_name):
         """Create the edge between chapter and block.
@@ -218,11 +219,11 @@ class ICDGraph(ABC):
             block_name=block_name, chapter_code=chapter_code
         )
         chapter_code = self.add_or_update_chapter(chapter_code)
-        self.graph.add_edge(chapter_code, block_name)
+        self._graph.add_edge(chapter_code, block_name)
 
     def connect_blocks(self, block, sub_block):
         """Create the edge between block and sub-block."""
-        self.graph.add_edge(block, sub_block)
+        self._graph.add_edge(block, sub_block)
 
     def chapters(self, roman_numerals=False, data=False):
         if data:
@@ -238,18 +239,18 @@ class ICDGraph(ABC):
         for block in self.blocks():
             if from_block and block != from_block:
                 continue
-            all_categories.update(nx.descendants(self.graph, block))
+            all_categories.update(nx.descendants(self._graph, block))
         return all_categories
 
     def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
         for chapter in self.chapters():
             if from_chapter is None:  # all codes
-                all_codes.update(nx.descendants(self.graph, chapter))
+                all_codes.update(nx.descendants(self._graph, chapter))
                 continue
 
             if chapter == from_chapter:  # specific chapter
-                all_codes.update(nx.descendants(self.graph, chapter))
+                all_codes.update(nx.descendants(self._graph, chapter))
                 break
 
         # remove blocks and chapters
@@ -257,8 +258,8 @@ class ICDGraph(ABC):
             all_codes = {
                 node
                 for node in all_codes
-                if self.graph.out_degree(node) == 0
-                and self.graph.in_degree(node) == 1  # leaf
+                if self._graph.out_degree(node) == 0
+                and self._graph.in_degree(node) == 1  # leaf
             }
         return all_codes
 
@@ -268,7 +269,7 @@ class ICDGraph(ABC):
 
     def codes_per_level(self):
         if self._graph_ready and not self._levels:
-            layers = list(nx.bfs_layers(self.graph, self._root_node))
+            layers = list(nx.bfs_layers(self._graph, self._root_node))
             self._levels = {
                 level: layer for level, layer in enumerate(layers) if level != 0
             }
@@ -302,7 +303,7 @@ class ICDGraph(ABC):
 
     def export(self):
         gml_file = f"{self.version_name}.gml"
-        graph_copy = self.graph.copy()
+        graph_copy = self._graph.copy()
         graph_copy = self._from_none_to_empty(graph_copy, graph_copy.nodes(data=True))
         nx.write_gml(graph_copy, gml_file)
         return gml_file
@@ -310,7 +311,7 @@ class ICDGraph(ABC):
     def predecessors(self, node, _track=None):
         if _track is None:
             _track = []
-        result = nx.predecessor(self.graph, self._root_node, node)
+        result = nx.predecessor(self._graph, self._root_node, node)
         _track.extend(result)
 
         if not result:
@@ -400,6 +401,7 @@ class WHOICDGraph(ICDGraph):
     Guidelines: https://icd.who.int/browse10/Content/statichtml/ICD10Volume2_en_2019.pdf
     """
 
+    year: int = 2019
     version_name: str = "icd-10-who"
 
     def add_chapters(self):
@@ -467,6 +469,7 @@ class CID10Graph(ICDGraph):
     Guidelines: https://www.saude.df.gov.br/documents/37101/0/E_book_CID_10__2_.pdf
     """
 
+    year: int = 2008
     version_name: str = "cid-10-bra"
 
     def add_chapters(self):
@@ -543,7 +546,7 @@ def print_graph(graph, root_node=None):
     console = Console()
     root_node = root_node or graph._root_node
     rich_tree = Tree(Text(str(root_node), style="bold"))
-    G = graph.graph
+    G = graph._graph
 
     def add_children(parent_node, rich_parent):
         for child in G.successors(parent_node):
