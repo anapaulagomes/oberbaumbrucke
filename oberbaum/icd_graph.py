@@ -133,17 +133,6 @@ class ICDGraph(ABC):
         del data["type"]
         self._blocks[block_name] = data
 
-        # FIXME currently find the parent block, if any, connect chapter with parent block; or chapter with block
-        parent_block = self.find_parent_block(block_name)
-        if parent_block:
-            if chapter_code:
-                self.connect_chapter_block(
-                    chapter_code, parent_block
-                )  # chapter and block
-            self.connect_blocks(parent_block, block_name)  # block and sub-block
-            return block_name
-        if chapter_code:
-            self.connect_chapter_block(chapter_code, block_name)
         return block_name
 
     def find_parent_block(self, block):
@@ -190,6 +179,27 @@ class ICDGraph(ABC):
         }
         self.graph.add_node(code, **data, **kwargs)
 
+    def connect_blocks_sub_blocks(
+        self, block_name, sub_block_name=None, chapter_code=None
+    ):
+        """Create the edge between block and sub-block.
+
+        Not all blocks have sub-blocks, so this method is optional. And even if they have it,
+        sometimes they are not explicitly connected in the file.
+        """
+        if block_name and sub_block_name:
+            self.connect_blocks(block_name, sub_block_name)
+        elif block_name and not sub_block_name:
+            # we assume that the block is missing its parent
+            parent_block = self.find_parent_block(block_name)
+            if parent_block:
+                self.connect_blocks(parent_block, block_name)  # block and sub-block
+                if chapter_code:
+                    # given that the block is missing its parent, we need to connect the chapter with the block
+                    self.connect_chapter_block(chapter_code, parent_block)
+                return parent_block, block_name
+        return block_name, sub_block_name
+
     def connect_block_three_char_category(self, block, three_char_category):
         """Create the edge between chapter and block."""
         self.graph.add_edge(block, three_char_category)
@@ -210,9 +220,8 @@ class ICDGraph(ABC):
         self.graph.add_edge(chapter_code, block_name)
 
     def connect_blocks(self, block, sub_block):
-        """Create the edge between chapter and block."""
+        """Create the edge between block and sub-block."""
         self.graph.add_edge(block, sub_block)
-        self._blocks[sub_block]["main_block"] = block
 
     def chapters(self, roman_numerals=False, data=False):
         if data:
@@ -403,7 +412,8 @@ class WHOICDGraph(ICDGraph):
         blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
         for line in blocks_file.read_text().splitlines():
             start, end, chapter_code, title = line.split(";")
-            self.add_or_update_block(start, end, chapter_code, title)
+            block_name = self.add_or_update_block(start, end, chapter_code, title)
+            self.connect_chapter_block(chapter_code, block_name)
 
     def add_codes(self):
         """Add all codes to the graph.
@@ -439,19 +449,11 @@ class WHOICDGraph(ICDGraph):
                 title,
                 **extra_data,
             )
-            self.connect_chapter_block(chapter, block)
 
             if len(code) == 3:
                 self.connect_block_three_char_category(block, code)
             else:
                 self.connect_three_char_category_code(three_char_category, code)
-
-
-def get_graph(version: str, files_dir: str) -> ICDGraph:
-    subclasses = {
-        subclass.version_name: subclass for subclass in ICDGraph.__subclasses__()
-    }
-    return subclasses[version](files_dir=files_dir)
 
 
 @dataclass
@@ -491,7 +493,8 @@ class CID10Graph(ICDGraph):
             start = line["CATINIC"]
             end = line["CATFIM"]
             title = line["DESCRABREV"]
-            self.add_or_update_block(start, end, title=title)
+            block_name = self.add_or_update_block(start, end, title=title)
+            self.connect_blocks_sub_blocks(block_name)
 
     def add_codes(self):
         """Add all codes to the graph."""
@@ -504,28 +507,27 @@ class CID10Graph(ICDGraph):
             code = line["SUBCAT"]
             description = line["DESCRICAO"]
             title = line["DESCRABREV"]
-            chapter = self.find_chapter(code)
+            chapter_code = self.find_chapter(code)
             blocks = self.find_block(code, include_subblocks=True)
             block = blocks[0]
-            sub_block = block
+            sub_block = None
             if len(blocks) > 1:
                 sub_block = blocks[1]
             three_char_category = code[:3]  # also from CID-10-CATEGORIAS.CSV
 
-            # TODO let each item have its own data
-
             self.add_code(
                 code,
-                chapter,
-                block,
+                chapter_code,
+                sub_block or block,
                 three_char_category,
                 description,
                 title,
-                sub_block=sub_block,
             )
-            self.connect_chapter_block(chapter, block)
-            # block and sub-block are already connected due to groups' file structure
-            self.connect_block_three_char_category(sub_block, three_char_category)
+
+            self.connect_chapter_block(chapter_code, block)
+            self.connect_block_three_char_category(
+                sub_block or block, three_char_category
+            )
             self.connect_three_char_category_code(three_char_category, code)
 
 
@@ -551,3 +553,10 @@ def print_graph(graph, root_node=None):
 
     add_children(root_node, rich_tree)
     console.print(rich_tree)
+
+
+def get_graph(version: str, files_dir: str) -> ICDGraph:
+    subclasses = {
+        subclass.version_name: subclass for subclass in ICDGraph.__subclasses__()
+    }
+    return subclasses[version](files_dir=files_dir)
