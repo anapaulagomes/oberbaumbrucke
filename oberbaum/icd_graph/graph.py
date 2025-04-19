@@ -579,8 +579,6 @@ def get_graph(
 def from_none_to_empty(a_graph, root_node, data_dict):
     """Convert all None values to empty strings in a dictionary."""
     for item, data in data_dict:
-        if item == root_node:
-            continue
         for key, value in data.items():
             if value is None:
                 data[key] = ""
