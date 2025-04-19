@@ -30,3 +30,6 @@ dev = [
 markers = [
     "integration: marks tests that will need to download files from the internet",
 ]
+
+[tool.isort]
+profile = "black"
