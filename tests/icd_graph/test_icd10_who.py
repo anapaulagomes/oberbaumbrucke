@@ -226,7 +226,7 @@ class TestWHOICD10Graph:
 
         assert len(graph.chapters()) == 22
         assert len(graph.blocks()) == 263
-        assert len(graph.three_char_codes()) == 2050
+        assert len(graph.three_char_codes()) == 2050  # TODO improve api
         assert len(graph.four_char_codes()) == 10167
 
         assert graph.predecessors("A152") == ["A15", "A15-A19", "1"]

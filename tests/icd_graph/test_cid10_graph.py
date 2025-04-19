@@ -69,12 +69,23 @@ class TestCID10Graph:
 
     def test_codes(self, cid10_bra_file_dir):
         graph = CID10Graph(files_dir=cid10_bra_file_dir)
-        expected = {"A009", "A00", "A00-A09", "A01", "A010", "A001", "A000"}
+        expected = {
+            "A009",
+            "A00",
+            "A04",
+            "A02",
+            "A03",
+            "A00-A09",
+            "A01",
+            "A010",
+            "A001",
+            "A000",
+        }
         codes = graph.codes(exclude_3_char=False)
 
         assert codes == expected
 
-        expected = {"A009", "A001", "A010", "A000"}
+        expected = {"A009", "A001", "A010", "A000", "A04", "A02", "A03"}
         codes = graph.codes(exclude_3_char=True)
 
         assert codes == expected

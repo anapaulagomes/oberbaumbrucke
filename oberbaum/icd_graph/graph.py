@@ -168,6 +168,7 @@ class ICDGraph(ABC):
             "name": code,
             "title": title,
             "type": "code",
+            "category": len(code),
         }
 
         updated_data = {key: value for key, value in data.items() if value is not None}
@@ -227,13 +228,6 @@ class ICDGraph(ABC):
         """Create the edge between chapter and block."""
         self._graph.add_edge(block, three_char_category)
 
-    def connect_code_to_code(self, a_code, next_code):
-        """Create the edge between chapter and block."""
-        if a_code == next_code:
-            return
-
-        self._graph.add_edge(a_code, next_code)
-
     def connect_chapter_block(self, chapter_code, block_name):
         """Create the edge between chapter and block.
 
@@ -288,10 +282,12 @@ class ICDGraph(ABC):
         return all_codes
 
     def levels(self):
+        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
         layers = self.codes_per_level()
         return {level: len(layer) for level, layer in layers.items()}
 
     def codes_per_level(self):
+        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
         if self._graph_ready and not self._levels:
             layers = list(nx.bfs_layers(self._graph, self._root_node))
             self._levels = {
@@ -320,9 +316,11 @@ class ICDGraph(ABC):
         return f"{description} ({node})"
 
     def three_char_codes(self):
+        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
         return self.codes_per_level()[3]
 
     def four_char_codes(self):
+        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
         return self.codes_per_level()[4]
 
     def export(self):
@@ -413,7 +411,7 @@ class ICDGraph(ABC):
         if len(previous_code) >= 3:
             current_code = self.add_or_update_code(current_code)
             previous_code = self.add_or_update_code(previous_code)
-            self.connect_code_to_code(previous_code, current_code)
+            self._graph.add_edge(previous_code, current_code)
             return self.connect_codes_recursively(previous_code)
         return current_code
 
@@ -545,7 +543,7 @@ class CID10Graph(ICDGraph):
                 sub_block = blocks[1]
             classification = line["CLASSIF"]
             extra_data = {"classification": classification}
-            self.add_or_update_code(
+            code = self.add_or_update_code(
                 code,
                 chapter_code,
                 sub_block or block,
@@ -553,6 +551,8 @@ class CID10Graph(ICDGraph):
                 title=title,
                 **extra_data,
             )
+            self.connect_chapter_block(chapter_code, block)
+            self.connect_block_three_char_category(sub_block or block, code)
 
         codes_file_dir = f"{self.files_dir}/CID-10-SUBCATEGORIAS.CSV"
         reader = csv.DictReader(
@@ -569,22 +569,16 @@ class CID10Graph(ICDGraph):
             sub_block = None
             if len(blocks) > 1:
                 sub_block = blocks[1]
-            three_char_category = code[:3]  # from CID-10-CATEGORIAS.CSV
 
             self.add_or_update_code(
                 code,
                 chapter_code,
                 sub_block or block,
-                three_char_category,
-                description,
-                title,
+                description=description,
+                title=title,
             )
 
-            self.connect_chapter_block(chapter_code, block)
-            self.connect_block_three_char_category(
-                sub_block or block, three_char_category
-            )
-            self.connect_code_to_code(three_char_category, code)
+            self.connect_codes_recursively(code)
 
 
 def print_graph(graph, root_node=None):

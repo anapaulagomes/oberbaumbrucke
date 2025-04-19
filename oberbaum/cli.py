@@ -23,19 +23,14 @@ def create(version: str, icd_files_dir: str, export: bool = False):
     graph = get_graph(version, icd_files_dir)
 
     tree = Tree(graph.version_name)
-    levels = graph.levels()
-    tree.add(
-        f"[gold3] 1. Chapters ({levels[1]}): [/gold3] {summary(graph.chapters(roman_numerals=True))}"
-    )
-    tree.add(f"[gold3] 2. Blocks ({levels[2]}): [/gold3] {summary(graph.blocks())}")
-    tree.add(
-        f"[gold3] 3. Three-character categories ({levels[3]}): [/gold3] {summary(graph.three_char_codes())}"
-    )
-    tree.add(
-        f"[gold3] 4. Four-character categories ({levels[4]}): [/gold3] {summary(graph.four_char_codes())}"
-    )
+    chapters = graph.chapters(roman_numerals=True)
+    blocks = graph.blocks()
+    all_codes = list(graph.categories())
+    tree.add(f"[gold3] Chapters ({len(chapters)}): [/gold3] {summary(chapters)}")
+    tree.add(f"[gold3] Blocks ({len(blocks)}): [/gold3] {summary(blocks)}")
+    tree.add(f"[gold3] Codes ({len(all_codes)}) [/gold3] {summary(all_codes)}")
+    tree.add(f"All nodes ({len(graph._graph.nodes)})")
     console.print(tree)
-    console.print(f"\nNr. of codes: {len(graph.categories())}")
 
     if export:
         export_path = graph.export()
