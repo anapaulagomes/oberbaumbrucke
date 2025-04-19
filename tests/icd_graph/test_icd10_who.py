@@ -174,7 +174,7 @@ class TestWHOICD10Graph:
     def test_levels_with_real_file(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
         levels = graph.levels()
-        expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10171}
+        expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10167, 5: 4}
 
         assert levels == expected_levels
 
@@ -227,9 +227,10 @@ class TestWHOICD10Graph:
         assert len(graph.chapters()) == 22
         assert len(graph.blocks()) == 263
         assert len(graph.three_char_codes()) == 2050
-        assert len(graph.four_char_codes()) == 10171
+        assert len(graph.four_char_codes()) == 10167
 
         assert graph.predecessors("A152") == ["A15", "A15-A19", "1"]
+        assert graph.predecessors("B1809") == ["B180", "B18", "B15-B19", "1"]
         assert graph.predecessors("C439") == ["C43", "C43-C44", "2"]
         assert graph.predecessors("D561") == ["D56", "D55-D59", "3"]
         assert graph.predecessors("E112") == ["E11", "E10-E14", "4"]
@@ -249,4 +250,3 @@ class TestWHOICD10Graph:
         assert graph.predecessors("R572") == ["R57", "R50-R69", "18"]
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
-        # assert graph.predecessors("B1809") == ['B180', 'B18', 'B15-B19', '1']  # FIXME

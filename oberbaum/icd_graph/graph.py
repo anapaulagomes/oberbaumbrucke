@@ -150,6 +150,33 @@ class ICDGraph(ABC):
 
         return block_name
 
+    def add_or_update_code(
+        self,
+        code,
+        chapter=None,
+        block=None,
+        three_char_category=None,
+        description=None,
+        title=None,
+        **kwargs,
+    ):
+        data = {
+            "chapter": chapter,
+            "block": block,
+            "three_char_category": three_char_category,
+            "description": description,
+            "name": code,
+            "title": title,
+            "type": "code",
+        }
+
+        updated_data = {key: value for key, value in data.items() if value is not None}
+        if self._graph.nodes.get(code):
+            self._graph.nodes[code].update(updated_data)
+        else:
+            self._graph.add_node(code, **data, **kwargs)
+        return code
+
     def find_parent_block(self, block):
         """Find the parent of a given block.
 
@@ -174,27 +201,6 @@ class ICDGraph(ABC):
     def get(self, node):
         """Get the data for a given element in the graph."""
         return self._graph.nodes[node]
-
-    def add_code(
-        self,
-        code,
-        chapter=None,
-        block=None,
-        three_char_category=None,
-        description=None,
-        title=None,
-        **kwargs,
-    ):
-        data = {
-            "chapter": chapter,
-            "block": block,
-            "three_char_category": three_char_category,
-            "description": description,
-            "name": code,
-            "title": title,
-            "type": "code",
-        }
-        self._graph.add_node(code, **data, **kwargs)
 
     def connect_blocks_sub_blocks(
         self, block_name, sub_block_name=None, chapter_code=None
@@ -221,9 +227,12 @@ class ICDGraph(ABC):
         """Create the edge between chapter and block."""
         self._graph.add_edge(block, three_char_category)
 
-    def connect_three_char_category_code(self, three_char_category, code):
+    def connect_code_to_code(self, a_code, next_code):
         """Create the edge between chapter and block."""
-        self._graph.add_edge(three_char_category, code)
+        if a_code == next_code:
+            return
+
+        self._graph.add_edge(a_code, next_code)
 
     def connect_chapter_block(self, chapter_code, block_name):
         """Create the edge between chapter and block.
@@ -398,6 +407,16 @@ class ICDGraph(ABC):
 
         return found
 
+    def connect_codes_recursively(self, current_code):
+        """Connect the code with its upper levels code, if they exist."""
+        previous_code = current_code[0 : len(current_code) - 1]
+        if len(previous_code) >= 3:
+            current_code = self.add_or_update_code(current_code)
+            previous_code = self.add_or_update_code(previous_code)
+            self.connect_code_to_code(previous_code, current_code)
+            return self.connect_codes_recursively(previous_code)
+        return current_code
+
 
 @dataclass
 class WHOICDGraph(ICDGraph):
@@ -443,7 +462,7 @@ class WHOICDGraph(ICDGraph):
         codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
-            code = fields[7]  # 3 or 4 char category
+            code = fields[7]  # 3, 4 or 5 char category
             three_char_category = code[:3]
             block = self.find_block(three_char_category)
             chapter = fields[3]
@@ -451,7 +470,7 @@ class WHOICDGraph(ICDGraph):
             title = fields[9]
             extra_data = {"subtitle": fields[10], "formatted_code": fields[5]}
 
-            self.add_code(
+            self.add_or_update_code(
                 code,
                 chapter,
                 block,
@@ -461,10 +480,10 @@ class WHOICDGraph(ICDGraph):
                 **extra_data,
             )
 
-            if len(code) == 3:
+            if fields[0] == "3":
                 self.connect_block_three_char_category(block, code)
             else:
-                self.connect_three_char_category_code(three_char_category, code)
+                self.connect_codes_recursively(code)
 
 
 @dataclass
@@ -527,7 +546,7 @@ class CID10Graph(ICDGraph):
                 sub_block = blocks[1]
             three_char_category = code[:3]  # also from CID-10-CATEGORIAS.CSV
 
-            self.add_code(
+            self.add_or_update_code(
                 code,
                 chapter_code,
                 sub_block or block,
@@ -540,7 +559,7 @@ class CID10Graph(ICDGraph):
             self.connect_block_three_char_category(
                 sub_block or block, three_char_category
             )
-            self.connect_three_char_category_code(three_char_category, code)
+            self.connect_code_to_code(three_char_category, code)
 
 
 def print_graph(graph, root_node=None):
