@@ -124,6 +124,12 @@ class TestCID10Graph:
             "NUMCAP;CATINIC;CATFIM;DESCRICAO;DESCRABREV;\n"
             "19;S00;T98;Capítulo XIX - Lesões, envenenamento e algumas outras conseqüências de causas externas;XIX. Lesões enven e alg out conseq causas externas;\n"
         )
+        categories_file = tmp_path / "CID-10-CATEGORIAS.CSV"
+        categories_file.write_text(
+            "CAT;CLASSIF;DESCRICAO;DESCRABREV;REFER;EXCLUIDOS;\n"
+            "T20;;Queimadura e corrosão da cabeça e pescoço;T20   Queim e corrosao da cabeca e pescoco;;;\n"
+            "T21;;Queimadura e corrosão do tronco;T21   Queim e corrosao do tronco;;;\n"
+        )
         subcategories_file = tmp_path / "CID-10-SUBCATEGORIAS.CSV"
         subcategories_file.write_text(
             "SUBCAT;CLASSIF;RESTRSEXO;CAUSAOBITO;DESCRICAO;DESCRABREV;REFER;EXCLUIDOS;\n"

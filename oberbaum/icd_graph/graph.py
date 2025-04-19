@@ -529,6 +529,31 @@ class CID10Graph(ICDGraph):
 
     def add_codes(self):
         """Add all codes to the graph."""
+        categories_file_dir = f"{self.files_dir}/CID-10-CATEGORIAS.CSV"
+        reader = csv.DictReader(
+            open(categories_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
+        )
+        for line in reader:
+            code = line["CAT"]
+            description = line["DESCRICAO"]
+            title = line["DESCRABREV"]
+            chapter_code = self.find_chapter(code)
+            blocks = self.find_block(code, include_subblocks=True)
+            block = blocks[0]
+            sub_block = None
+            if len(blocks) > 1:
+                sub_block = blocks[1]
+            classification = line["CLASSIF"]
+            extra_data = {"classification": classification}
+            self.add_or_update_code(
+                code,
+                chapter_code,
+                sub_block or block,
+                description=description,
+                title=title,
+                **extra_data,
+            )
+
         codes_file_dir = f"{self.files_dir}/CID-10-SUBCATEGORIAS.CSV"
         reader = csv.DictReader(
             open(codes_file_dir, "r", encoding="iso-8859-1"), delimiter=";"
@@ -544,7 +569,7 @@ class CID10Graph(ICDGraph):
             sub_block = None
             if len(blocks) > 1:
                 sub_block = blocks[1]
-            three_char_category = code[:3]  # also from CID-10-CATEGORIAS.CSV
+            three_char_category = code[:3]  # from CID-10-CATEGORIAS.CSV
 
             self.add_or_update_code(
                 code,
