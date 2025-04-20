@@ -20,7 +20,7 @@ oberbaum graph create cid-10-bra data/CID10CSV
 Finding the CM code corresponding to the GM code:
 
 ```bash
-oberbaum match "icd-10-gm" "icd-10-cm" --output "icd-10-gm___icd-10-cm.csv"
+oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --output "icd-10-who___cid-10-bra.csv"
 ```
 
 ## Development
