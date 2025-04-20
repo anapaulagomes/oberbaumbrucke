@@ -1,37 +1,68 @@
 import csv
 
+from sentence_transformers import SentenceTransformer, util
+
+model = SentenceTransformer("BAAI/bge-m3")
+
+
+# TODO add it to the graph?
+def encode_icd_descriptions(sentences):
+    return model.encode(sentences, convert_to_tensor=True)
+
+
+def semantically_similar(label_a, label_b, threshold=0.8):
+    """
+    Check if two labels are semantically similar.
+    """
+    score = None
+    if all([label_a, label_b]) is False:
+        return False, score
+    a_graph_embeddings = encode_icd_descriptions(
+        label_a
+    )  # this might be slow # TODO warn the user
+    another_graph_embeddings = encode_icd_descriptions(label_b)
+    hits = util.semantic_search(
+        another_graph_embeddings, a_graph_embeddings, score_function=util.dot_score
+    )
+    for hit in hits:
+        # [{'corpus_id': 0, 'score': 0.47366422414779663}]
+        score = hit[0]["score"]
+        if score > threshold:
+            return True, score
+    return False, score
+
 
 def match_codes(a_graph, another_graph):
+    """
+    Compare two graphs and find matches based on the code and description.
+    :param a_graph: a graph in which we want to find matches.
+    :param another_graph: a graph with the match options available.
+    :return:
+    """
     result = []
-    summary = {}
+    summary = {
+        a_graph.version_name: (f"{a_graph.version_name} ({len(a_graph._graph.nodes)})"),
+        another_graph.version_name: (
+            f"{another_graph.version_name} ({len(another_graph._graph.nodes)})"
+        ),
+    }
 
-    if len(a_graph._graph.nodes) > len(another_graph._graph.nodes):
-        bigger_graph = a_graph
-        smaller_graph = another_graph
-    else:
-        bigger_graph = another_graph
-        smaller_graph = a_graph
-
-    summary["smaller_graph"] = (
-        f"{smaller_graph.version_name} ({len(smaller_graph._graph.nodes)})"
-    )
-    summary["bigger_graph"] = (
-        f"{smaller_graph.version_name} ({len(bigger_graph._graph.nodes)})"
-    )
-
-    for s_node, s_data in smaller_graph._graph.nodes(data=True):
-        potential_b_node = bigger_graph._graph.nodes.get(s_node, {})
+    for s_node, s_data in a_graph._graph.nodes(data=True):
+        potential_b_node = another_graph._graph.nodes.get(s_node, {})
         is_match = False
         match_type = None
+        notes = ""
         try:
             if potential_b_node:
                 if s_data["name"] == potential_b_node["name"]:  # code's comparison
-                    similar_description = semantically_similar(
+                    is_similar_description, score = semantically_similar(
                         s_data["description"], potential_b_node["description"]
                     )
                     match_type = "exact_code"
                     is_match = True
-                    if similar_description:  # TODO will become one
+                    notes = score
+                    # TODO match only codes?
+                    if is_similar_description:
                         match_type = "match_code_and_description"
                         is_match = True
                     summary[match_type] = summary.get(match_type, 0) + 1
@@ -42,10 +73,11 @@ def match_codes(a_graph, another_graph):
 
         result.append(
             {
-                f"{smaller_graph.version_name}__code": s_data.get("name"),
-                f"{bigger_graph.version_name}__code": potential_b_node.get("name"),
+                f"{a_graph.version_name}__code": s_data.get("name"),
+                f"{another_graph.version_name}__code": potential_b_node.get("name"),
                 "is_match": is_match,
                 "match_type": match_type,
+                "notes": notes,
             }
         )
 
@@ -62,11 +94,3 @@ def export_matches(matches, output):
 
         writer.writeheader()
         writer.writerows(matches)
-
-
-def semantically_similar(label_a, label_b, threshold=0.8):
-    """
-    Check if two labels are semantically similar.
-    """
-    # TODO
-    return len(label_a) == len(label_b)
