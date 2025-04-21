@@ -20,7 +20,9 @@ class TestGetGraph:
         assert graph.version_name == version
 
     def test_graph_class_from_graph_file(self):
-        graph = get_graph("cid-10-bra", gml_filepath="subgraph_B180_cid10.gml")
+        graph = get_graph(
+            "cid-10-bra", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
+        )
         assert isinstance(graph, CID10Graph)
 
 
