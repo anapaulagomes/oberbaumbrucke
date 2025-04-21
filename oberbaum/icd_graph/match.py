@@ -45,34 +45,38 @@ def match_codes(a_graph, another_graph):
     for a_graph_node, a_graph_data in track(
         a_graph._graph.nodes(data=True), description="Comparing versions..."
     ):
-        found_node = another_graph._graph.nodes.get(a_graph_node, {})
         is_match = False
-        match_type = None
         score = None
+        found_node = {}
+        if a_graph_node == a_graph._root_node:
+            continue
+
         try:
+            found_node = another_graph._graph.nodes[a_graph_node]
+        except KeyError:  # if the node is not found in the other graph
+            match_stage = "not_found"
+        else:
             if found_node:
                 if a_graph_data["name"] == found_node["name"]:  # code's comparison
                     is_similar_description, score = semantically_similar(
                         a_graph_data["embeddings"], found_node["embeddings"]
                     )
-                    match_type = "exact_code"
+                    match_stage = "exact_code"
                     if is_similar_description:
-                        match_type = "match_code_and_description"
+                        match_stage = "match_code_and_description"
                         is_match = True
                 else:
-                    match_type = "different_code"
-                summary[match_type] = summary.get(match_type, 0) + 1
+                    match_stage = "different_code"
             else:
-                summary["missing_data"] = summary.get(match_type, 0) + 1
-        except KeyError:  # if the node is not found in the bigger graph
-            summary["not_found"] = summary.get(match_type, 0) + 1
+                match_stage = "missing_data"
+        summary[match_stage] = summary.get(match_stage, 0) + 1
 
         result.append(
             {
                 f"{a_graph.version_name}__code": a_graph_data.get("name"),
-                f"{another_graph.version_name}__code": found_node.get("name"),
+                f"{another_graph.version_name}__code": found_node.get("name", None),
                 "is_match": is_match,
-                "match_type": match_type,
+                "match_type": match_stage,
                 "description_score": score,
             }
         )
