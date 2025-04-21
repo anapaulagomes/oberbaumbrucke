@@ -10,7 +10,7 @@ def encode_icd_descriptions(sentences):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.8):
+def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.7):
     """
     Check if two labels are semantically similar.
     """
