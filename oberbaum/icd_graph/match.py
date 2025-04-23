@@ -3,10 +3,8 @@ import csv
 from rich.progress import Progress, SpinnerColumn, TextColumn, track
 from sentence_transformers import SentenceTransformer, util
 
-model = SentenceTransformer("BAAI/bge-m3")
 
-
-def encode_icd_descriptions(sentences):
+def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
@@ -15,7 +13,7 @@ def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold
     Check if two labels are semantically similar.
     """
     score = None
-    hits = util.semantic_search(
+    hits = util.semantic_search(  # TODO use top_k = 1
         another_graph_embeddings, a_graph_embeddings, score_function=util.dot_score
     )
     for hit in hits:
@@ -26,21 +24,23 @@ def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold
     return False, score
 
 
-def match_codes(a_graph, another_graph):
+def match_codes(a_graph, another_graph, model_name):
     """
     Compare two graphs and find matches based on the code and description.
+    :param model_name: model name following HuggingFace / SentenceTransformer convention.
     :param a_graph: a graph in which we want to find matches.
     :param another_graph: a graph with the match options available.
     :return:
     """
+    model = SentenceTransformer(model_name)
     result = []
     summary = {
         a_graph.version_name: len(a_graph._graph.nodes),
         another_graph.version_name: len(another_graph._graph.nodes),
     }
 
-    a_graph = set_embeddings_from_descriptions(a_graph)
-    another_graph = set_embeddings_from_descriptions(another_graph)
+    a_graph = set_embeddings_from_descriptions(a_graph, model)
+    another_graph = set_embeddings_from_descriptions(another_graph, model)
 
     for a_graph_node, a_graph_data in track(
         a_graph._graph.nodes(data=True), description="Comparing versions..."
@@ -74,17 +74,21 @@ def match_codes(a_graph, another_graph):
         result.append(
             {
                 f"{a_graph.version_name}__code": a_graph_data.get("name"),
-                f"{another_graph.version_name}__code": found_node.get("name", None),
+                f"{another_graph.version_name}__code": found_node.get("name"),
                 "is_match": is_match,
                 "match_type": match_stage,
                 "description_score": score,
+                f"{a_graph.version_name}__description": a_graph_data.get("description"),
+                f"{another_graph.version_name}__description": found_node.get(
+                    "description"
+                ),
             }
         )
 
     return summary, result
 
 
-def set_embeddings_from_descriptions(graph):
+def set_embeddings_from_descriptions(graph, model):
     """Get the embeddings for all descriptions in the graph."""
     with Progress(
         SpinnerColumn(),
@@ -98,7 +102,7 @@ def set_embeddings_from_descriptions(graph):
             descriptions.append(data.get("description", ""))
 
         progress.add_task(description="Getting embeddings...", total=None)
-        embeddings = encode_icd_descriptions(descriptions)
+        embeddings = encode_icd_descriptions(descriptions, model)
 
         progress.add_task(description="Storing embeddings...", total=None)
         for index, (node, data) in enumerate(graph._graph.nodes(data=True)):

@@ -44,15 +44,17 @@ def match(
     other_version: str,
     other_gml_filepath: str,
     output: str = None,
+    model: str = "BAAI/bge-m3",
 ):
     if not output:
         version = version.lower()
         other_version = other_version.lower()
-        output = f"{version}___{other_version}.csv"
+        model_name = model[model.find("/") + 1 :]
+        output = f"{version}___{other_version}__{model_name}.csv"
     graph = get_graph(version, gml_filepath=version_gml_filepath)
     other_graph = get_graph(other_version, gml_filepath=other_gml_filepath)
 
-    matches_summary, matches = match_codes(graph, other_graph)
+    matches_summary, matches = match_codes(graph, other_graph, model)
     export_matches(matches, output)
     console.print(matches_summary)
     console.print(f"Matches exported to {output}")

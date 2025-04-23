@@ -122,7 +122,9 @@ class ICDGraph(ABC):
 
         If the chapter code is provided, it will be used to create the edge between chapter and block."""
         block_name = block_name or self.block_name(start, end)
-        description = self.block_description(block_name, title)
+        description = self.block_description(
+            block_name, title
+        )  # FIXME title is none = description is none
         data = {
             "start": start,
             "end": end,
