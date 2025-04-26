@@ -1,6 +1,8 @@
 import pytest
 
-from oberbaum.icd_graph.graph import CID10Graph, ICDGraph, WHOICDGraph, get_graph
+from oberbaum.icd_graph.graphs.base import ICDGraph, get_graph
+from oberbaum.icd_graph.graphs.brazil import CID10Graph
+from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
 
 class TestGetGraph:

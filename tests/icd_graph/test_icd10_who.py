@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import networkx as nx
 import pytest
 
-from oberbaum.icd_graph.graph import WHOICDGraph
+from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
 
 class TestWHOICD10Graph:
