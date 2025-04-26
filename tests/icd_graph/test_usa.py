@@ -35,7 +35,7 @@ class TestICD10CMGraph:
     def test_levels(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
         levels = graph.levels()
-        expected_levels = {1: 22, 2: 2, 3: 1, 4: 3}
+        expected_levels = {1: 22, 2: 288, 3: 1, 4: 3}
 
         assert levels == expected_levels
 
@@ -43,7 +43,7 @@ class TestICD10CMGraph:
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
         blocks = graph.blocks()
 
-        assert blocks is not None
+        assert len(blocks) == 288
 
     @pytest.mark.skip("API needs to be fixed first")
     def test_three_char_codes(self, real_icd10_cm_file_dir):
@@ -131,7 +131,7 @@ class TestICD10CMGraph:
 
         code = graph.get("A009")
         assert code["block"] == "A00-A09"
-        assert len(graph.blocks()) == 263
+        assert len(graph.blocks()) == 288
 
     def test_return_chapters_in_roman_numerals(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
@@ -166,7 +166,7 @@ class TestICD10CMGraph:
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
 
         assert len(graph.chapters()) == 22
-        assert len(graph.blocks()) == 0
+        assert len(graph.blocks()) == 288
         assert len(graph.codes()) == 2050  # TODO improve api
 
         assert graph.predecessors("A152") == ["A15", "A15-A19", "1"]
