@@ -54,82 +54,28 @@ def match(
         other_version = other_version.lower()
         model_name = model.split("/")[-1]
         output = f"artifacts/{version}___{other_version}__{model_name}.csv"
-    
-    console.print(f"[bold green]Loading graphs...[/bold green]")
+
+    console.print("[bold green]Loading graphs...[/bold green]")
     graph = get_graph(version, gml_filepath=version_gml_filepath)
     other_graph = get_graph(other_version, gml_filepath=other_gml_filepath)
 
-    console.print(f"[bold green]Using model: {model} with threshold: {threshold}[/bold green]")
-    matches_summary, matches = match_codes(graph, other_graph, model, threshold=threshold)
+    console.print(
+        f"[bold green]Using model: {model} with threshold: {threshold}[/bold green]"
+    )
+    matches_summary, matches = match_codes(
+        graph, other_graph, model, threshold=threshold
+    )
 
     export_matches(matches, output)
 
     console.print("\n[bold yellow]Match Summary:[/bold yellow]")
     for key, value in matches_summary.items():
         console.print(f"  {key}: {value}")
-    
-    console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
-    console.print("\nResults also tracked in MLflow. Use 'mlflow ui --port 8080' to view.")
-    
-@graph_app.command()
-def compare_models(
-    version: str,
-    version_gml_filepath: str,
-    other_version: str,
-    other_gml_filepath: str,
-    models: list[str] = ["BAAI/bge-m3", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"],
-    thresholds: list[float] = [0.6, 0.7, 0.8],
-):
-    """
-    Compare multiple embedding models for matching ICD codes.
-    
-    Args:
-        version: First graph version name
-        version_gml_filepath: Path to first graph GML file
-        other_version: Second graph version name
-        other_gml_filepath: Path to second graph GML file
-        models: List of sentence transformer model names
-        thresholds: List of similarity thresholds to test
-    """
-    console.print(f"[bold green]Loading graphs...[/bold green]")
-    graph = get_graph(version, gml_filepath=version_gml_filepath)
-    other_graph = get_graph(other_version, gml_filepath=other_gml_filepath)
 
-    results = []
-    
-    for model_name in models:
-        for threshold in thresholds:
-            console.print(f"[bold green]Testing model: {model_name} with threshold: {threshold}[/bold green]")
-            
-            # Generate output path
-            model_short_name = model_name.split("/")[-1]
-            output = f"artifacts/{version}___{other_version}__{model_short_name}_{threshold}.csv"
-            
-            # Run matching
-            matches_summary, matches = match_codes(graph, other_graph, model_name, threshold=threshold)
-            export_matches(matches, output)
-            
-            # Store summary for comparison
-            matches_count = sum(1 for match in matches if match["is_match"])
-            results.append({
-                "model": model_name,
-                "threshold": threshold,
-                "matches": matches_count,
-                "total": len(matches),
-                "output_file": output
-            })
-    
-    # Display comparison table
-    console.print("\n[bold yellow]Model Comparison:[/bold yellow]")
-    for result in results:
-        match_percent = (result["matches"] / result["total"]) * 100 if result["total"] > 0 else 0
-        console.print(f"  Model: {result['model']}")
-        console.print(f"    Threshold: {result['threshold']}")
-        console.print(f"    Matches: {result['matches']}/{result['total']} ({match_percent:.2f}%)")
-        console.print(f"    Output: {result['output_file']}")
-        console.print()
-    
-    console.print("Results tracked in MLflow. Use 'mlflow ui --port 8080' to view detailed metrics.")
+    console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
+    console.print(
+        "\nResults also tracked in MLflow. Use 'mlflow ui --port 8080' to view."
+    )
 
 
 if __name__ == "__main__":
