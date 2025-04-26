@@ -430,10 +430,13 @@ class WHOICDGraph(ICDGraph):
 
     year: int = 2019
     version_name: str = "icd-10-who"
+    _chapters_filename: str = "icd102019syst_chapters.txt"
+    _block_filename: str = "icd102019syst_groups.txt"
+    _codes_filename: str = "icd102019syst_codes.txt"
 
     def add_chapters(self):
         """The instructions mention 21 chapters but the file has 22."""
-        chapters_file = Path(self.files_dir) / "icd102019syst_chapters.txt"
+        chapters_file = Path(self.files_dir) / self._chapters_filename
         for line in chapters_file.read_text().splitlines():
             chapter_code, chapter_name = line.split(";", 1)
             self.add_or_update_chapter(
@@ -441,7 +444,7 @@ class WHOICDGraph(ICDGraph):
             )
 
     def add_blocks(self):
-        blocks_file = Path(self.files_dir) / "icd102019syst_groups.txt"
+        blocks_file = Path(self.files_dir) / self._block_filename
         for line in blocks_file.read_text().splitlines():
             start, end, chapter_code, title = line.split(";")
             block_name = self.add_or_update_block(start, end, chapter_code, title)
@@ -461,7 +464,7 @@ class WHOICDGraph(ICDGraph):
             full_title;title;subtitle;code_type;mortality1;
             mortality2;mortality3;mortality4;morbidity_list
         """
-        codes_file = Path(self.files_dir) / "icd102019syst_codes.txt"
+        codes_file = Path(self.files_dir) / self._codes_filename
         for line in codes_file.read_text().splitlines():
             fields = line.split(";")
             code = fields[7]  # 3, 4 or 5 char category
