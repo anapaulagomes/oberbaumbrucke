@@ -147,3 +147,23 @@ def real_icd10_gm_file_dir():
             zip_ref.extractall(icd_file_dir)
 
     yield icd_file_dir / "Klassifikationsdateien"
+
+
+@pytest.fixture(scope="class")
+def real_icd10_cm_file_dir():
+    icd_file_dir = Path("data/icd10cm-table-index-April-2025")
+    if icd_file_dir.exists() is False:
+        response = requests.get(
+            "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2025-Update/icd10cm-table-index-April-2025.zip"
+        )
+        response.raise_for_status()
+
+        icd_file_dir.mkdir(parents=True, exist_ok=True)
+
+        zip_path = f"{icd_file_dir}/icd10cm-table-index-April-2025.zip"
+        with open(zip_path, "wb") as output_file:
+            output_file.write(response.content)
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(icd_file_dir)
+
+    yield icd_file_dir
