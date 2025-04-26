@@ -59,8 +59,57 @@ class ICD10CMGraph(ICDGraph):
             )
 
     def add_blocks(self):
-        # sectionRef
-        logger.info("Blocks will be added during the code creation step.")
+        for element in self._raw_data.findall(".//chapter/sectionIndex/sectionRef"):
+            start = element.attrib.get("first")
+            end = element.attrib.get("last")
+            title = element.text.strip()
+            chapter_code = element.getparent().getparent().find("./name").text
+            block_name = self.add_or_update_block(start, end, chapter_code, title)
+            self.connect_chapter_block(chapter_code, block_name)
 
     def add_codes(self):
+        for chapter_element in self._raw_data.findall("chapter"):
+            chapter = chapter_element.findtext("name")
+            # print(f"Capítulo: {chapter}")
+
+            for block_element in chapter_element.findall("section"):
+                block = block_element.attrib.get("id")
+                # print(f"  Seção: {block_element.findtext('desc')} {block_element.attrib.get('id')}")
+
+                for diag_element in block_element.findall("diag"):
+                    code = diag_element.findtext("name")
+                    code = code.replace(".", "")
+                    description = diag_element.findtext("desc")
+                    self.add_or_update_code(
+                        code,
+                        chapter,
+                        block,
+                        three_char_category=code[:3],
+                        description=description,
+                    )
+                    # connect first code after the block (expected to be a 3-char code)
+                    self.connect_block_three_char_category(block, code)
+
+                    def recursively_walk_codes(internal_diag_element, level=2):
+                        # TODO receive previous code and connect them
+                        code = internal_diag_element.findtext("name")
+                        code = code.replace(".", "")
+                        description = internal_diag_element.findtext("desc")
+                        self.add_or_update_code(
+                            code,
+                            chapter,
+                            block,
+                            three_char_category=code[:3],
+                            description=description,
+                        )
+                        # print("    " * level + f"Diag ({level}) {code} - {description}")
+
+                        for sub_codes in internal_diag_element.findall("diag"):
+                            recursively_walk_codes(sub_codes, level + 1)
+
+                    recursively_walk_codes(diag_element)
+            # break
+
+            # FIXME self.connect_codes_recursively(code)
+
         del self._raw_data
