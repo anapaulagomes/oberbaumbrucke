@@ -62,6 +62,7 @@ class ICDGraph(ABC):
             self._graph_ready = True
             return
         self.add_root_node()
+        self.load_initial_data()
         self.add_chapters()
         self.add_blocks()
         self.add_codes()
@@ -418,6 +419,10 @@ class ICDGraph(ABC):
             self._graph.add_edge(previous_code, current_code)
             return self.connect_codes_recursively(previous_code)
         return current_code
+
+    def load_initial_data(self):
+        """Load initial data for the next steps of the graph creation."""
+        pass
 
 
 def print_graph(graph, root_node=None):
