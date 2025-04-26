@@ -173,7 +173,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Data
 data/
 *.gml
 !tests/fixtures/subgraph_B180_cid10.gml
 *.csv
+
+# MLflow
+mlartifacts/
+mlruns/
