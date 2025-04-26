@@ -15,6 +15,7 @@ Create a graph from the data:
 ```bash
 oberbaum graph create icd-10-who data/icd102019enMeta
 oberbaum graph create cid-10-bra data/CID10CSV
+oberbaum graph create icd-10-gm data/icd10gm2025/Klassifikationsdateien --export  # this create a graph file icd-10-gm.gml
 ```
 
 Finding the CM code corresponding to the GM code:

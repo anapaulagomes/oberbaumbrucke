@@ -444,15 +444,6 @@ def print_graph(graph, root_node=None):
     console.print(rich_tree)
 
 
-def get_graph(
-    version: str, files_dir: str = None, gml_filepath: str = None
-) -> ICDGraph:
-    subclasses = {
-        subclass.version_name: subclass for subclass in ICDGraph.__subclasses__()
-    }
-    return subclasses[version](files_dir=files_dir, gml_filepath=gml_filepath)
-
-
 def from_none_to_empty(a_graph, root_node, data_dict):
     """Convert all None values to empty strings in a dictionary."""
     for item, data in data_dict:
