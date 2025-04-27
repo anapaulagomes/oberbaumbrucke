@@ -202,7 +202,7 @@ class ICDGraph(ABC):
 
     def get(self, node):
         """Get the data for a given element in the graph."""
-        return self._graph.nodes[node]
+        return self._graph.nodes.get(node)
 
     def is_connected(self, node1, node2):
         """Check if two nodes are connected in the graph."""

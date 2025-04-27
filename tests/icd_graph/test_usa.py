@@ -182,23 +182,70 @@ class TestICD10CMGraph:
         assert graph.predecessors("B188") == ["B18", "B15-B19", "1"]
         assert graph.predecessors("C439") == ["C43", "C43-C44", "2"]
         assert graph.predecessors("D561") == ["D56", "D55-D59", "3"]
-        assert graph.predecessors("E112") == ["E11", "E10-E14", "4"]
+        assert graph.predecessors("E112") == ["E11", "E08-E13", "4"]
+        assert graph.predecessors("E09321") == ["E0932", "E093", "E09", "E08-E13", "4"]
         assert graph.predecessors("F202") == ["F20", "F20-F29", "5"]
         assert graph.predecessors("G473") == ["G47", "G40-G47", "6"]
+        assert graph.predecessors("G43A1") == ["G43A", "G43", "G40-G47", "6"]
+        assert graph.predecessors("G9001") == ["G900", "G90", "G89-G99", "6"]
         assert graph.predecessors("H251") == ["H25", "H25-H28", "7"]
+        assert graph.predecessors("H442D2") == ["H442D", "H442", "H44", "H43-H44", "7"]
         assert graph.predecessors("H810") == ["H81", "H80-H83", "8"]
         assert graph.predecessors("I252") == ["I25", "I20-I25", "9"]
-        assert graph.predecessors("J459") == ["J45", "J40-J47", "10"]
+        assert graph.predecessors("J459") == ["J45", "J40-J4A", "10"]
+        assert graph.predecessors("J45901") == ["J4590", "J459", "J45", "J40-J4A", "10"]
         assert graph.predecessors("K704") == ["K70", "K70-K77", "11"]
         assert graph.predecessors("L408") == ["L40", "L40-L45", "12"]
         assert graph.predecessors("M320") == ["M32", "M30-M36", "13"]
         assert graph.predecessors("N185") == ["N18", "N17-N19", "14"]
         assert graph.predecessors("O141") == ["O14", "O10-O16", "15"]
-        assert graph.predecessors("P220") == ["P22", "P20-P29", "16"]
+        assert graph.predecessors("P220") == ["P22", "P19-P29", "16"]
         assert graph.predecessors("Q242") == ["Q24", "Q20-Q28", "17"]
-        assert graph.predecessors("R572") == ["R57", "R50-R69", "18"]
+        assert graph.predecessors("R579") == ["R57", "R50-R69", "18"]
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
 
+    def test_handle_seventh_char(self, real_icd10_cm_file_dir):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+        code = graph.get(
+            "S0000"
+        )  # S0000 is a 5-char code with A, D and S as seventh char
+        contain_seventh_char = ["S0000A", "S0000D", "S0000S"]
 
-# TODO assert formatted code
+        assert graph.get("S0000")
+        for seventh_char_code in contain_seventh_char:
+            assert graph.get(seventh_char_code)
+            assert code["seventh_char"] == seventh_char_code[-1]  # A, D or S
+            assert isinstance(code["seventh_char_description"], str)
+
+    @pytest.mark.parametrize(
+        "code,seventh_char,expected_code",
+        [
+            ("S0000", "A", "S0000A"),
+            ("E09321", "9", "E093219"),
+            ("O31", "5", "O315"),
+            ("E08321", "3", "E083213"),
+        ],
+    )
+    def test_create_code_with_seventh_char(
+        self, real_icd10_cm_file_dir, code, seventh_char, expected_code
+    ):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+
+        assert graph._create_code_with_seventh_char(code, seventh_char) == expected_code
+
+    @pytest.mark.parametrize(
+        "code,invalid_seventh_char",
+        [
+            ("S0000", []),
+            ("S0000", None),
+            ("S0000", False),
+            ("S0000", "11"),
+        ],
+    )
+    def test_return_code_if_there_is_no_valid_seventh_char(
+        self, real_icd10_cm_file_dir, code, invalid_seventh_char
+    ):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+
+        assert graph._create_code_with_seventh_char(code, invalid_seventh_char) == code
