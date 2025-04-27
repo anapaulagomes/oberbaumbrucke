@@ -420,6 +420,12 @@ class ICDGraph(ABC):
             return self.connect_codes_recursively(previous_code)
         return current_code
 
+    def connect_codes(self, code1, code2):
+        """Connect two codes in the graph."""
+        code1 = self.add_or_update_code(code1)
+        code2 = self.add_or_update_code(code2)
+        self._graph.add_edge(code1, code2)
+
     def load_initial_data(self):
         """Load initial data for the next steps of the graph creation."""
         pass

@@ -76,40 +76,51 @@ class ICD10CMGraph(ICDGraph):
                 block = block_element.attrib.get("id")
                 # print(f"  Seção: {block_element.findtext('desc')} {block_element.attrib.get('id')}")
 
+                three_char_category = None
                 for diag_element in block_element.findall("diag"):
-                    code = diag_element.findtext("name")
-                    code = code.replace(".", "")
+                    original_code = diag_element.findtext("name")
+                    code = original_code.replace(".", "")
                     description = diag_element.findtext("desc")
+
                     self.add_or_update_code(
                         code,
                         chapter,
                         block,
-                        three_char_category=code[:3],
+                        three_char_category=three_char_category,
                         description=description,
+                        formatted_code=original_code,
                     )
-                    # connect first code after the block (expected to be a 3-char code)
-                    self.connect_block_three_char_category(block, code)
 
-                    def recursively_walk_codes(internal_diag_element, level=2):
-                        # TODO receive previous code and connect them
-                        code = internal_diag_element.findtext("name")
-                        code = code.replace(".", "")
-                        description = internal_diag_element.findtext("desc")
-                        self.add_or_update_code(
-                            code,
+                    if (
+                        len(original_code) == 3 and "." not in code
+                    ):  # valid for US files
+                        three_char_category = code
+                        # connect first code after the block (expected to be a 3-char code)
+                        self.connect_block_three_char_category(block, code)
+
+                    # FIXME 7th char is dealt differently
+                    # for each sevenChrDef, add extension char
+                    # TODO there is a rule for
+                    # "For codes less than 6 characters that require a 7th character
+                    # a placeholder X should be assigned for all characters less than 6.
+                    # The 7th character must always be the 7th character of a code"
+
+                    def recursively_walk_codes(
+                        internal_diag_element, previous_code, level=2
+                    ):
+                        current_code = self.add_or_update_code(
+                            internal_diag_element.findtext("name").replace(".", ""),
                             chapter,
                             block,
-                            three_char_category=code[:3],
-                            description=description,
+                            three_char_category=three_char_category,
+                            description=internal_diag_element.findtext("desc"),
                         )
+                        self.connect_codes(previous_code, current_code)
                         # print("    " * level + f"Diag ({level}) {code} - {description}")
 
                         for sub_codes in internal_diag_element.findall("diag"):
-                            recursively_walk_codes(sub_codes, level + 1)
+                            recursively_walk_codes(sub_codes, current_code, level + 1)
 
-                    recursively_walk_codes(diag_element)
-            # break
-
-            # FIXME self.connect_codes_recursively(code)
+                    recursively_walk_codes(diag_element, previous_code=code)
 
         del self._raw_data
