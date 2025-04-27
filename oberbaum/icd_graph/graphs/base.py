@@ -1,4 +1,5 @@
 from abc import ABC
+from collections import Counter
 from dataclasses import dataclass, field
 
 import networkx as nx
@@ -169,7 +170,8 @@ class ICDGraph(ABC):
             "name": code,
             "title": title,
             "type": "code",
-            "category": len(code),
+            "category": len(code),  # FIXME rename to char_len
+            # TODO create new attribute called category: category, subcategory, code
         }
 
         updated_data = {key: value for key, value in data.items() if value is not None}
@@ -287,9 +289,16 @@ class ICDGraph(ABC):
         return all_codes
 
     def levels(self):
-        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
-        layers = self.codes_per_level()
-        return {level: len(layer) for level, layer in layers.items()}
+        levels = []
+        for node, data in self._graph.nodes(data=True):
+            if data.get("category"):
+                levels.append(data["category"])
+            elif data.get("type") == "block":  # FIXME rename to type
+                levels.append(2)
+            elif data.get("type") == "chapter":  # FIXME rename to type
+                levels.append(1)
+        counter = Counter(levels)
+        return dict(sorted(counter.items()))
 
     def codes_per_level(self):
         # FIXME misleading, since blocks and sub-blocks may vary and create different levels

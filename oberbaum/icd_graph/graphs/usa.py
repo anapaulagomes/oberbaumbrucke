@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import networkx as nx
 from lxml import etree
 
 from oberbaum.icd_graph.graphs.base import ICDGraph
@@ -90,15 +91,10 @@ class ICD10CMGraph(ICDGraph):
                         # connect first code after the block (expected to be a 3-char code)
                         self.connect_block_three_char_category(block, code)
 
-                    # handle 7th char, if present
-                    if diag_element.find("sevenChrNote"):
-                        for extension in diag_element.find("sevenChrDef").getchildren():
-                            self._seventh_chars_per_code[code] = {
-                                extension.attrib.get("char"): extension.text
-                            }
-                        extra_data["seventh_char_info"] = self._seventh_chars_per_code[
-                            code
-                        ]
+                    self._store_seventh_char_info(diag_element, code)
+                    extra_data["seventh_char_info"] = self._seventh_chars_per_code.get(
+                        code
+                    )
 
                     # need to do this because the seven chars are not created as codes automatically
                     self.add_or_update_code(
@@ -115,33 +111,60 @@ class ICD10CMGraph(ICDGraph):
                         diag_element, code, chapter, block, three_char_category
                     )
 
-        # TODO create 7th char codes and its connections after all codes are created
+        for original_code, seventh_char_info in self._seventh_chars_per_code.items():
+            # this means that all descendants of the code have the same seventh char
+            descendants = nx.descendants(self._graph, original_code) | {original_code}
+            codes_with_the_seventh = [
+                code for code in descendants if self.is_code(code)
+            ]
+
+            original_code_data = self.get(original_code)
+            for code_with_the_seventh in codes_with_the_seventh:
+                for seventh_char, seventh_char_description in seventh_char_info.items():
+                    created_code_name = self._create_seventh_char_code_name(
+                        code_with_the_seventh, seventh_char
+                    )
+                    # connecting with the original code, inspired by the browser tool
+                    # https://icd10cmtool.cdc.gov/
+                    extra_data = {
+                        "seventh_char": seventh_char,
+                        "seventh_char_description": seventh_char_description,
+                    }
+                    created_code_name = self.add_or_update_code(
+                        created_code_name,
+                        original_code_data["chapter"],
+                        original_code_data["block"],
+                        three_char_category=original_code_data["three_char_category"],
+                        description=original_code_data["description"],
+                        **extra_data,
+                    )
+                    self.connect_codes(original_code, created_code_name)
 
         del self._raw_data
 
-    def _create_codes(
-        self, from_code, chapter, block, three_char_category, description
-    ):
+    def _create_codes_from(self, from_code, seventh_char):
+        """Given one code, create all possible codes with the seventh char."""
+        # categories = 3 character codes; a 3 char code that has no following codes is equivalent to a code
+        # subcategories = are either 4 or 5 character code
+        # codes = codes may be 3-7 chars (final level of subdivision/hierarchy)
         created_codes = []
-        new_codes = [from_code]
-        seventh_char_info = self.get_seventh_char_info(from_code)
-        if seventh_char_info:
-            for seventh_char in seventh_char_info.keys():
-                new_codes.append(
-                    self._create_code_with_seventh_char(from_code, seventh_char)
-                )
-
-        for new_code in new_codes:
-            created_codes.append(
-                self.add_or_update_code(
-                    new_code,
-                    chapter,
-                    block,
-                    three_char_category=three_char_category,
-                    description=description,
-                )
-            )
         return created_codes
+
+    def is_code(self, code):
+        """Codes might have between 3-7 chars and should be at the final level of subdivision."""
+        if len(code) < 3 or len(code) > 7:
+            return False
+        do_not_point_to_other_nodes = self._graph.out_degree(code) == 0
+        receive_nodes = self._graph.in_degree(code) == 1
+        return receive_nodes and do_not_point_to_other_nodes
+
+    def _store_seventh_char_info(self, element, code):
+        if element.find("sevenChrNote"):
+            for extension in element.findall(".//sevenChrDef/extension"):
+                self._seventh_chars_per_code.setdefault(code, {}).update(
+                    {extension.attrib.get("char"): extension.text}
+                )
+        return
 
     def get_seventh_char_info(self, code):
         if not self._seventh_chars_per_code.get(code):
@@ -162,15 +185,16 @@ class ICD10CMGraph(ICDGraph):
         three_char_category,
         level=2,
     ):
+        code = internal_diag_element.findtext("name").replace(".", "")
         created_code = self.add_or_update_code(
-            internal_diag_element.findtext("name").replace(".", ""),
+            code,
             chapter,
             block,
             three_char_category,
             internal_diag_element.findtext("desc"),
         )
+        self._store_seventh_char_info(internal_diag_element, code)
 
-        # for created_code in created_codes:
         self.connect_codes(previous_code, created_code)
         for sub_codes in internal_diag_element.findall("diag"):
             self._recursively_walk_codes(
@@ -178,11 +202,14 @@ class ICD10CMGraph(ICDGraph):
             )
 
     @staticmethod
-    def _create_code_with_seventh_char(code: str, seventh_char: str) -> str:
+    def _create_seventh_char_code_name(
+        code: str, seventh_char: str, add_placeholder: bool = False
+    ) -> str:
         """Create a code with a seventh character.
 
         # FIXME 7th char is dealt differently
         # for each sevenChrDef, add extension char
+        # TODO check the diag that have the "placeholder" tag and add the 7th char
         Args:
             code (str): The original code.
             seventh_char (str): The seventh character to add.
@@ -192,4 +219,10 @@ class ICD10CMGraph(ICDGraph):
         """
         if not seventh_char or len(seventh_char) != 1:
             return code
-        return f"{code}{seventh_char}"
+
+        difference = 6 - len(code)
+        placeholder = ""
+        if add_placeholder and (difference + 1) - 7 > 0:  # our goal is to reach 7 chars
+            placeholder = difference * "X"
+
+        return f"{code}{placeholder}{seventh_char}"

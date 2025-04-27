@@ -13,7 +13,7 @@ class TestICD10CMGraph:
         codes = graph.codes()
 
         assert isinstance(codes, set)
-        assert len(codes) == 97584
+        assert len(codes) == 97182
         assert "A00" not in codes  # 3-char code # TODO define if this is correct
         assert "A15-A19" in codes  # block
         assert "A000" in codes
@@ -25,7 +25,7 @@ class TestICD10CMGraph:
         codes = graph.codes(exclude_3_char=False)
 
         assert isinstance(codes, set)
-        assert len(codes) == 97584
+        assert len(codes) == 86030
         assert "A00" in codes  # 3-char code
         assert "A000" in codes  # 4-char code
         assert "Z5181" in codes  # 5-char code
@@ -39,11 +39,11 @@ class TestICD10CMGraph:
         expected_levels = {
             1: 22,
             2: 288,
-            3: 1879,
-            4: 9883,
-            5: 14087,
-            6: 19641,
-            7: 51178,
+            3: 1917,
+            4: 10070,
+            5: 17930,
+            6: 27443,
+            7: 40561,  # it includes the 7th char
         }
 
         assert levels == expected_levels
@@ -212,16 +212,28 @@ class TestICD10CMGraph:
         )  # S0000 is a 5-char code with A, D and S as seventh char
         contain_seventh_char = ["S0000A", "S0000D", "S0000S"]
 
-        assert graph.get("S0000")
+        assert code
+        assert code.get("seventh_char") is None
         for seventh_char_code in contain_seventh_char:
-            assert graph.get(seventh_char_code)
-            assert code["seventh_char"] == seventh_char_code[-1]  # A, D or S
-            assert isinstance(code["seventh_char_description"], str)
+            seventh_char_code_data = graph.get(seventh_char_code)
+            assert seventh_char_code_data
+            assert (
+                seventh_char_code_data["seventh_char"] == seventh_char_code[-1]
+            )  # A, D or S
+            assert isinstance(seventh_char_code_data["seventh_char_description"], str)
 
     @pytest.mark.parametrize(
         "code,seventh_char,expected_code",
         [
-            ("S0000", "A", "S0000A"),
+            ("S7000", "A", "S7000XA"),
+            ("S7000", "D", "S7000XD"),
+            ("S7000", "S", "S7000XS"),
+            ("S7001", "A", "S7001XA"),
+            ("S7001", "D", "S7001XD"),
+            ("S7001", "S", "S7001XS"),
+            ("S7002", "A", "S7002XA"),
+            ("S7002", "D", "S7002XD"),
+            ("S7002", "S", "S7002XS"),
             ("E09321", "9", "E093219"),
             ("O31", "5", "O315"),
             ("E08321", "3", "E083213"),
@@ -232,7 +244,7 @@ class TestICD10CMGraph:
     ):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
 
-        assert graph._create_code_with_seventh_char(code, seventh_char) == expected_code
+        assert graph._create_seventh_char_code_name(code, seventh_char) == expected_code
 
     @pytest.mark.parametrize(
         "code,invalid_seventh_char",
@@ -248,4 +260,4 @@ class TestICD10CMGraph:
     ):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
 
-        assert graph._create_code_with_seventh_char(code, invalid_seventh_char) == code
+        assert graph._create_seventh_char_code_name(code, invalid_seventh_char) == code
