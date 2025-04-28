@@ -267,6 +267,28 @@ class ICDGraph(ABC):
             all_categories.update(nx.descendants(self._graph, block))
         return all_categories
 
+    def is_code(self, code):
+        """Codes might have between 3-7 chars and should be at the final level of subdivision."""
+        if len(code) < 3 or len(code) > 7:
+            return False
+        do_not_point_to_other_nodes = self._graph.out_degree(code) == 0
+        receive_nodes = self._graph.in_degree(code) == 1
+        return receive_nodes and do_not_point_to_other_nodes
+
+    def get_codes(self, data=False):
+        """
+        # TODO
+        # categories = 3 character codes; a 3 char code that has no following codes is equivalent to a code
+        # subcategories = are either 4 or 5 character code
+        # codes = codes may be 3-7 chars (final level of subdivision/hierarchy)
+        """
+        for node, node_data in self._graph.nodes(data=True):
+            if self.is_code(node):
+                if data:
+                    yield node, data
+                else:
+                    yield node
+
     def codes(self, from_chapter=None, exclude_3_char=True):
         all_codes = set()
         for chapter in self.chapters():
