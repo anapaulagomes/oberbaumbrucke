@@ -1,3 +1,4 @@
+from operator import truth
 from unittest.mock import Mock
 
 import networkx as nx
@@ -8,25 +9,20 @@ from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
 
 @pytest.mark.integration
 class TestICD10CMGraph:
-    def test_get_codes(self, real_icd10_cm_file_dir):
+    def test_get_all_codes(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        codes = graph.codes()
+        blocks = graph.blocks()
+        codes = list(graph.get_codes())
 
-        assert isinstance(codes, set)
-        assert len(codes) == 97182
-        assert "A00" not in codes  # 3-char code # TODO define if this is correct
-        assert "A15-A19" in codes  # block
+        assert len(graph.chapters()) == 22
+        assert len(blocks) == 288
+        assert len(list(codes)) == 86835
+        assert "A00" not in blocks
+        assert "A00" not in codes  # FIXME should be in categories
+        assert "A15-A19" in blocks
         assert "A000" in codes
         assert "A001" in codes
         assert "A009" in codes
-
-    def test_get_codes_including_3_char(self, real_icd10_cm_file_dir):
-        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        codes = graph.codes(exclude_3_char=False)
-
-        assert isinstance(codes, set)
-        assert len(codes) == 86030
-        assert "A00" in codes  # 3-char code
         assert "A000" in codes  # 4-char code
         assert "Z5181" in codes  # 5-char code
         assert "H938X9" in codes  # 6-char code
@@ -47,26 +43,6 @@ class TestICD10CMGraph:
         }
 
         assert levels == expected_levels
-
-    def test_blocks(self, real_icd10_cm_file_dir):
-        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        blocks = graph.blocks()
-
-        assert len(blocks) == 288
-
-    @pytest.mark.skip("API needs to be fixed first")
-    def test_three_char_codes(self, real_icd10_cm_file_dir):
-        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        three_char_codes = graph.three_char_codes()
-
-        assert three_char_codes == ["A00"]
-
-    @pytest.mark.skip("API needs to be fixed first")
-    def test_four_char_codes(self, real_icd10_cm_file_dir):
-        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        three_char_codes = graph.four_char_codes()
-
-        assert three_char_codes == ["A000", "A001", "A009"]
 
     def test_export_graph(self, real_icd10_cm_file_dir, monkeypatch):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
@@ -137,10 +113,12 @@ class TestICD10CMGraph:
         problems (10th revision, 6th ed., Vol. 2). World Health Organization.
         """
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-
+        blocks = graph.blocks()
         code = graph.get("A009")
+
+        assert len(blocks) == 288
         assert code["block"] == "A00-A09"
-        assert len(graph.blocks()) == 288
+        assert "A00-A09" in blocks
 
     def test_return_chapters_in_roman_numerals(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
@@ -173,10 +151,6 @@ class TestICD10CMGraph:
 
     def test_check_random_codes_and_edge_cases(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-
-        assert len(graph.chapters()) == 22
-        assert len(graph.blocks()) == 288
-        # assert len(graph.codes()) == 90000  # TODO improve api  # FIXME wait for development
 
         assert graph.predecessors("A154") == ["A15", "A15-A19", "1"]
         assert graph.predecessors("B188") == ["B18", "B15-B19", "1"]
@@ -247,17 +221,19 @@ class TestICD10CMGraph:
         assert graph._create_seventh_char_code_name(code, seventh_char) == expected_code
 
     @pytest.mark.parametrize(
-        "code,invalid_seventh_char",
+        "code,invalid_seventh_char,fn_operator",
         [
-            ("S0000", []),
-            ("S0000", None),
-            ("S0000", False),
-            ("S0000", "11"),
+            ("S0000", [], truth),
+            ("S0000", "11", truth),
+            ("S0000", None, truth),
+            ("S0000", False, truth),
         ],
     )
     def test_return_code_if_there_is_no_valid_seventh_char(
-        self, real_icd10_cm_file_dir, code, invalid_seventh_char
+        self, real_icd10_cm_file_dir, code, invalid_seventh_char, fn_operator
     ):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
 
-        assert graph._create_seventh_char_code_name(code, invalid_seventh_char) == code
+        assert fn_operator(
+            graph._create_seventh_char_code_name(code, invalid_seventh_char)
+        )

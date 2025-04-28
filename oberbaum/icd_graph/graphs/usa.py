@@ -142,24 +142,8 @@ class ICD10CMGraph(ICDGraph):
 
         del self._raw_data
 
-    def _create_codes_from(self, from_code, seventh_char):
-        """Given one code, create all possible codes with the seventh char."""
-        # categories = 3 character codes; a 3 char code that has no following codes is equivalent to a code
-        # subcategories = are either 4 or 5 character code
-        # codes = codes may be 3-7 chars (final level of subdivision/hierarchy)
-        created_codes = []
-        return created_codes
-
-    def is_code(self, code):
-        """Codes might have between 3-7 chars and should be at the final level of subdivision."""
-        if len(code) < 3 or len(code) > 7:
-            return False
-        do_not_point_to_other_nodes = self._graph.out_degree(code) == 0
-        receive_nodes = self._graph.in_degree(code) == 1
-        return receive_nodes and do_not_point_to_other_nodes
-
     def _store_seventh_char_info(self, element, code):
-        if element.find("sevenChrNote"):
+        if element.find("sevenChrNote") is not None:
             for extension in element.findall(".//sevenChrDef/extension"):
                 self._seventh_chars_per_code.setdefault(code, {}).update(
                     {extension.attrib.get("char"): extension.text}
@@ -222,7 +206,7 @@ class ICD10CMGraph(ICDGraph):
 
         difference = 6 - len(code)
         placeholder = ""
-        if add_placeholder and (difference + 1) - 7 > 0:  # our goal is to reach 7 chars
+        if add_placeholder and difference > 0:  # our goal is to reach 7 chars
             placeholder = difference * "X"
 
         return f"{code}{placeholder}{seventh_char}"
