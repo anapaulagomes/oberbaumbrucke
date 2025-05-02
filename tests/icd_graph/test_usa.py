@@ -1,4 +1,5 @@
 from operator import truth
+from pathlib import Path
 from unittest.mock import Mock
 
 import networkx as nx
@@ -16,7 +17,7 @@ class TestICD10CMGraph:
 
         assert len(graph.chapters()) == 22
         assert len(blocks) == 288
-        assert len(list(codes)) == 86835
+        assert len(list(codes)) == 88554
         assert "A00" not in blocks
         assert "A00" not in codes  # FIXME should be in categories
         assert "A15-A19" in blocks
@@ -37,9 +38,9 @@ class TestICD10CMGraph:
             2: 288,
             3: 1917,
             4: 10070,
-            5: 17930,
-            6: 27443,
-            7: 40561,  # it includes the 7th char
+            5: 14483,
+            6: 19936,
+            7: 53234,  # it includes the 7th char
         }
 
         assert levels == expected_levels
@@ -184,7 +185,7 @@ class TestICD10CMGraph:
         code = graph.get(
             "S0000"
         )  # S0000 is a 5-char code with A, D and S as seventh char
-        contain_seventh_char = ["S0000A", "S0000D", "S0000S"]
+        contain_seventh_char = ["S0000XA", "S0000XD", "S0000XS"]
 
         assert code
         assert code.get("seventh_char") is None
@@ -209,7 +210,7 @@ class TestICD10CMGraph:
             ("S7002", "D", "S7002XD"),
             ("S7002", "S", "S7002XS"),
             ("E09321", "9", "E093219"),
-            ("O31", "5", "O315"),
+            ("O3100", "5", "O3100X5"),
             ("E08321", "3", "E083213"),
         ],
     )
@@ -237,3 +238,45 @@ class TestICD10CMGraph:
         assert fn_operator(
             graph._create_seventh_char_code_name(code, invalid_seventh_char)
         )
+
+
+class TestCompareCodes:
+    @pytest.fixture(scope="class")
+    def icd10cm_codes_from_csv(self):
+        codes_only = Path(
+            "data/Code-desciptions-April-2025/icd10cm-order-April-2025.txt"
+        )
+        codes_only = {
+            line[6:13].strip(): True for line in codes_only.read_text().splitlines()
+        }
+        return codes_only
+
+    @pytest.fixture(scope="class")
+    def graph(self, real_icd10_cm_file_dir):
+        return ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+
+    def test_all_codes_from_the_csv_can_be_found_in_the_graph(
+        self, request, graph, icd10cm_codes_from_csv
+    ):
+        found = 0
+        not_found = []
+        for code in icd10cm_codes_from_csv.keys():
+            if graph.get(code):
+                found += 1
+            else:
+                not_found.append(code)
+        request.node._output = "</br>".join(not_found)
+        assert not_found == []
+
+    def test_all_nodes_from_the_graph_can_be_found_in_the_csv(
+        self, request, graph, icd10cm_codes_from_csv
+    ):
+        found = 0
+        not_found = []
+        for code in graph.get_codes():
+            if icd10cm_codes_from_csv.get(code):
+                found += 1
+            else:
+                not_found.append(code)
+        request.node._output = "</br>".join(not_found)
+        assert not_found == []
