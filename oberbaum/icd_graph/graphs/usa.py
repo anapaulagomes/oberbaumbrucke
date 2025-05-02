@@ -113,10 +113,12 @@ class ICD10CMGraph(ICDGraph):
 
         for original_code, seventh_char_info in self._seventh_chars_per_code.items():
             # this means that all descendants of the code have the same seventh char
-            descendants = nx.descendants(self._graph, original_code) | {original_code}
+            descendants = nx.descendants(self._graph, original_code)
             codes_with_the_seventh = [
                 code for code in descendants if self.is_code(code)
             ]
+            # FIXME needs some clarification of when include the original code or not. Example: S52211
+            codes_with_the_seventh.append(original_code)
 
             original_code_data = self.get(original_code)
             for code_with_the_seventh in codes_with_the_seventh:
@@ -186,9 +188,7 @@ class ICD10CMGraph(ICDGraph):
             )
 
     @staticmethod
-    def _create_seventh_char_code_name(
-        code: str, seventh_char: str, add_placeholder: bool = False
-    ) -> str:
+    def _create_seventh_char_code_name(code: str, seventh_char: str) -> str:
         """Create a code with a seventh character.
 
         # FIXME 7th char is dealt differently
@@ -206,7 +206,7 @@ class ICD10CMGraph(ICDGraph):
 
         difference = 6 - len(code)
         placeholder = ""
-        if add_placeholder and difference > 0:  # our goal is to reach 7 chars
+        if difference > 0:  # our goal is to reach 7 chars
             placeholder = difference * "X"
 
         return f"{code}{placeholder}{seventh_char}"
