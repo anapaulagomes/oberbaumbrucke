@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import networkx as nx
 from lxml import etree
 
 from oberbaum.icd_graph.graphs.base import ICDGraph
@@ -93,12 +92,10 @@ class ICD10CMGraph(ICDGraph):
                         # connect first code after the block (expected to be a 3-char code)
                         self.connect_block_three_char_category(block, code)
 
-                    self._store_seventh_char_info(diag_element, code)
                     extra_data["seventh_char_info"] = self._seventh_chars_per_code.get(
                         code
                     )
 
-                    # need to do this because the seven chars are not created as codes automatically
                     self.add_or_update_code(
                         code,
                         chapter,
@@ -113,56 +110,9 @@ class ICD10CMGraph(ICDGraph):
                         diag_element, code, chapter, block, three_char_category
                     )
 
-        for original_code, seventh_char_info in self._seventh_chars_per_code.items():
-            # this means that all descendants of the code have the same seventh char
-            descendants = nx.descendants(self._graph, original_code)
-            codes_with_the_seventh = [
-                code for code in descendants if self.is_code(code)
-            ]
-            # FIXME needs some clarification of when include the original code or not. Example: S52211
-            codes_with_the_seventh.append(original_code)
-
-            original_code_data = self.get(original_code)
-            for code_with_the_seventh in codes_with_the_seventh:
-                for seventh_char, seventh_char_description in seventh_char_info.items():
-                    created_code_name = self._create_seventh_char_code_name(
-                        code_with_the_seventh, seventh_char
-                    )
-                    # connecting with the original code, inspired by the browser tool
-                    # https://icd10cmtool.cdc.gov/
-                    extra_data = {
-                        "seventh_char": seventh_char,
-                        "seventh_char_description": seventh_char_description,
-                    }
-                    created_code_name = self.add_or_update_code(
-                        created_code_name,
-                        original_code_data["chapter"],
-                        original_code_data["block"],
-                        three_char_category=original_code_data["three_char_category"],
-                        description=original_code_data["description"],
-                        **extra_data,
-                    )
-                    self.connect_codes(original_code, created_code_name)
-
+        # connecting with the original code, inspired by the browser tool
+        # https://icd10cmtool.cdc.gov/
         del self._raw_data
-
-    def _store_seventh_char_info(self, element, code):
-        if element.find("sevenChrNote") is not None:
-            for extension in element.findall(".//sevenChrDef/extension"):
-                self._seventh_chars_per_code.setdefault(code, {}).update(
-                    {extension.attrib.get("char"): extension.text}
-                )
-        return
-
-    def get_seventh_char_info(self, code):
-        if not self._seventh_chars_per_code.get(code):
-            for predecessor in self.predecessors(code):
-                if self._seventh_chars_per_code.get(predecessor):
-                    self._seventh_chars_per_code[code] = (
-                        self._seventh_chars_per_code.get(predecessor)
-                    )
-                    break
-        return self._seventh_chars_per_code.get(code, {})
 
     def _recursively_walk_codes(
         self,
@@ -180,35 +130,11 @@ class ICD10CMGraph(ICDGraph):
             block,
             three_char_category,
             internal_diag_element.findtext("desc"),
+            **{"placeholder": bool(internal_diag_element.attrib.get("placeholder"))},
         )
-        self._store_seventh_char_info(internal_diag_element, code)
 
         self.connect_codes(previous_code, created_code)
         for sub_codes in internal_diag_element.findall("diag"):
             self._recursively_walk_codes(
                 sub_codes, created_code, chapter, block, three_char_category, level + 1
             )
-
-    @staticmethod
-    def _create_seventh_char_code_name(code: str, seventh_char: str) -> str:
-        """Create a code with a seventh character.
-
-        # FIXME 7th char is dealt differently
-        # for each sevenChrDef, add extension char
-        # TODO check the diag that have the "placeholder" tag and add the 7th char
-        Args:
-            code (str): The original code.
-            seventh_char (str): The seventh character to add.
-
-        Returns:
-            str: The new code with the seventh character.
-        """
-        if not seventh_char or len(seventh_char) != 1:
-            return code
-
-        difference = 6 - len(code)
-        placeholder = ""
-        if difference > 0:  # our goal is to reach 7 chars
-            placeholder = difference * "X"
-
-        return f"{code}{placeholder}{seventh_char}"
