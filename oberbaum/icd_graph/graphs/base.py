@@ -269,6 +269,8 @@ class ICDGraph(ABC):
 
     def is_code(self, code):
         """Codes might have between 3-7 chars and should be at the final level of subdivision."""
+        if code in self._blocks or code in self._chapters:
+            return False
         if len(code) < 3 or len(code) > 7:
             return False
         do_not_point_to_other_nodes = self._graph.out_degree(code) == 0
