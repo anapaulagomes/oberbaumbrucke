@@ -16,7 +16,7 @@ class TestICD10CMGraph:
         codes = list(graph.get_codes())
 
         assert len(graph.chapters()) == 22
-        assert len(blocks) == 288
+        assert len(blocks) == 250
         assert len(list(codes)) == 88554
         assert "A00" not in blocks
         assert "A00" not in codes  # FIXME should be in categories
@@ -35,7 +35,7 @@ class TestICD10CMGraph:
 
         expected_levels = {
             1: 22,
-            2: 288,
+            2: 250,
             3: 1917,
             4: 10070,
             5: 14483,
@@ -117,7 +117,7 @@ class TestICD10CMGraph:
         blocks = graph.blocks()
         code = graph.get("A009")
 
-        assert len(blocks) == 288
+        assert len(blocks) == 250
         assert code["block"] == "A00-A09"
         assert "A00-A09" in blocks
 
