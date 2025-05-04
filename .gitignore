@@ -179,6 +179,8 @@ data/
 !tests/fixtures/subgraph_B180_cid10.gml
 *.csv
 *.html
+*.txt
+*.json
 
 # MLflow
 mlartifacts/
