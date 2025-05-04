@@ -112,7 +112,7 @@ class ICDGraph(ABC):
         self._graph.add_node(chapter_code, **data)
         del data["type"]
         self._chapters[chapter_code] = data
-        self._graph.add_edge(self._root_node, chapter_code)
+        self.add_edge(self._root_node, chapter_code)
         return chapter_code
 
     def add_or_update_block(
@@ -233,7 +233,7 @@ class ICDGraph(ABC):
 
     def connect_block_three_char_category(self, block, three_char_category):
         """Create the edge between chapter and block."""
-        self._graph.add_edge(block, three_char_category)
+        self.add_edge(block, three_char_category)
 
     def connect_chapter_block(self, chapter_code, block_name):
         """Create the edge between chapter and block.
@@ -244,11 +244,11 @@ class ICDGraph(ABC):
             block_name=block_name, chapter_code=chapter_code
         )
         chapter_code = self.add_or_update_chapter(chapter_code)
-        self._graph.add_edge(chapter_code, block_name)
+        self.add_edge(chapter_code, block_name)
 
     def connect_blocks(self, block, sub_block):
         """Create the edge between block and sub-block."""
-        self._graph.add_edge(block, sub_block)
+        self.add_edge(block, sub_block)
 
     def chapters(self, roman_numerals=False, data=False):
         if data:
@@ -447,7 +447,7 @@ class ICDGraph(ABC):
         if len(previous_code) >= 3:
             current_code = self.add_or_update_code(current_code)
             previous_code = self.add_or_update_code(previous_code)
-            self._graph.add_edge(previous_code, current_code)
+            self.add_edge(previous_code, current_code)
             return self.connect_codes_recursively(previous_code)
         return current_code
 
@@ -455,7 +455,15 @@ class ICDGraph(ABC):
         """Connect two codes in the graph."""
         code1 = self.add_or_update_code(code1)
         code2 = self.add_or_update_code(code2)
-        self._graph.add_edge(code1, code2)
+        if code1 == code2:
+            return
+        self.add_edge(code1, code2)
+
+    def add_edge(self, node1, node2):
+        """Add an edge between two nodes in the graph."""
+        if node1 == node2:
+            return
+        self._graph.add_edge(node1, node2)
 
     def load_initial_data(self):
         """Load initial data for the next steps of the graph creation."""
