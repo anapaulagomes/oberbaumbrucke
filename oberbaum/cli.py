@@ -4,6 +4,7 @@ from rich.tree import Tree
 
 from oberbaum.icd_graph.graphs.brazil import CID10Graph
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
+from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
 from oberbaum.icd_graph.match import export_matches, match_codes
 
@@ -87,5 +88,6 @@ def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None
         "icd-10-who": WHOICDGraph,
         "cid-10-bra": CID10Graph,
         "icd-10-gm": ICD10GMGraph,
+        "icd-10-cm": ICD10CMGraph,
     }
     return versions[version_name](files_dir=files_dir, gml_filepath=gml_filepath)
