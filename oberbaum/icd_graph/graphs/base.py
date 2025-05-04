@@ -287,7 +287,7 @@ class ICDGraph(ABC):
         for node, node_data in self._graph.nodes(data=True):
             if self.is_code(node):
                 if data:
-                    yield node, data
+                    yield node, node_data
                 else:
                     yield node
 
