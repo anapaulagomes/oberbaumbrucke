@@ -67,7 +67,7 @@ class ICD10CMGraph(ICDGraph):
             title = element.text.strip()
             chapter_code = element.getparent().getparent().find("./name").text
             if start == end:
-                return
+                continue
             block_name = self.add_or_update_block(start, end, chapter_code, title)
             self.connect_chapter_block(chapter_code, block_name)
 
