@@ -8,13 +8,16 @@ def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.7):
+def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.75):
     """
     Check if two labels are semantically similar.
     """
     score = None
-    hits = util.semantic_search(  # TODO use top_k = 1
-        another_graph_embeddings, a_graph_embeddings, score_function=util.dot_score
+    hits = util.semantic_search(
+        another_graph_embeddings,
+        a_graph_embeddings,
+        score_function=util.dot_score,
+        top_k=1,
     )
     for hit in hits:
         # output: [{'corpus_id': 0, 'score': 0.47366422414779663}]
@@ -24,9 +27,10 @@ def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold
     return False, score
 
 
-def match_codes(a_graph, another_graph, model_name):
+def match_codes(a_graph, another_graph, model_name, threshold=0.75):
     """
     Compare two graphs and find matches based on the code and description.
+    :param threshold: threshold for semantic similarity.
     :param model_name: model name following HuggingFace / SentenceTransformer convention.
     :param a_graph: a graph in which we want to find matches.
     :param another_graph: a graph with the match options available.
@@ -59,7 +63,7 @@ def match_codes(a_graph, another_graph, model_name):
             if found_node:
                 if a_graph_data["name"] == found_node["name"]:  # code's comparison
                     is_similar_description, score = semantically_similar(
-                        a_graph_data["embeddings"], found_node["embeddings"]
+                        a_graph_data["embeddings"], found_node["embeddings"], threshold
                     )
                     match_stage = "exact_code"
                     if is_similar_description:

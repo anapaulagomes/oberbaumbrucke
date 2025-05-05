@@ -14,6 +14,16 @@ app.add_typer(graph_app, name="graph")
 console = Console()
 
 
+def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None):
+    versions = {
+        "icd-10-who": WHOICDGraph,
+        "cid-10-bra": CID10Graph,
+        "icd-10-gm": ICD10GMGraph,
+        "icd-10-cm": ICD10CMGraph,
+    }
+    return versions[version_name](files_dir=files_dir, gml_filepath=gml_filepath)
+
+
 def summary(a_list):
     n = 10
     if len(a_list) > n:
@@ -81,13 +91,3 @@ def match(
 
 if __name__ == "__main__":
     app()
-
-
-def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None):
-    versions = {
-        "icd-10-who": WHOICDGraph,
-        "cid-10-bra": CID10Graph,
-        "icd-10-gm": ICD10GMGraph,
-        "icd-10-cm": ICD10CMGraph,
-    }
-    return versions[version_name](files_dir=files_dir, gml_filepath=gml_filepath)
