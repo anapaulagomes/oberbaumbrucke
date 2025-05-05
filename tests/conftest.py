@@ -35,7 +35,7 @@ def real_icd10_who_file_dir():
 
 @pytest.fixture(scope="class")
 def real_cid10_bra_file_dir():
-    url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
+    url = "http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip"
     yield download_and_unzip(url, "data/CID10CSV", "CID10CSV.zip")
 
 
