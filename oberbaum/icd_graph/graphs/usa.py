@@ -15,7 +15,10 @@ class ICD10CMGraph(ICDGraph):
 
     Source:
     https://www.cdc.gov/nchs/icd/icd-10-cm/index.html
-    https://www.cdc.gov/nchs/icd/icd-10-cm/files.html
+    https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2025-Update/icd10cm-table-index-April-2025.zip
+
+    It does not create new nodes to represent the 7th character of the code,
+    as in the CDC browser tool: https://icd10cmtool.cdc.gov/
     """
 
     year: int = 2025
@@ -110,8 +113,6 @@ class ICD10CMGraph(ICDGraph):
                         diag_element, code, chapter, block, three_char_category
                     )
 
-        # connecting with the original code, inspired by the browser tool
-        # https://icd10cmtool.cdc.gov/
         del self._raw_data
 
     def _recursively_walk_codes(

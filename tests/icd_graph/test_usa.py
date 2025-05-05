@@ -39,7 +39,7 @@ class TestICD10CMGraph:
             4: 10070,
             5: 14483,
             6: 19936,
-            7: 92,  # it does not include the 7th char
+            7: 92,  # only include the 7th char from the xml file
         }
 
         assert levels == expected_levels
