@@ -175,6 +175,7 @@ cython_debug/
 
 # Data
 data/
+artifacts/
 *.gml
 !tests/fixtures/subgraph_B180_cid10.gml
 *.csv
