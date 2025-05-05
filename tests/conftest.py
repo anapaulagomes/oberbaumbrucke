@@ -1,8 +1,6 @@
-import zipfile
-from pathlib import Path
-
 import pytest
-import requests
+
+from tests.helpers import download_and_unzip
 
 
 @pytest.fixture
@@ -31,32 +29,14 @@ def icd10_who_file_dir(tmp_path):
 
 @pytest.fixture(scope="class")
 def real_icd10_who_file_dir():
-    icd_file_dir = "data/icd102019enMeta"
-    if Path(icd_file_dir).exists() is False:
-        response = requests.get("https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip")
-        response.raise_for_status()
-        Path(icd_file_dir).mkdir(parents=True, exist_ok=True)
-        with open(f"{icd_file_dir}/icd102019enMeta.zip", "wb") as output_file:
-            output_file.write(response.content)
-        with zipfile.ZipFile(f"{icd_file_dir}/icd102019enMeta.zip", "r") as zip_ref:
-            zip_ref.extractall(icd_file_dir)
-    yield icd_file_dir
+    url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
+    yield download_and_unzip(url, "data/icd102019enMeta", "icd102019enMeta.zip")
 
 
 @pytest.fixture(scope="class")
 def real_cid10_bra_file_dir():
-    icd_file_dir = "data/CID10CSV"
-    if Path(icd_file_dir).exists() is False:
-        response = requests.get(
-            "http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip"
-        )
-        response.raise_for_status()
-        Path(icd_file_dir).mkdir(parents=True, exist_ok=True)
-        with open(f"{icd_file_dir}/CID10CSV.zip", "wb") as output_file:
-            output_file.write(response.content)
-        with zipfile.ZipFile(f"{icd_file_dir}/CID10CSV.zip", "r") as zip_ref:
-            zip_ref.extractall(icd_file_dir)
-    yield icd_file_dir
+    url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
+    yield download_and_unzip(url, "data/CID10CSV", "CID10CSV.zip")
 
 
 @pytest.fixture
@@ -131,42 +111,19 @@ def icd10_gm_file_dir(tmp_path):
 
 @pytest.fixture(scope="class")
 def real_icd10_gm_file_dir():
-    icd_file_dir = Path("data/icd10gm2025")
-    if icd_file_dir.exists() is False:
-        response = requests.get(
-            "https://multimedia.gsb.bund.de/BfArM/downloads/klassifikationen/icd-10-gm/version2025/icd10gm2025syst-meta.zip"
-        )
-        response.raise_for_status()
-
-        icd_file_dir.mkdir(parents=True, exist_ok=True)
-
-        zip_path = f"{icd_file_dir}/icd10gm2025syst-meta.zip"
-        with open(zip_path, "wb") as output_file:
-            output_file.write(response.content)
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(icd_file_dir)
-
-    yield icd_file_dir / "Klassifikationsdateien"
+    url = "https://multimedia.gsb.bund.de/BfArM/downloads/klassifikationen/icd-10-gm/version2025/icd10gm2025syst-meta.zip"
+    icd_file_dir = download_and_unzip(
+        url, "data/icd10gm2025", "icd10gm2025syst-meta.zip"
+    )
+    yield f"{icd_file_dir}/Klassifikationsdateien"
 
 
 @pytest.fixture(scope="class")
 def real_icd10_cm_file_dir():
-    icd_file_dir = Path("data/icd10cm-table-index-April-2025")
-    if icd_file_dir.exists() is False:
-        response = requests.get(
-            "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2025-Update/icd10cm-table-index-April-2025.zip"
-        )
-        response.raise_for_status()
-
-        icd_file_dir.mkdir(parents=True, exist_ok=True)
-
-        zip_path = f"{icd_file_dir}/icd10cm-table-index-April-2025.zip"
-        with open(zip_path, "wb") as output_file:
-            output_file.write(response.content)
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(icd_file_dir)
-
-    yield icd_file_dir
+    url = "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2025-Update/icd10cm-table-index-April-2025.zip"
+    yield download_and_unzip(
+        url, "data/icd10cm-table-index-April-2025", "icd10cm-table-index-April-2025.zip"
+    )
 
 
 @pytest.hookimpl(optionalhook=True)
