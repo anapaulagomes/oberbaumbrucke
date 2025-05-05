@@ -5,6 +5,7 @@ import networkx as nx
 import pytest
 
 from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
+from tests.helpers import download_and_unzip
 
 
 @pytest.mark.integration
@@ -183,21 +184,21 @@ class TestICD10CMGraph:
 class TestCompareCodes:
     @pytest.fixture(scope="class")
     def icd10cm_codes_from_csv(self):
-        codes_only = Path(
-            "data/Code-desciptions-April-2025/icd10cm-order-April-2025.txt"
+        url = "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2025-Update/Code-desciptions-April-2025.zip"
+        files_dir = download_and_unzip(
+            url, "data/Code-desciptions-April-2025", "Code-desciptions-April-2025.zip"
         )
+
+        codes_only = Path(f"{files_dir}/icd10cm-order-April-2025.txt")
         codes_only = {
             line[6:13].strip(): True for line in codes_only.read_text().splitlines()
         }
         return codes_only
 
-    @pytest.fixture(scope="class")
-    def graph(self, real_icd10_cm_file_dir):
-        return ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-
     def test_all_nodes_from_the_graph_can_be_found_in_the_csv(
-        self, request, graph, icd10cm_codes_from_csv
+        self, request, icd10cm_codes_from_csv, real_icd10_cm_file_dir
     ):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
         found = 0
         not_found = []
         for code in graph.get_codes():
