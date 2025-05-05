@@ -64,7 +64,7 @@ def match(
         version = version.lower()
         other_version = other_version.lower()
         model_name = model.split("/")[-1]
-        output = f"artifacts/{version}___{other_version}__{model_name}.csv"
+        output = f"artifacts/{version}___{other_version}__{model_name}_{threshold}.csv"
 
     console.print("[bold green]Loading graphs...[/bold green]")
     graph = get_graph(version, gml_filepath=version_gml_filepath)
@@ -84,9 +84,6 @@ def match(
         console.print(f"  {key}: {value}")
 
     console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
-    console.print(
-        "\nResults also tracked in MLflow. Use 'mlflow ui --port 8080' to view."
-    )
 
 
 if __name__ == "__main__":
