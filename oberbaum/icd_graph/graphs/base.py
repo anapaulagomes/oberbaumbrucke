@@ -122,9 +122,7 @@ class ICDGraph(ABC):
 
         If the chapter code is provided, it will be used to create the edge between chapter and block."""
         block_name = block_name or self.block_name(start, end)
-        description = self.block_description(
-            block_name, title
-        )  # FIXME title is none = description is none
+        description = self.block_description(block_name, title)
         data = {
             "start": start,
             "end": end,
@@ -269,7 +267,7 @@ class ICDGraph(ABC):
 
     def is_code(self, code):
         """Codes might have between 3-7 chars and should be at the final level of subdivision."""
-        if code in self._blocks or code in self._chapters:
+        if code in self.blocks() or code in self.chapters():
             return False
         if len(code) < 3 or len(code) > 7:
             return False
@@ -346,12 +344,15 @@ class ICDGraph(ABC):
         return f"{start}-{end}"
 
     @staticmethod
-    def block_description(node, description):
+    def block_description(node, title):
         """Get the block description for a given start and end code.
 
         Example: Intestinal infectious diseases (A00-A09)
         """
-        return f"{description} ({node})"
+        if title:
+            return f"{title} ({node})"
+        else:
+            return node
 
     def three_char_codes(self):
         # FIXME misleading, since blocks and sub-blocks may vary and create different levels
