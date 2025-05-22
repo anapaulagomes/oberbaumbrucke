@@ -509,7 +509,10 @@ def from_none_to_empty(a_graph, root_node, data_dict):
 def get_subgraph(graph, from_, to_, filename=None):
     if not filename:
         filename = "subgraph.gml"
+    if not from_:
+        from_ = graph._root_node
     path = nx.shortest_path(graph._graph, from_, to_)
     subgraph = nx.subgraph(graph._graph, path)
     from_none_to_empty(subgraph, graph._root_node, subgraph.nodes(data=True))
     nx.write_gml(subgraph, filename)
+    return subgraph

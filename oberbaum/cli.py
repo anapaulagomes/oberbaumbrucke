@@ -1,7 +1,9 @@
+import networkx as nx
 import typer
 from rich.console import Console
 from rich.tree import Tree
 
+from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
@@ -84,6 +86,20 @@ def match(
         console.print(f"  {key}: {value}")
 
     console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
+
+
+@graph_app.command()
+def subgraph(version: str, icd_files_dir: str, target: str, source: str = None):
+    graph = get_graph(version, icd_files_dir)
+    filename = f"subgraph-{graph.version_name}-{target}.gml"
+    try:
+        subgraph = get_subgraph(graph, source, target, filename)
+        console.print(
+            f"Exported to: {filename}."
+            f"There are {len(subgraph.nodes)} nodes (original graph has {len(graph._graph.nodes)})"
+        )
+    except nx.NodeNotFound:
+        console.print(f"Node {target} not found in the graph {graph.version_name}")
 
 
 if __name__ == "__main__":
