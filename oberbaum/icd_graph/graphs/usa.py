@@ -104,6 +104,7 @@ class ICD10CMGraph(ICDGraph):
                         chapter,
                         block,
                         three_char_category=three_char_category,
+                        title=description,
                         description=description,
                         **extra_data,
                     )
@@ -131,6 +132,7 @@ class ICD10CMGraph(ICDGraph):
             block,
             three_char_category,
             internal_diag_element.findtext("desc"),
+            internal_diag_element.findtext("desc"),  # title
             **{"placeholder": bool(internal_diag_element.attrib.get("placeholder"))},
         )
 
