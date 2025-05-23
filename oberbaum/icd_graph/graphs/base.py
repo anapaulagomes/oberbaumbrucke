@@ -506,13 +506,22 @@ def from_none_to_empty(a_graph, root_node, data_dict):
     return a_graph
 
 
-def get_subgraph(graph, from_, to_, filename=None):
+def get_subgraph(graph, from_, to_, filename=None, include_children=False):
     if not filename:
         filename = "subgraph.gml"
     if not from_:
         from_ = graph._root_node
+
     path = nx.shortest_path(graph._graph, from_, to_)
     subgraph = nx.subgraph(graph._graph, path)
+    if include_children:
+        children = graph._graph.successors(to_)
+        subgraph = subgraph.copy()  # unfreeze it
+        for child in children:
+            data = graph.get(child)
+            subgraph.add_node(child, **data)
+            subgraph.add_edge(to_, child)
+
     from_none_to_empty(subgraph, graph._root_node, subgraph.nodes(data=True))
     nx.write_gml(subgraph, filename)
     return subgraph

@@ -89,11 +89,17 @@ def match(
 
 
 @graph_app.command()
-def subgraph(version: str, icd_files_dir: str, target: str, source: str = None):
+def subgraph(
+    version: str,
+    icd_files_dir: str,
+    target: str,
+    source: str = None,
+    include_children: bool = False,
+):
     graph = get_graph(version, icd_files_dir)
-    filename = f"subgraph-{graph.version_name}-{target}.gml"
+    filename = f"subgraph-{graph.version_name}-{target}{'-include-children' if include_children else ''}.gml"
     try:
-        subgraph = get_subgraph(graph, source, target, filename)
+        subgraph = get_subgraph(graph, source, target, filename, include_children)
         console.print(
             f"Exported to: {filename}."
             f"There are {len(subgraph.nodes)} nodes (original graph has {len(graph._graph.nodes)})"
