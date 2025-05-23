@@ -43,3 +43,13 @@ source .venv/bin/activate
 ```bash
 uv run pytest
 ```
+
+### Troubleshooting
+
+#### Pygraphviz
+
+```
+export C_INCLUDE_PATH="$(brew --prefix graphviz)/include/"
+export LIBRARY_PATH="$(brew --prefix graphviz)/lib/"
+uv pip install --config-setting="--global-option=build_ext" pygraphviz
+```
