@@ -7,6 +7,7 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import itertools
+    from pathlib import Path
 
     import marimo as mo
     import networkx as nx
@@ -17,6 +18,7 @@ def _():
 
     return (
         DiGraphMatcher,
+        Path,
         find_motifs,
         find_motifs_iter,
         go,
@@ -191,7 +193,6 @@ def _(mo):
         3. **Semantic matching**: the nodes should have similar descriptions or meanings (some times the codes are not changed but the description is)
 
         <a name="cite_note-1"></a>1. [Jetté, N., Quan, H., Hemmelgarn, B., Drosler, S., Maass, C., Moskal, L., Paoin, W., Sundararajan, V., Gao, S., Jakob, R., Üstün, B., Ghali, W. A., & Investigators,  for the I. (2010). The Development, Evolution, and Modifications of ICD-10: Challenges to the International Comparability of Morbidity Data. Medical Care, 48(12), 1105. https://doi.org/10.1097/MLR.0b013e3181ef9d3e](#cite_ref-1)
-
         """
     )
     return
@@ -269,9 +270,9 @@ def _(mo):
 
         Not working out of the box but with some changes we got some results.
 
-        * `is_node_structural_match`: match node ID (code) and structure (degree); needs to check the length of the code so it matches with WHO rules
-        * `is_node_attr_match`: needs to be overwritten because it checks if the attributes are the same
-        * `is_edge_attr_match`: ditto
+        * isnodestructuralmatchis_node_structural_match: match node ID (code) and structure (degree); needs to check the length of the code so it matches with WHO rules
+        * isnodearmatchis_node_attr_match: needs to be overwritten because it checks if the attributes are the same
+        * ised≥armatchis_edge_attr_match: ditto
         """
     )
     return
@@ -331,6 +332,104 @@ def _(bra, find_motifs, motif_kwargs, usa):
 @app.cell
 def _(find_motifs, ger, motif_kwargs, usa):
     list(find_motifs(usa, ger, **motif_kwargs))
+    return
+
+
+@app.cell
+def _(Path, nx):
+    G_who = nx.parse_gml(Path("icd-10-who.gml").read_text())
+    G_usa = nx.parse_gml(Path("icd-10-cm.gml").read_text())
+    G_ger = nx.parse_gml(Path("icd-10-gm.gml").read_text())
+    G_bra = nx.parse_gml(Path("cid-10-bra.gml").read_text())
+    return (G_usa,)
+
+
+@app.cell
+def _():
+    # result_who_usa = list(find_motifs_iter(G_who, G_who, **motif_kwargs))
+    # len(result_who_usa)
+
+    # G_who.nodes
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(G_usa):
+    G_usa.nodes
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Maximum common subtree isomorphism""")
+    return
+
+
+@app.cell
+def _(bra, nx):
+    nx.write_network_text(bra)
+    return
+
+
+@app.cell
+def _(ger, nx):
+    nx.write_network_text(ger)
+    return
+
+
+@app.cell
+def _(Path, nx):
+    ger_S3608 = nx.parse_gml(Path("subgraph-icd-10-gm-S3608.gml").read_text())
+    nx.write_network_text(ger_S3608)
+    return (ger_S3608,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""### GER: codes S361+children and S3608""")
+    return
+
+
+app._unparsable_cell(
+    r"""
+    def run_mcosi(G1, G2):
+        subtree1, subtree2, score = networkx_algo_common_subtree.maximum_common_ordered_subtree_isomorphism(G1, G2)
+        print(f'{score=}')
+        print('Isomorphic Subtree 1:')
+        nx.write_network_text(®)
+        print('Isomorphic Subtree 2:')
+        nx.write_network_text(subtree2)
+
+    """,
+    name="_",
+)
+
+
+@app.cell
+def _(ger, ger_S3608, run_mcosi):
+    run_mcosi(ger_S3608, ger)
+    return
+
+
+@app.cell
+def _(bra, ger, run_mcosi):
+    run_mcosi(bra, ger)
+    return
+
+
+@app.cell
+def _():
+    # subtree1_real, subtree2_real, score_real = networkx_algo_common_subtree.maximum_common_ordered_subtree_isomorphism(G_usa, G_who)
+    # print(f'{score_real=}')
+    # print(f'Isomorphic Subtree 1: {len(subtree1_real.nodes)} nodes, {len(subtree1_real.edges)} edges')
+    # # nx.write_network_text(subtree1)
+    # print(f'Isomorphic Subtree 2: {len(subtree2_real.nodes)} nodes, {len(subtree2_real.edges)} edges')
+    # # nx.write_network_text(subtree2)
     return
 
 
