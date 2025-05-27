@@ -14,10 +14,19 @@ def _():
 
 @app.cell
 def load_data(pl):
-    df = pl.read_csv(
-        "cid-10-bra___icd-10-who__paraphrase-multilingual-MiniLM-L12-v2.csv"
+    df = pl.concat(
+        [
+            pl.read_csv("artifacts/icd-10-who___icd-10-cm__bge-m3_0.75.csv"),
+            pl.read_csv(
+                "artifacts/icd-10-who___icd-10-cm__paraphrase-multilingual-MiniLM-L12-v2_0.75.csv"
+            ),
+            pl.read_csv(
+                "artifacts/icd-10-who___icd-10-cm__distiluse-base-multilingual-cased-v2_0.75.csv"
+            ),
+        ]
     )
-    df.head()
+
+    df
     return (df,)
 
 
@@ -42,10 +51,10 @@ def _(df, pl, px):
 
 
 @app.cell
-def _(df, pl, px):
-    _counts = df.group_by("match_type").agg(pl.len().alias("count")).sort("count")
+def _(df, px):
+    # _counts = df.group_by("match_type").agg(pl.len().alias("count")).sort("count")
 
-    px.bar(_counts, x="match_type", y="count", title="Match type", color="match_type")
+    px.bar(df, x="match_type", title="Match type", color="model")
     return
 
 
