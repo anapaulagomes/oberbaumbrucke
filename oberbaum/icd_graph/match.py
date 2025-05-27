@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, track
 from sentence_transformers import SentenceTransformer, util
@@ -8,7 +9,7 @@ def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.75):
+def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.7):
     """
     Check if two labels are semantically similar.
     """
@@ -16,7 +17,7 @@ def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold
     hits = util.semantic_search(
         another_graph_embeddings,
         a_graph_embeddings,
-        score_function=util.dot_score,
+        score_function=util.cos_sim,
         top_k=1,
     )
     for hit in hits:
@@ -27,7 +28,7 @@ def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold
     return False, score
 
 
-def match_codes(a_graph, another_graph, model_name, threshold=0.75):
+def match_codes(a_graph, another_graph, model_name, threshold=0.7):
     """
     Compare two graphs and find matches based on the code and description.
     :param threshold: threshold for semantic similarity.
@@ -38,41 +39,45 @@ def match_codes(a_graph, another_graph, model_name, threshold=0.75):
     """
     model = SentenceTransformer(model_name)
     result = []
-    summary = {
-        a_graph.version_name: len(a_graph._graph.nodes),
-        another_graph.version_name: len(another_graph._graph.nodes),
+
+    a_graph, a_graph_codes_with_embeddings = set_embeddings_from_descriptions(
+        a_graph, model
+    )
+    another_graph, another_graph_codes_with_embeddings = (
+        set_embeddings_from_descriptions(another_graph, model)
+    )
+
+    a_graph_codes = {node: data for node, data in a_graph_codes_with_embeddings}
+    another_graph_codes = {
+        node: data for node, data in another_graph_codes_with_embeddings
     }
 
-    a_graph = set_embeddings_from_descriptions(a_graph, model)
-    another_graph = set_embeddings_from_descriptions(another_graph, model)
+    summary = {
+        a_graph.version_name: f"Nodes: {len(a_graph._graph.nodes)} / Codes: {len(a_graph_codes)}",
+        another_graph.version_name: f"Nodes: {len(another_graph._graph.nodes)} / Codes: {len(another_graph_codes)}",
+    }
 
     for a_graph_node, a_graph_data in track(
-        a_graph._graph.nodes(data=True), description="Comparing versions..."
+        a_graph_codes.items(), description="Comparing versions..."
     ):
         is_match = False
         score = None
-        found_node = {}
-        if a_graph_node == a_graph._root_node:
-            continue
 
-        try:
-            found_node = another_graph._graph.nodes[a_graph_node]
-        except KeyError:  # if the node is not found in the other graph
-            match_stage = "not_found"
-        else:
-            if found_node:
-                if a_graph_data["name"] == found_node["name"]:  # code's comparison
-                    is_similar_description, score = semantically_similar(
-                        a_graph_data["embeddings"], found_node["embeddings"], threshold
-                    )
-                    match_stage = "exact_code"
-                    if is_similar_description:
-                        match_stage = "match_code_and_description"
-                        is_match = True
-                else:
-                    match_stage = "different_code"
+        found_node = another_graph_codes.get(a_graph_node, {})
+        if found_node:  # if both are codes
+            if a_graph_data["name"] == found_node["name"]:  # code's comparison
+                is_similar_description, score = semantically_similar(
+                    a_graph_data["embeddings"], found_node["embeddings"], threshold
+                )
+                match_stage = "match_code"
+                if is_similar_description:
+                    match_stage = "match_code_and_description"
+                    is_match = True
             else:
-                match_stage = "missing_data"
+                match_stage = "different_code"
+        else:
+            # if the node is not found in the other graph - as a code
+            match_stage = "not_found"
         summary[match_stage] = summary.get(match_stage, 0) + 1
 
         result.append(
@@ -86,6 +91,9 @@ def match_codes(a_graph, another_graph, model_name, threshold=0.75):
                 f"{another_graph.version_name}__description": found_node.get(
                     "description"
                 ),
+                "model": model_name,
+                "threshold": threshold,
+                "created_at": str(datetime.now()),
             }
         )
 
@@ -100,18 +108,19 @@ def set_embeddings_from_descriptions(graph, model):
         transient=True,
     ) as progress:
         descriptions = []
+        codes_with_embeddings = list(graph.get_codes(data=True))
 
         progress.add_task(description="Preparing nodes...", total=None)
-        for node, data in graph._graph.nodes(data=True):
+        for node, data in codes_with_embeddings:
             descriptions.append(data.get("description", ""))
 
         progress.add_task(description="Getting embeddings...", total=None)
         embeddings = encode_icd_descriptions(descriptions, model)
 
         progress.add_task(description="Storing embeddings...", total=None)
-        for index, (node, data) in enumerate(graph._graph.nodes(data=True)):
+        for index, (node, data) in enumerate(codes_with_embeddings):
             data["embeddings"] = embeddings[index]
-        return graph
+        return graph, codes_with_embeddings
 
 
 def export_matches(matches, output):
