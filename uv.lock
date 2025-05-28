@@ -196,6 +196,15 @@ wheels = [
 ]
 
 [[package]]
+name = "grandiso"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "networkx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/65/c6/27400e2d81bd769ebe65c695cead44c8efb55ac3769826a01c9223d65709/grandiso-2.2.0.tar.gz", hash = "sha256:66f292d27328e13122065c7905ad0ac79c4649f69a35e7b98a3631654a0bf77c", size = 16277 }
+
+[[package]]
 name = "h11"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -807,6 +816,7 @@ name = "oberbaum"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "grandiso" },
     { name = "lxml" },
     { name = "marimo" },
     { name = "networkx" },
@@ -828,6 +838,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "grandiso", specifier = ">=2.2.0" },
     { name = "lxml", specifier = ">=5.4.0" },
     { name = "marimo", specifier = ">=0.13.0" },
     { name = "networkx", specifier = ">=3.4.2" },
