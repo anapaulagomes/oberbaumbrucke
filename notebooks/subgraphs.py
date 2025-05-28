@@ -11,6 +11,7 @@ def _():
 
     import marimo as mo
     import networkx as nx
+    import networkx_algo_common_subtree
     import plotly.graph_objects as go
     from grandiso import find_motifs, find_motifs_iter
     from networkx.algorithms.isomorphism import DiGraphMatcher
@@ -25,6 +26,7 @@ def _():
         itertools,
         make_subplots,
         mo,
+        networkx_algo_common_subtree,
         nx,
     )
 
@@ -395,19 +397,21 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _(networkx_algo_common_subtree, nx):
     def run_mcosi(G1, G2):
-        subtree1, subtree2, score = networkx_algo_common_subtree.maximum_common_ordered_subtree_isomorphism(G1, G2)
-        print(f'{score=}')
-        print('Isomorphic Subtree 1:')
-        nx.write_network_text(®)
-        print('Isomorphic Subtree 2:')
+        subtree1, subtree2, score = (
+            networkx_algo_common_subtree.maximum_common_ordered_subtree_isomorphism(
+                G1, G2
+            )
+        )
+        print(f"{score=}")
+        print("Isomorphic Subtree 1:")
+        nx.write_network_text(subtree1)
+        print("Isomorphic Subtree 2:")
         nx.write_network_text(subtree2)
 
-    """,
-    name="_",
-)
+    return (run_mcosi,)
 
 
 @app.cell
