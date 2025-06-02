@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "dash>=3.0.4",
     "grandiso>=2.2.0",
     "lxml>=5.4.0",
     "marimo>=0.13.0",
@@ -15,6 +16,7 @@ dependencies = [
     "networkx-algo-common-subtree>=0.2.2",
     "plotly>=6.0.1",
     "polars>=1.27.1",
+    "pygraphviz>=1.14",
     "requests>=2.32.3",
     "sentence-transformers>=4.1.0",
     "typer>=0.15.2",
