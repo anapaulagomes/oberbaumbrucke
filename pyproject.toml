@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Ana Paula Gomes", email = "apgomes88+obb@gmail.com" }
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "dash>=3.0.4",
     "grandiso>=2.2.0",
@@ -44,3 +44,6 @@ markers = [
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff]
+extend-exclude = ["notebooks"]

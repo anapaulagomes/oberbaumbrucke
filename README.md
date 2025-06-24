@@ -32,6 +32,9 @@ oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --outpu
 uv sync
 ```
 
+`pygraphviz` is also required. Please follow the instructions [here](https://pygraphviz.github.io/) to install it.
+If you have any issues with `pygraphviz`, you can try the troubleshooting steps described below.
+
 ### Activate the virtual environment
 
 ```bash
@@ -53,3 +56,5 @@ export C_INCLUDE_PATH="$(brew --prefix graphviz)/include/"
 export LIBRARY_PATH="$(brew --prefix graphviz)/lib/"
 uv pip install --config-setting="--global-option=build_ext" pygraphviz
 ```
+
+In case the issues to install it persists, try the other solutions presented [here](https://github.com/HalcyonSolutions/MultiHopKG/issues/16).
