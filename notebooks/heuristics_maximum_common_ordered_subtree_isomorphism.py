@@ -16,10 +16,9 @@ def _():
 
 @app.cell
 def _(Path, nx):
-    G = nx.parse_gml(Path("cid-10-bra.gml").read_text())
-    G2 = nx.parse_gml(Path("icd-10-gm.gml").read_text())
-    S = nx.parse_gml(Path("subgraph-icd-10-gm-A4151.gml").read_text())
-    return G, G2, S
+    G = nx.parse_gml(Path("icdd-10-ger.gml").read_text())
+    G2 = nx.parse_gml(Path("icd-10-who.gml").read_text())
+    return G, G2
 
 
 @app.cell
@@ -34,31 +33,6 @@ def _():
             if is_code(x) and graph.out_degree(x) == 0 and graph.in_degree(x) == 1
         ]
 
-    return (get_leafs,)
-
-
-@app.cell
-def _(S, get_leafs):
-    get_leafs(S)
-    return
-
-
-@app.cell
-def _(G, get_leafs):
-    G_leafs = get_leafs(G)
-    G_leafs
-    return (G_leafs,)
-
-
-@app.cell
-def _(G_leafs):
-    G_leafs[10]
-    return
-
-
-@app.cell
-def _(G, nx):
-    nx.shortest_path(G, source="root", target="A415")
     return
 
 
@@ -83,22 +57,6 @@ def _(networkx_algo_common_subtree, nx):
 
 
 @app.cell
-def _(G2, nx):
-    # networkx.exception.NodeNotFound: Target A4151 is not in G
-    # shortest_path = nx.shortest_path(G2, source='root', target='A4151')
-    subgraph_descendants = nx.descendants(G2, "22")
-    s = G2.subgraph(subgraph_descendants)
-    nx.write_network_text(s)
-    return (s,)
-
-
-@app.cell
-def _(G, run_mcosi, s):
-    run_mcosi(G, s, print_results=True)  # G bra in S from G2 ger
-    return
-
-
-@app.cell
 def _(G, G2, nx, run_mcosi):
     results = {}
     for chapter in range(1, 23):
@@ -117,8 +75,57 @@ def _(G2, nx, results):
 
 
 @app.cell
-def _(G, nx):
-    list(nx.tree_all_pairs_lowest_common_ancestor(G, "U818"))
+def _(nx, results):
+    in_common = nx.DiGraph()
+    root = "root"
+    in_common.add_node(root)
+
+    for _chapter, _result in results.items():
+        in_common.add_edge(root, _chapter)
+        assert len(_result["subtree1"].nodes()) == len(_result["subtree2"].nodes())
+        current_graph = _result["subtree1"]
+        first_level_nodes = [
+            n for n in current_graph.nodes if current_graph.in_degree(n) == 0
+        ]
+        for first_level_node in first_level_nodes:
+            in_common.add_edge(_chapter, first_level_node)
+        in_common.update(current_graph)
+
+    return (in_common,)
+
+
+@app.cell
+def _(G, G2, in_common, nx):
+    nx.set_node_attributes(G, "bra", name="version")
+    nx.set_node_attributes(G2, "ger", name="version")
+    nx.set_node_attributes(in_common, "in_common", name="version")
+    return
+
+
+@app.cell
+def _(G, G2, in_common, nx):
+    # merge graphs
+    M = nx.compose(in_common, G)
+    M = nx.compose(M, G2)
+    len(M.nodes())
+    return (M,)
+
+
+@app.cell
+def _(M, nx):
+    nx.write_gml(M, "merged-icd-10-who-ger-in-common.gml")
+    return
+
+
+@app.cell
+def _(in_common, nx):
+    nx.write_gml(in_common, "in_common_who-ger.gml")
+    return
+
+
+@app.cell
+def _():
+    # list(nx.tree_all_pairs_lowest_common_ancestor(G, "U818"))
     # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.lowest_common_ancestors.tree_all_pairs_lowest_common_ancestor.html
     return
 
