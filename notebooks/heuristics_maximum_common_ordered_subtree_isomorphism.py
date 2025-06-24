@@ -1,3 +1,5 @@
+
+
 import marimo
 
 __generated_with = "0.13.0"
@@ -16,7 +18,7 @@ def _():
 
 @app.cell
 def _(Path, nx):
-    G = nx.parse_gml(Path("icdd-10-ger.gml").read_text())
+    G = nx.parse_gml(Path("icd-10-gm.gml").read_text())
     G2 = nx.parse_gml(Path("icd-10-who.gml").read_text())
     return G, G2
 
