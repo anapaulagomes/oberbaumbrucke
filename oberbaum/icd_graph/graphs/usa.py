@@ -131,8 +131,10 @@ class ICD10CMGraph(ICDGraph):
             chapter,
             block,
             three_char_category,
-            internal_diag_element.findtext("desc"),
-            internal_diag_element.findtext("desc"),  # title
+            description=internal_diag_element.findtext("desc"),
+            title=internal_diag_element.findtext(
+                "desc"
+            ),  # FIXME check title/description in the data
             **{"placeholder": bool(internal_diag_element.attrib.get("placeholder"))},
         )
 
