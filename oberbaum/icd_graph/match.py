@@ -1,12 +1,13 @@
 import csv
 from datetime import datetime
 
+import polars as pl
 from rich.progress import Progress, SpinnerColumn, TextColumn, track
 from sentence_transformers import SentenceTransformer, util
 
 
 def encode_icd_descriptions(sentences, model):
-    return model.encode(sentences, convert_to_tensor=True)
+    return model.encode(sentences)
 
 
 def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.7):
@@ -100,19 +101,28 @@ def match_codes(a_graph, another_graph, model_name, threshold=0.7):
     return summary, result
 
 
-def set_embeddings_from_descriptions(graph, model):
+def set_embeddings_from_descriptions(
+    graph, model_name, model_args=None, only_embeddings=False
+):  # FIXME rename encode, get embeddings
     """Get the embeddings for all descriptions in the graph."""
+    if model_args is None:
+        model_args = {}
+
+    model = SentenceTransformer(model_name, **model_args)
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         transient=True,
     ) as progress:
         descriptions = []
+        codes = []
         codes_with_embeddings = list(graph.get_codes(data=True))
 
         progress.add_task(description="Preparing nodes...", total=None)
         for node, data in codes_with_embeddings:
-            descriptions.append(data.get("description", ""))
+            descriptions.append(data.get("title", "") or data.get("description", ""))
+            codes.append(data.get("name", node))
 
         progress.add_task(description="Getting embeddings...", total=None)
         embeddings = encode_icd_descriptions(descriptions, model)
@@ -120,6 +130,16 @@ def set_embeddings_from_descriptions(graph, model):
         progress.add_task(description="Storing embeddings...", total=None)
         for index, (node, data) in enumerate(codes_with_embeddings):
             data["embeddings"] = embeddings[index]
+
+        if only_embeddings:
+            return pl.DataFrame(
+                {
+                    "embeddings": embeddings,
+                    "title": descriptions,
+                    "version": graph.version_name,
+                    "code": codes,
+                }
+            )  # FIXME improve naming
         return graph, codes_with_embeddings
 
 
