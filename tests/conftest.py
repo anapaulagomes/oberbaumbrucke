@@ -1,4 +1,7 @@
+from collections import OrderedDict
+
 import pytest
+from pyexcel_ods3 import save_data
 
 from tests.helpers import download_and_unzip
 
@@ -37,6 +40,70 @@ def real_icd10_who_file_dir():
 def real_cid10_bra_2008_file_dir():
     url = "http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip"
     yield download_and_unzip(url, "data/CID10CSV", "CID10CSV.zip")
+
+
+@pytest.fixture(scope="class")
+def real_cid10_bra_2019_file_dir(real_icd10_who_file_dir):
+    """File granted via the Brazilian Access to Information Bill (Freedom of Information Act).
+
+    Protocol: https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=8826703"""
+    files_dir = "data/CID-10-20192"
+    who_url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
+    download_and_unzip(who_url, files_dir, "icd102019enMeta.zip")
+
+    url = "https://github.com/anapaulagomes/datasus-dicionarios/raw/refs/heads/main/cid-10/lai-25072022911202531/Extracao%20CID10.ods"
+    yield download_and_unzip(url, files_dir, "Extracao CID10.ods")
+
+
+@pytest.fixture
+def cid10_bra_file_dir(icd10_who_file_dir, tmp_path):
+    codes_file = tmp_path / "Extracao CID10.ods"
+    data = OrderedDict()
+    data.update(
+        {
+            "Sheet 1": [
+                ["CID    ", "DESCRICAO          "],
+                [
+                    "A00",
+                    "Colera                                                                                                                                                                                                                                                                                  ",
+                ],
+                [
+                    "A01",
+                    "Febres tifoide e paratifoide                                                                                                                                                                                                                                                            ",
+                ],
+                [
+                    "A02",
+                    "Outras infeccoes por Salmonella                                                                                                                                                                                                                                                         ",
+                ],
+                [
+                    "A03",
+                    "Shiguelose                                                                                                                                                                                                                                                                              ",
+                ],
+                [
+                    "A04",
+                    "Outras gastroenterites e colites de origem infecciosa e as nao especificadas                                                                                                                                                                                                            ",
+                ],
+                [
+                    "A000",
+                    "Colera devida a Vibrio cholerae 01, biotipo cholerae                                                                                                                                                                                                                                    ",
+                ],
+                [
+                    "A001",
+                    "Colera devida a Vibrio cholerae 01, biotipo El Tor                                                                                                                                                                                                                                      ",
+                ],
+                [
+                    "A009",
+                    "Colera nao especificada                                                                                                                                                                                                                                                                 ",
+                ],
+                [
+                    "A010",
+                    "Febre tifoide                                                                                                                                                                                                                                                                           ",
+                ],
+            ]
+        }
+    )
+    save_data(str(codes_file), data)
+    return str(tmp_path)
 
 
 @pytest.fixture

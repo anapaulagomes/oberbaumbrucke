@@ -6,7 +6,7 @@ import requests
 
 def download_and_unzip(url, target_file_dir, filename):
     target_file_dir_path = Path(target_file_dir)
-    if target_file_dir_path.exists() is False:
+    if (target_file_dir_path / filename).exists() is False:
         response = requests.get(url)
         response.raise_for_status()
         target_file_dir_path.mkdir(parents=True, exist_ok=True)

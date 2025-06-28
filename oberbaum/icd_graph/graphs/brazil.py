@@ -103,3 +103,50 @@ class CID10Graph2008(ICDGraph):
             )
 
             self.connect_codes_recursively(code)
+
+
+@dataclass
+class CID10Graph(WHOICDGraph):
+    """Class for representing the Brazilian ICD-10 from 2019 version as a graph.
+
+    Files for download: http://plataforma.saude.gov.br/cc-br-fic/
+    """
+
+    year: int = 2019
+    version_name: str = "cid-10-bra"
+    _codes_filename: str = "Extracao CID10.ods"
+    # from WHO ICD-10 2019
+    _chapters_filename: str = (
+        "icd102019syst_chapters.txt"  # TODO get written confirmation of org
+    )
+    _block_filename: str = "icd102019syst_groups.txt"
+
+    def add_codes(self):
+        codes_file = Path(self.files_dir) / self._codes_filename
+        codes = pl.read_ods(source=codes_file)
+        codes.columns = [
+            "CID",
+            "DESCRICAO",
+        ]  # renaming columns to remove extra spaces in it
+        for line in codes.iter_rows(named=True):
+            code = line["CID"].strip().replace(".", "")
+            title = line["DESCRICAO"].strip()
+            three_char_category = code[:3]
+            block = self.find_block(three_char_category)
+            if not block:
+                print(f"Block not found for code {code}")
+                continue
+
+            chapter = self.get(block)["chapter_code"]
+            self.add_or_update_code(
+                code,
+                chapter,
+                block,
+                three_char_category,
+                title=title,
+            )
+
+            if len(code) == 3:  # three-character category = first level for codes
+                self.connect_block_three_char_category(block, code)
+            else:
+                self.connect_codes_recursively(code)
