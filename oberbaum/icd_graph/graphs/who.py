@@ -71,7 +71,7 @@ class WHOICDGraph(ICDGraph):
                 **extra_data,
             )
 
-            if fields[0] == "3":
+            if fields[0] == "3":  # from the column hierarchy_level
                 self.connect_block_three_char_category(block, code)
             else:
                 self.connect_codes_recursively(code)
