@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer, util
 
 
 def encode_icd_descriptions(sentences, model):
-    return model.encode(sentences)
+    return model.encode(sentences, convert_to_tensor=True)
 
 
 def semantically_similar(a_graph_embeddings, another_graph_embeddings, threshold=0.7):
@@ -125,7 +125,8 @@ def set_embeddings_from_descriptions(
             codes.append(data.get("name", node))
 
         progress.add_task(description="Getting embeddings...", total=None)
-        embeddings = encode_icd_descriptions(descriptions, model)
+        tensor_embeddings = encode_icd_descriptions(descriptions, model)
+        embeddings = [emb.tolist() for emb in tensor_embeddings]
 
         progress.add_task(description="Storing embeddings...", total=None)
         for index, (node, data) in enumerate(codes_with_embeddings):

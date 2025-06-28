@@ -77,13 +77,4 @@ def is_embeddings_version_stored(con, version, model):
     return False
 
 
-def write_embedding_to_table(con, version, icd_code, title, embedding, model_name):
-    create_table_if_not_exists(con)
-    con.execute(
-        "INSERT INTO icd_embeddings (version, icd_code, title, embedding, model) VALUES (?, ?, ?, ?, ?)",
-        [version, icd_code, title, embedding, model_name]
-    )
-    return con
-
-
 store_embeddings(conn)
