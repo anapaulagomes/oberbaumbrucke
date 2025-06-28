@@ -12,7 +12,7 @@ class TestGetGraph:
         "version, expected_class, file_dir",
         [
             ("icd-10-who", WHOICDGraph, "icd10_who_file_dir"),
-            ("cid-10-bra-2008", CID10Graph2008, "cid10_bra_2018_file_dir"),
+            ("cid-10-bra-2008", CID10Graph2008, "cid10_bra_2008_file_dir"),
             ("icd-10-gm", ICD10GMGraph, "icd10_gm_file_dir"),
         ],
     )

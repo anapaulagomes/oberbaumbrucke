@@ -34,13 +34,13 @@ def real_icd10_who_file_dir():
 
 
 @pytest.fixture(scope="class")
-def real_cid10_bra_2018_file_dir():
+def real_cid10_bra_2008_file_dir():
     url = "http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip"
     yield download_and_unzip(url, "data/CID10CSV", "CID10CSV.zip")
 
 
 @pytest.fixture
-def cid10_bra_2018_file_dir(tmp_path):
+def cid10_bra_2008_file_dir(tmp_path):
     chapters_file = tmp_path / "CID-10-CAPITULOS.CSV"
     chapters_file.write_text(
         "NUMCAP;CATINIC;CATFIM;DESCRICAO;DESCRABREV;\n"

@@ -1,21 +1,21 @@
 import pytest
 
-from oberbaum.icd_graph.graphs.brazil import CID10Graph
+from oberbaum.icd_graph.graphs.brazil import CID10Graph2008
 
 
 class TestCID10Graph:
-    def test_create_cid10_graph(self, cid10_bra_file_dir):
-        graph = CID10Graph(files_dir=cid10_bra_file_dir)
+    def test_create_cid10_graph(self, cid10_bra_2008_file_dir):
+        graph = CID10Graph2008(files_dir=cid10_bra_2008_file_dir)
         assert graph.version_name == "cid-10-bra"
 
-    def test_get_all_chapters(self, cid10_bra_file_dir):
-        graph = CID10Graph(files_dir=cid10_bra_file_dir)
+    def test_get_all_chapters(self, cid10_bra_2008_file_dir):
+        graph = CID10Graph2008(files_dir=cid10_bra_2008_file_dir)
         chapters = graph.chapters()
         assert isinstance(chapters, list)
         assert len(chapters) == 3
 
-    def test_blocks(self, cid10_bra_file_dir):
-        graph = CID10Graph(files_dir=cid10_bra_file_dir)
+    def test_blocks(self, cid10_bra_2008_file_dir):
+        graph = CID10Graph2008(files_dir=cid10_bra_2008_file_dir)
 
         assert "A00-A09" in graph.blocks()
         assert "A15-A19" in graph.blocks()
@@ -58,17 +58,17 @@ class TestCID10Graph:
         ],
     )
     def test_find_chapter_and_block(
-        self, real_cid10_bra_file_dir, code, chapter, block, message
+        self, real_cid10_bra_2008_file_dir, code, chapter, block, message
     ):
-        graph = CID10Graph(files_dir=real_cid10_bra_file_dir)
+        graph = CID10Graph2008(files_dir=real_cid10_bra_2008_file_dir)
         found_chapter = graph.find_chapter(code)
         found_block = graph.find_block(code)
 
         assert found_chapter == chapter, message
         assert found_block == block, message
 
-    def test_codes(self, cid10_bra_file_dir):
-        graph = CID10Graph(files_dir=cid10_bra_file_dir)
+    def test_codes(self, cid10_bra_2008_file_dir):
+        graph = CID10Graph2008(files_dir=cid10_bra_2008_file_dir)
         expected = {
             "A009",
             "A00",
@@ -91,8 +91,8 @@ class TestCID10Graph:
         assert codes == expected
 
     @pytest.mark.integration
-    def test_check_real_graph(self, real_cid10_bra_file_dir):
-        graph = CID10Graph(files_dir=real_cid10_bra_file_dir)
+    def test_check_real_graph(self, real_cid10_bra_2008_file_dir):
+        graph = CID10Graph2008(files_dir=real_cid10_bra_2008_file_dir)
 
         assert len(graph.chapters()) == 22
         assert len(graph.blocks()) == 275
@@ -149,7 +149,7 @@ class TestCID10Graph:
             "T210;;;;Queimadura do tronco, grau não especificado;T21.0 Queim do tronco grau NE;;;\n"
             "T211;;;N;Queimadura de primeiro grau do tronco;T21.1 Queim de 1.grau do tronco;;;\n"
         )
-        graph = CID10Graph(files_dir=str(tmp_path))
+        graph = CID10Graph2008(files_dir=str(tmp_path))
 
         assert graph._graph.has_edge("T20-T32", "T20-T25")  # block and sub-blocks
         assert graph._graph.has_edge("T20-T32", "T26-T28")
