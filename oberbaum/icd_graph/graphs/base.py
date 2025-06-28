@@ -44,7 +44,9 @@ class ICDGraph(ABC):
     _graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _root_node: str = "root"
     _chapters: dict = field(default_factory=dict)
-    _blocks: dict = field(default_factory=dict)
+    _blocks: dict = field(
+        default_factory=dict
+    )  # TODO think about using the graph or the class data structure
     _levels: dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -84,6 +86,11 @@ class ICDGraph(ABC):
     def add_root_node(self):
         self._graph.add_node(self._root_node)
 
+    @staticmethod
+    def normalize_chapter_code(chapter_code: str):
+        """Normalize the chapter code by removing leading zeros e.g. "01" -> "1"."""
+        return chapter_code.lstrip("0")
+
     def add_or_update_chapter(
         self,
         chapter_code: str,
@@ -92,7 +99,7 @@ class ICDGraph(ABC):
         end=None,
         description=None,
     ):
-        chapter_code = chapter_code.lstrip("0")  # remove leading zero e.g. "01" -> "1"
+        chapter_code = self.normalize_chapter_code(chapter_code)
         data = {
             "start": start,  # blocks start
             "end": end,  # blocks end
@@ -106,6 +113,7 @@ class ICDGraph(ABC):
                 key: value for key, value in data.items() if value is not None
             }
             self._graph.nodes[chapter_code].update(updated_data)
+            self._chapters[chapter_code].update(updated_data)
             return chapter_code
 
         data["type"] = "chapter"
@@ -138,6 +146,7 @@ class ICDGraph(ABC):
                 key: value for key, value in data.items() if value is not None
             }
             self._graph.nodes[block_name].update(updated_data)
+            self._blocks[block_name].update(updated_data)
             return block_name
 
         if not all([start, end]):
