@@ -180,6 +180,15 @@ class TestICD10CMGraph:
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
 
+    def test_all_codes_have_title(self, real_icd10_cm_file_dir):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+        nodes_without_description = [
+            node
+            for node, data in graph._graph.nodes(data=True)
+            if node != "root" and not data.get("title")
+        ]
+        assert nodes_without_description == []
+
 
 class TestCompareCodes:
     @pytest.fixture(scope="class")
