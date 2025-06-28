@@ -1,3 +1,5 @@
+
+
 import marimo
 
 __generated_with = "0.13.0"
@@ -29,12 +31,7 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(
-        """
-        # ICD-10 labels to embeddings
-
-        """
-    )
+    mo.md("""# ICD-10 labels to embeddings""")
     return
 
 
@@ -46,14 +43,14 @@ def _(mo):
 
         > H52 Disorders of refraction and accommodation
 
-        ```
+        `
         example = [
             "Disorders of refraction and accommodation",  # WHO and USA
             "Akkommodationsstörungen und Refraktionsfehler", # German
             "Transtornos da refração e da acomodação",  # Portuguese
             "Vices de réfraction et troubles de l'accommodation",  # French
         ]
-        ```
+        `
         """
     )
     return
@@ -94,7 +91,7 @@ def _(example_model, util):
 @app.cell
 def _(example_results, pl, px):
     example_matrix = pl.DataFrame(example_results).pivot(
-        values="score", index="sentence_2", columns="sentence_1"
+        values="score", index="sentence_2", on="sentence_1"
     )
     example_y = example_matrix["sentence_2"]
     example_matrix = example_matrix.drop("sentence_2")
@@ -106,7 +103,7 @@ def _(example_results, pl, px):
         title="H52: Disorders of refraction and accommodation",
     )
     _fig.update_yaxes(side="left")
-    # _fig.write_image("icd10_example_h52_jina.png")  # TODO
+    # _fig.write_image("icd10_example_h52_jina.pdf")  # TODO
     _fig.show()
     return
 
@@ -131,7 +128,7 @@ def _(mo):
 
         * `name`: label e.g. A507
         * `title`: short title, e.g. "Chronic bronchitis, unspecified"
-        * `description`: detailed description
+
         """
     )
     return
@@ -143,8 +140,8 @@ def _(get_graph):
     G = get_graph("icd-10-gm", gml_filepath="icd-10-gm.gml")
     U = get_graph("icd-10-cm", gml_filepath="icd-10-cm.gml")
     B = get_graph(
-        "cid-10-bra", gml_filepath="cid-10-bra.gml"
-    )  # TODO re-generate Brazilian graph
+        "cid-10-bra-2008", gml_filepath="cid-10-bra-2008.gml"
+    )
     return B, G, U, W
 
 
@@ -170,7 +167,7 @@ def _(W):
 def _(U):
     U.get(
         "A507"
-    )  # FIXME move description to title # TODO check naming in WHO guidelines
+    )  # TODO check naming in WHO guidelines
     return
 
 
@@ -191,9 +188,7 @@ def _(B, G, U, W):
             text_data.append(
                 {
                     "code": node,
-                    "title": str(
-                        data.get("title") or data.get("description") or ""
-                    ),  # FIXME title is empty for USA
+                    "title": data.get("title", ""),
                     "version": A.version_name,
                 }
             )
@@ -248,9 +243,9 @@ def _():
     ]
 
     COLOR_BY_VERSION = {
-        "icd-10-who": "blue",
+        "icd-10-who": "deepskyblue",
         "cid-10-bra": "green",
-        "icd-10-gm": "yellow",
+        "icd-10-gm": "gold",
         "icd-10-cm": "red",
     }
 
@@ -285,6 +280,24 @@ def _(G, model_args, set_embeddings_from_descriptions):
 
 
 @app.cell
+def _(U, model_args, set_embeddings_from_descriptions):
+    usa_codes_with_embeddings = set_embeddings_from_descriptions(
+        U, "jinaai/jina-embeddings-v3", model_args, only_embeddings=True
+    )
+    # TODO serial generation
+    return (usa_codes_with_embeddings,)
+
+
+@app.cell
+def _(W, model_args, set_embeddings_from_descriptions):
+    who_codes_with_embeddings = set_embeddings_from_descriptions(
+        W, "jinaai/jina-embeddings-v3", model_args, only_embeddings=True
+    )
+    # TODO serial generation
+    return (who_codes_with_embeddings,)
+
+
+@app.cell
 def _(pl, umap):
     def reduce_embeddings(df_embeddings):
         umap_model = umap.UMAP(
@@ -316,7 +329,6 @@ def _(COLOR_BY_VERSION, px):
 
 @app.cell
 def _():
-    # TODO remove code from titles in Brazilian coding
     # TODO add note about abreviations in the Brazilian coding V25.4, V26.4, V27.4
     return
 
@@ -334,16 +346,34 @@ def _(embeddings_scatter_plot, ger_codes_with_embeddings, reduce_embeddings):
 
 
 @app.cell
+def _(embeddings_scatter_plot, reduce_embeddings, usa_codes_with_embeddings):
+    embeddings_scatter_plot(reduce_embeddings(usa_codes_with_embeddings))
+    return
+
+
+@app.cell
+def _(embeddings_scatter_plot, reduce_embeddings, who_codes_with_embeddings):
+    embeddings_scatter_plot(reduce_embeddings(who_codes_with_embeddings))
+    return
+
+
+@app.cell
 def _(
     bra_codes_with_embeddings,
     embeddings_scatter_plot,
     ger_codes_with_embeddings,
     pl,
     reduce_embeddings,
+    usa_codes_with_embeddings,
 ):
     embeddings_scatter_plot(
         reduce_embeddings(
-            pl.concat([bra_codes_with_embeddings, ger_codes_with_embeddings])
+            pl.concat([
+                bra_codes_with_embeddings,
+                ger_codes_with_embeddings,
+                usa_codes_with_embeddings,
+                # who_codes_with_embeddings,
+            ])
         )
     )
     return
