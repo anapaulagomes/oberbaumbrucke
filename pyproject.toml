@@ -11,7 +11,7 @@ dependencies = [
     "dash>=3.0.4",
     "einops>=0.8.1",
     "grandiso>=2.2.0",
-    "kaleido>=1.0.0",
+    "kaleido==0.2.1",
     "lxml>=5.4.0",
     "marimo>=0.13.0",
     "networkx>=3.4.2",
