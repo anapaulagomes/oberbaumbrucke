@@ -2,7 +2,7 @@ import pytest
 
 from oberbaum.cli import get_graph
 from oberbaum.icd_graph.graphs.base import ICDGraph
-from oberbaum.icd_graph.graphs.brazil import CID10Graph2008
+from oberbaum.icd_graph.graphs.brazil import CID10Graph, CID10Graph2008
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
@@ -12,7 +12,7 @@ class TestGetGraph:
         "version, expected_class, file_dir",
         [
             ("icd-10-who", WHOICDGraph, "icd10_who_file_dir"),
-            ("cid-10-bra-2008", CID10Graph2008, "cid10_bra_2008_file_dir"),
+            ("cid-10-bra", CID10Graph, "cid10_bra_file_dir"),
             ("icd-10-gm", ICD10GMGraph, "icd10_gm_file_dir"),
         ],
     )
