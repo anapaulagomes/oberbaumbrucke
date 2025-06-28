@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from oberbaum.icd_graph.graphs.base import get_subgraph
-from oberbaum.icd_graph.graphs.brazil import CID10Graph
+from oberbaum.icd_graph.graphs.brazil import CID10Graph2008
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
@@ -19,7 +19,7 @@ console = Console()
 def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None):
     versions = {
         "icd-10-who": WHOICDGraph,
-        "cid-10-bra": CID10Graph,
+        "cid-10-bra": CID10Graph2008,
         "icd-10-gm": ICD10GMGraph,
         "icd-10-cm": ICD10CMGraph,
     }
