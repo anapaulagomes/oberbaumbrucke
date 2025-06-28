@@ -31,10 +31,32 @@ class WHOICDGraph(ICDGraph):
 
     def add_blocks(self):
         blocks_file = Path(self.files_dir) / self._block_filename
+        previous_chapter = None
+        previous_end = None
+        chapters_start_end = {}
         for line in blocks_file.read_text().splitlines():
             start, end, chapter_code, title = line.split(";")
+            chapter_code = self.normalize_chapter_code(chapter_code)
             block_name = self.add_or_update_block(start, end, chapter_code, title)
             self.connect_chapter_block(chapter_code, block_name)
+
+            if not chapters_start_end.get(
+                chapter_code
+            ):  # first time this chapter appears
+                chapters_start_end[chapter_code] = {"start": start}
+
+            if previous_chapter != chapter_code:
+                if previous_chapter:
+                    chapters_start_end[previous_chapter]["end"] = previous_end
+                previous_chapter = chapter_code
+
+            previous_end = end
+
+        chapters_start_end[previous_chapter]["end"] = previous_end
+        for chapter, start_end in chapters_start_end.items():
+            self.add_or_update_chapter(
+                chapter, start=start_end["start"], end=start_end["end"]
+            )
 
     def add_codes(self):
         """Add all codes to the graph.
