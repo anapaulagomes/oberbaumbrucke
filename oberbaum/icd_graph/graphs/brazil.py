@@ -1,21 +1,25 @@
 import csv
 from dataclasses import dataclass
+from pathlib import Path
+
+import polars as pl
 
 from oberbaum.icd_graph.graphs.base import ICDGraph
+from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
 
 @dataclass
-class CID10Graph(ICDGraph):
+class CID10Graph2008(ICDGraph):
     """Class for representing the Brazilian ICD-10 version structure as a graph.
 
-    The version implemented here is the 2019.
+    The version implemented here is the 2008.
     Files for download: http://www2.datasus.gov.br/cid10/V2008/downloads/CID10CSV.zip
     ICD-10 metadata Format: http://www2.datasus.gov.br/cid10/V2008/cid10.htm
     Guidelines: https://www.saude.df.gov.br/documents/37101/0/E_book_CID_10__2_.pdf
     """
 
     year: int = 2008
-    version_name: str = "cid-10-bra"
+    version_name: str = "cid-10-bra-2008"
 
     def add_chapters(self):
         """The instructions mention 21 chapters but the file has 22."""
