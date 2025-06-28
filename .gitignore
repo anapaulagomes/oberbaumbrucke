@@ -186,3 +186,6 @@ artifacts/
 # MLflow
 mlartifacts/
 mlruns/
+
+# duckdb
+*.db
