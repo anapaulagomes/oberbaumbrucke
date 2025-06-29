@@ -10,7 +10,7 @@ repos:
   rev: v0.11.5
   hooks:
     - id: ruff
-      args: [ "--fix" ]
+      args: [ "--extend-exclude", "notebooks", "--fix"]
     - id: ruff-format
 - repo: https://github.com/pycqa/isort
   rev: 6.0.1
