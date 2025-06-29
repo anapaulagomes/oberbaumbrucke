@@ -1,43 +1,38 @@
-
-
 import marimo
 
-__generated_with = "0.13.0"
+__generated_with = "0.14.9"
 app = marimo.App(width="medium")
 
 
 @app.cell
 def _():
-    import duckdb
     import marimo as mo
     import plotly.express as px
     import polars as pl
     import umap.umap_ as umap
     from sentence_transformers import SentenceTransformer, util
+    import duckdb
 
     from oberbaum.cli import get_graph
-    from oberbaum.icd_graph.match import (
-        semantically_similar,
-        set_embeddings_from_descriptions,
+    from oberbaum.icd_graph.embeddings import similar_icd_codes, get_embedding
+    return (
+        SentenceTransformer,
+        duckdb,
+        get_embedding,
+        get_graph,
+        mo,
+        pl,
+        px,
+        similar_icd_codes,
+        umap,
+        util,
     )
-    return SentenceTransformer, duckdb, get_graph, mo, pl, px, umap, util
 
 
 @app.cell
 def _(duckdb):
-    conn = duckdb.connect("icd10_embeddings.db")
-    return (conn,)
-
-
-app._unparsable_cell(
-    r"""
-    * sequence length vs mean title length
-    * language training sample vs score
-    * dimension vs score
-    * how to visualize the embeddings?
-    """,
-    name="_"
-)
+    conn = duckdb.connect("icd_embeddings.db")
+    return
 
 
 @app.cell
@@ -50,19 +45,26 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        ## Example of embeddings
+    ## Example of embeddings
 
-        > H52 Disorders of refraction and accommodation
+    > H52 Disorders of refraction and accommodation
 
-        `
-        example = [
-            "Disorders of refraction and accommodation",  # WHO and USA
-            "Akkommodationsstörungen und Refraktionsfehler", # German
-            "Transtornos da refração e da acomodação",  # Portuguese
-            "Vices de réfraction et troubles de l'accommodation",  # French
-        ]
-        `
-        """
+    `
+    example = [
+        "Disorders of refraction and accommodation",  # WHO and USA
+        "Akkommodationsstörungen und Refraktionsfehler", # German
+        "Transtornos da refração e da acomodação",  # Portuguese
+        "Vices de réfraction et troubles de l'accommodation",  # French
+    ]
+
+    Goals:
+
+    * sequence length vs mean title length
+    * language training sample vs score
+    * dimension vs score
+    * how to visualize the embeddings?
+    `
+    """
     )
     return
 
@@ -123,14 +125,13 @@ def _(example_results, pl, px):
 def _(mo):
     mo.md(
         r"""
-        ## Loading the graphs
+    ## Loading the graphs
 
-        Attributes:
+    Attributes:
 
-        * `name`: label e.g. A507
-        * `title`: short title, e.g. "Chronic bronchitis, unspecified"
-
-        """
+    * `name`: label e.g. A507
+    * `title`: short title, e.g. "Chronic bronchitis, unspecified"
+    """
     )
     return
 
@@ -219,15 +220,15 @@ def _(pl, px, text_data):
 def _(mo):
     mo.md(
         r"""
-        ## Get embeddings from all codes
+    ## Get embeddings from all codes
 
-        Questions:
+    Questions:
 
-        * sequence length vs mean title length
-        * language training sample vs score
-        * dimension vs score
-        * how to visualize the embeddings?
-        """
+    * sequence length vs mean title length
+    * language training sample vs score
+    * dimension vs score
+    * how to visualize the embeddings?
+    """
     )
     return
 
@@ -286,68 +287,20 @@ def _():
 
 
 @app.cell
-def _(conn, icd_embeddings, mo):
-    _models = mo.sql(
-        f"""
-        SELECT distinct(model) FROM icd_embeddings ORDER BY model;
-        """,
-        engine=conn
-    )
-    return
-
-
-@app.cell
-def _(conn):
-    def get_embedding(version1, version2, icd_code, model="jinaai/jina-embeddings-v3", limit=3, dimensions=1024):
-        return conn.execute(f"""
-            SELECT
-            array_cosine_similarity(embedding::float[{dimensions}], (SELECT embedding FROM icd_embeddings WHERE model = $model AND version = $version2 AND icd_code = $icd_code)::float[{dimensions}]) AS similarity
-            FROM icd_embeddings WHERE model = $model AND version = $version1 AND icd_code = $icd_code
-            ORDER BY similarity DESC LIMIT $limit;
-            """,
-            {"model": model, "version1": version1, "version2": version2, "icd_code": icd_code, "limit": limit}
-        ).fetchone()[0]
-
-    return (get_embedding,)
-
-
-@app.cell
 def _(get_embedding):
-    models = {
-        "BAAI/bge-m3": 1024,
-        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": 384,
-        "sentence-transformers/LaBSE": 768,
-        "sentence-transformers/distiluse-base-multilingual-cased-v1": 512,
-        "jinaai/jina-embeddings-v3": 1024,
-    }
-
-    def score_for_code(code):
-        print(f" @ {code}")
-        for model, dimensions in models.items():
-            print(f"--- {model} ({dimensions})")
-            print(get_embedding("icd-10-who", "icd-10-gm", code, model, dimensions=dimensions))
-            print(get_embedding("icd-10-who", "cid-10-bra", code, model, dimensions=dimensions))
-            print(get_embedding("icd-10-who", "icd-10-cm", code, model, dimensions=dimensions))
-
-
-    score_for_code("A507")
-    score_for_code("H520")
+    get_embedding("icd-10-cm", "Y80", model="jinaai/jina-embeddings-v3") is None
     return
 
 
 @app.cell
-def _(conn, icd_embeddings, mo):
-    _df = mo.sql(
-        f"""
-        SELECT version, icd_code FROM icd_embeddings WHERE icd_code LIKE 'H520' LIMIT 100
-        """,
-        engine=conn
-    )
-    return
+def _(similar_icd_codes):
+    def check(code):
+        print(similar_icd_codes("icd-10-who", "icd-10-gm", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
+        print(similar_icd_codes("icd-10-who", "icd-10-cm", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
+        print(similar_icd_codes("icd-10-who", "cid-10-bra", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
 
-
-@app.cell
-def _():
+    # check("X53")  # bom exemplo
+    check("X50")  # bom exemplo
     return
 
 
