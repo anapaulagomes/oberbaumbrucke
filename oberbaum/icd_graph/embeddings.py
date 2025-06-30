@@ -7,42 +7,31 @@ from oberbaum.icd_graph.models import MODELS
 
 
 def get_connection():
-    return duckdb.connect("icd10_embeddings.db")
+    return duckdb.connect("icd10_embeddings_v2.db")
 
 
-def all_graphs():
-    from oberbaum.cli import get_graph
-
-    graphs = [
-        "icd-10-who",
-        "icd-10-gm",
-        "icd-10-cm",
-        "cid-10-bra-2008",
-    ]
-    for graph in graphs:
-        yield get_graph(graph, gml_filepath=f"{graph}.gml")
-
-
-def store_embeddings(con):
-    for graph in all_graphs():
-        for model in MODELS:
-            if is_embeddings_version_stored(con, graph.version_name, model.name):
-                print(
-                    f"Embeddings for {graph.version_name} with model {model.name} already stored."
-                )
-                continue
-            else:
-                codes_with_embeddings = set_embeddings_from_descriptions(
-                    graph, model.name, model.args, only_embeddings=True
-                )
-                print(
-                    f"Storing embeddings for {graph.version_name} with model {model.name}."
-                )
-                con.register("df_view", codes_with_embeddings)
-                con.execute(f"""
-                    INSERT INTO icd_embeddings (version, icd_code, title, embedding, model)
-                    SELECT version, code, title, embeddings, '{model.name}' AS model FROM df_view
-                """)
+def store_embeddings(graph, force=False):
+    con = get_connection()
+    for model in MODELS:
+        if not force and is_embeddings_version_stored(
+            con, graph.version_name, model.name
+        ):
+            print(
+                f"Embeddings for {graph.version_name} with model {model.name} already stored."
+            )
+            continue
+        else:
+            codes_with_embeddings = get_embedding_from_descriptions(
+                graph, model.name, model.args, only_embeddings=True
+            )
+            print(
+                f"Storing embeddings for {graph.version_name} with model {model.name}."
+            )
+            con.register("df_view", codes_with_embeddings)
+            con.execute(f"""
+                INSERT INTO icd_embeddings (version, icd_code, title, embedding, model)
+                SELECT version, code, title, embeddings, '{model.name}' AS model FROM df_view
+            """)
 
 
 def create_embeddings_table_if_not_exists(con):
@@ -167,9 +156,9 @@ def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def set_embeddings_from_descriptions(
+def get_embedding_from_descriptions(
     graph, model_name, model_args=None, only_embeddings=False
-):  # FIXME rename encode, get embeddings
+):
     """Get the embeddings for all descriptions in the graph."""
     if model_args is None:
         model_args = {}
@@ -183,11 +172,12 @@ def set_embeddings_from_descriptions(
     ) as progress:
         descriptions = []
         codes = []
-        codes_with_embeddings = list(graph.get_codes(data=True))
 
         progress.add_task(description="Preparing nodes...", total=None)
-        for node, data in codes_with_embeddings:
-            descriptions.append(data.get("title", "") or data.get("description", ""))
+        for node, data in graph.all_nodes(data=True):
+            descriptions.append(
+                f"{data.get('title', '')}. {data.get('description', '')}"
+            )
             codes.append(data.get("name", node))
 
         progress.add_task(description="Getting embeddings...", total=None)
@@ -195,7 +185,7 @@ def set_embeddings_from_descriptions(
         embeddings = [emb.tolist() for emb in tensor_embeddings]
 
         progress.add_task(description="Storing embeddings...", total=None)
-        for index, (node, data) in enumerate(codes_with_embeddings):
+        for index, (node, data) in enumerate(graph.all_nodes(data=True)):
             data["embeddings"] = embeddings[index]
 
         if only_embeddings:
@@ -206,5 +196,5 @@ def set_embeddings_from_descriptions(
                     "version": graph.version_name,
                     "code": codes,
                 }
-            )  # FIXME improve naming
-        return graph, codes_with_embeddings
+            )
+        return graph, graph.all_nodes(data=True)
