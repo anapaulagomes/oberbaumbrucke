@@ -5,7 +5,9 @@ from sentence_transformers import SentenceTransformer
 
 from oberbaum.icd_graph.models import MODELS
 
-conn = duckdb.connect("icd10_embeddings.db")
+
+def get_connection():
+    return duckdb.connect("icd10_embeddings.db")
 
 
 def all_graphs():
@@ -36,8 +38,8 @@ def store_embeddings(con):
                 print(
                     f"Storing embeddings for {graph.version_name} with model {model.name}."
                 )
-                conn.register("df_view", codes_with_embeddings)
-                conn.execute(f"""
+                con.register("df_view", codes_with_embeddings)
+                con.execute(f"""
                     INSERT INTO icd_embeddings (version, icd_code, title, embedding, model)
                     SELECT version, code, title, embeddings, '{model.name}' AS model FROM df_view
                 """)
@@ -93,7 +95,8 @@ def is_embeddings_version_stored(con, version, model):
 
 
 def get_embedding(version, icd_code, model):
-    result = conn.execute(
+    con = get_connection()
+    result = con.execute(
         """
         SELECT
         embedding
@@ -110,7 +113,7 @@ def similar_icd_codes(
     from_version, target_version, icd_code, model, dimensions=1024, limit=5
 ):
     sql = f"""
-    SELECT icd_code, title, score
+    SELECT icd_code, title, score, version
     FROM (
         SELECT *, array_cosine_similarity(embedding::float[{dimensions}], ($icd_code_embedding)::float[{dimensions}]) AS score
         FROM icd_embeddings WHERE model = $model AND version = $target_version
@@ -119,7 +122,8 @@ def similar_icd_codes(
     ORDER BY score DESC LIMIT $limit;
     """
     icd_code_embedding = get_embedding(from_version, icd_code, model)
-    result = conn.execute(
+    con = get_connection()
+    result = con.execute(
         sql,
         {
             "model": model,
@@ -134,7 +138,8 @@ def similar_icd_codes(
 def get_semantic_score_for_same_code(
     from_version, to_version, icd_code, model, dimensions=1024
 ):
-    result = conn.execute(
+    con = get_connection()
+    result = con.execute(
         f"""
         SELECT
         array_cosine_similarity(
