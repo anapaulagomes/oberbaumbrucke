@@ -1,13 +1,24 @@
 import csv
 from datetime import datetime
 
+import networkx as nx
+
 from oberbaum.icd_graph.embeddings import (
     get_semantic_score_for_same_code,
-    similar_icd_codes,
 )
 from oberbaum.icd_graph.models import get_model_object
 
 # from rich.progress import track
+
+
+def is_uphill_match(from_graph, from_code, to_graph, to_code):
+    from_length = nx.shortest_path_length(
+        from_graph._graph, source=from_graph._root_node, target=from_code
+    )
+    to_length = nx.shortest_path_length(
+        to_graph._graph, source=to_graph._root_node, target=to_code
+    )
+    return to_length <= from_length
 
 
 def match_codes(from_graph, to_graph, model_name, threshold=0.7):
@@ -20,23 +31,25 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
     :return:
     """
     model = get_model_object(model_name)
-    result = []
+    result = {}
     summary = {
         from_graph.version_name: f"Nodes: {len(from_graph._graph.nodes)}",
         to_graph.version_name: f"Nodes: {len(to_graph._graph.nodes)}",
     }
+    not_found_nodes = []
 
     # for a_graph_node, a_graph_data in track(
     #     from_graph._graph.nodes(data=True), description="Comparing versions..."
     # ):
     for a_graph_node, a_graph_data in from_graph._graph.nodes(data=True):
         is_match = False
-        score = None
 
         if a_graph_node == "root":
             continue
 
         found_node = to_graph.get(a_graph_node) or {}
+        notes = ""
+        match_stage = "not_found"
         if found_node:
             # same as comparing the names
             match_stage = "match_code"
@@ -52,32 +65,12 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
                 match_stage = "match_code_and_description"
                 is_match = True
 
-                # TODO
-                # topological match
-                # match_stage = "perfect_match"
-        else:
-            # TODO uphill mapping
-            potential_codes = similar_icd_codes(
-                from_graph.version_name,
-                to_graph.version_name,
-                a_graph_data["name"],
-                model.name,
-                model.dimensions,
-            )
-            print(a_graph_data["name"], a_graph_data["title"], potential_codes)
-            # TODO get siblings of the node
-            # found_node
-            # TODO intersection of the codes; if found, get the parent node in the other graph: to_graph
+            if (a_graph_data.get("title") and found_node.get("title")) and not score:
+                print(
+                    f"Sem similaridade: {a_graph_data.get('title')} - {found_node.get('title')}"
+                )
 
-            # import ipdb;
-            # ipdb.set_trace()
-
-            # if the node is not found in the other graph
-            match_stage = "not_found"
-        summary[match_stage] = summary.get(match_stage, 0) + 1
-
-        result.append(
-            {
+            result[a_graph_node] = {
                 "from_version": from_graph.version_name,
                 "to_version": to_graph.version_name,
                 "from_icd_code": a_graph_data.get("name", None),
@@ -90,10 +83,47 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
                 "model": model.name,
                 "threshold": threshold,
                 "created_at": str(datetime.now()),
+                "notes": notes,
             }
-        )
+        else:
+            not_found_nodes.append(a_graph_node)
 
-    return summary, result
+        summary[match_stage] = summary.get(match_stage, 0) + 1
+
+    # attempt to match not found nodes using uphill mapping strategy
+    for node_not_found in not_found_nodes:
+        predecessors = from_graph._graph.predecessors(node_not_found)
+        for level, predecessor in enumerate(predecessors, start=1):
+            if result.get(predecessor):
+                copied_result = result.get(predecessor).copy()
+                copied_result.update(
+                    {
+                        "is_match": True,
+                        "match_type": "uphill_match",
+                        "created_at": str(datetime.now()),
+                        "notes": "Uphill match found at level " + str(level),
+                    }
+                )
+                result[node_not_found] = copied_result
+                break
+        if not result.get(node_not_found):
+            result[node_not_found] = {
+                "from_version": from_graph.version_name,
+                "to_version": to_graph.version_name,
+                "from_icd_code": node_not_found,
+                "to_icd_code": None,
+                "is_match": False,
+                "match_type": "not_found",
+                "title_score": None,
+                "from_title": from_graph.get(node_not_found).get("title"),
+                "to_title": None,
+                "model": model.name,
+                "threshold": threshold,
+                "created_at": str(datetime.now()),
+                "notes": None,
+            }
+
+    return summary, list(result.values())
 
 
 def export_matches(matches, output):
