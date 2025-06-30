@@ -3,6 +3,7 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
+from oberbaum.icd_graph.embeddings import store_embeddings
 from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph, CID10Graph2008
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
@@ -25,6 +26,17 @@ def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None
         "icd-10-cm": ICD10CMGraph,
     }
     return versions[version_name](files_dir=files_dir, gml_filepath=gml_filepath)
+
+
+def all_graphs():
+    graphs = [
+        "icd-10-who",
+        "icd-10-gm",
+        "icd-10-cm",
+        "cid-10-bra-2008",
+    ]
+    for graph in graphs:
+        yield get_graph(graph, gml_filepath=f"{graph}.gml")
 
 
 def summary(a_list):
@@ -107,6 +119,25 @@ def subgraph(
         )
     except nx.NodeNotFound:
         console.print(f"Node {target} not found in the graph {graph.version_name}")
+
+
+@graph_app.command()
+def embeddings(
+    version: str = None,
+    icd_files_dir: str = None,
+    version_gml_filepath: str = None,
+    force: bool = False,
+):
+    if all([version, icd_files_dir, version_gml_filepath]):
+        console.print(f"Fetching graph {version}...")
+        graph = get_graph(version, icd_files_dir, version_gml_filepath)
+        console.print("Storing embeddings...")
+        store_embeddings(graph, force)
+    else:
+        console.print("Fetching all graphs...")
+        for graph in all_graphs():
+            console.print(f"Storing embeddings for graph {graph.version_name}...")
+            store_embeddings(graph, force)
 
 
 if __name__ == "__main__":
