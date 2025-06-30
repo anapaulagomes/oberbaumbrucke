@@ -284,6 +284,14 @@ class ICDGraph(ABC):
         receive_nodes = self._graph.in_degree(code) == 1
         return receive_nodes and do_not_point_to_other_nodes
 
+    def all_nodes(self, data=False):
+        for node, node_data in self._graph.nodes(data=True):
+            if node != self._root_node:  # skip root node
+                if data:
+                    yield node, node_data
+                else:
+                    yield node
+
     def get_codes(self, data=False):
         """
         # TODO
