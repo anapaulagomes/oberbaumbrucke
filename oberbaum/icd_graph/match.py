@@ -1,31 +1,17 @@
 import csv
 from datetime import datetime
 
-import networkx as nx
+from rich.progress import track
 
-from oberbaum.icd_graph.embeddings import (
-    get_semantic_score_for_same_code,
-)
+from oberbaum.icd_graph.embeddings import get_semantic_score_for_same_code
 from oberbaum.icd_graph.models import get_model_object
-
-# from rich.progress import track
-
-
-def is_uphill_match(from_graph, from_code, to_graph, to_code):
-    from_length = nx.shortest_path_length(
-        from_graph._graph, source=from_graph._root_node, target=from_code
-    )
-    to_length = nx.shortest_path_length(
-        to_graph._graph, source=to_graph._root_node, target=to_code
-    )
-    return to_length <= from_length
 
 
 def match_codes(from_graph, to_graph, model_name, threshold=0.7):
     """
     Compare two graphs and find matches based on the code and description.
     :param threshold: threshold for semantic similarity.
-    :param model: model object.
+    :param model_name: model object.
     :param from_graph: a graph in which we want to find matches.
     :param to_graph: a graph with the match options available.
     :return:
@@ -33,15 +19,14 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
     model = get_model_object(model_name)
     result = {}
     summary = {
-        from_graph.version_name: f"Nodes: {len(from_graph._graph.nodes)}",
-        to_graph.version_name: f"Nodes: {len(to_graph._graph.nodes)}",
+        from_graph.version_name: f"Nodes: {len(from_graph._graph.nodes) - 1}",  # -1 to exclude the root node
+        to_graph.version_name: f"Nodes: {len(to_graph._graph.nodes) - 1}",
     }
     not_found_nodes = []
 
-    # for a_graph_node, a_graph_data in track(
-    #     from_graph._graph.nodes(data=True), description="Comparing versions..."
-    # ):
-    for a_graph_node, a_graph_data in from_graph._graph.nodes(data=True):
+    for a_graph_node, a_graph_data in track(
+        from_graph._graph.nodes(data=True), description="Comparing versions..."
+    ):
         is_match = False
 
         if a_graph_node == "root":
@@ -67,7 +52,7 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
 
             if (a_graph_data.get("title") and found_node.get("title")) and not score:
                 print(
-                    f"Sem similaridade: {a_graph_data.get('title')} - {found_node.get('title')}"
+                    f"Score not found: {a_graph_data.get('title')} - {found_node.get('title')}"
                 )
 
             result[a_graph_node] = {
@@ -98,6 +83,7 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
                 copied_result = result.get(predecessor).copy()
                 copied_result.update(
                     {
+                        "from_icd_code": node_not_found,  # uphill match
                         "is_match": True,
                         "match_type": "uphill_match",
                         "created_at": str(datetime.now()),
