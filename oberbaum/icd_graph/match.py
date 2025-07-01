@@ -34,7 +34,6 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
 
         found_node = to_graph.get(a_graph_node) or {}
         notes = ""
-        match_stage = "not_found"
         if found_node:
             # same as comparing the names
             match_stage = "match_code"
@@ -70,36 +69,41 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
                 "created_at": str(datetime.now()),
                 "notes": notes,
             }
+            summary[match_stage] = summary.get(match_stage, 0) + 1
         else:
             not_found_nodes.append(a_graph_node)
 
-        summary[match_stage] = summary.get(match_stage, 0) + 1
-
     # attempt to match not found nodes using uphill mapping strategy
+    uphill_results = {}
     for node_not_found in not_found_nodes:
+        match_stage = None
         predecessors = from_graph._graph.predecessors(node_not_found)
         for level, predecessor in enumerate(predecessors, start=1):
             if result.get(predecessor):
+                match_stage = "uphill_match"
                 copied_result = result.get(predecessor).copy()
                 copied_result.update(
                     {
                         "from_icd_code": node_not_found,  # uphill match
                         "is_match": True,
-                        "match_type": "uphill_match",
+                        "match_type": match_stage,
                         "created_at": str(datetime.now()),
                         "notes": "Uphill match found at level " + str(level),
                     }
                 )
-                result[node_not_found] = copied_result
+                uphill_results[node_not_found] = (
+                    copied_result  # make sure that we don't have uphill chain
+                )
                 break
-        if not result.get(node_not_found):
+        if not uphill_results.get(node_not_found):  # no uphill match found
+            match_stage = "not_found"
             result[node_not_found] = {
                 "from_version": from_graph.version_name,
                 "to_version": to_graph.version_name,
                 "from_icd_code": node_not_found,
                 "to_icd_code": None,
                 "is_match": False,
-                "match_type": "not_found",
+                "match_type": match_stage,
                 "title_score": None,
                 "from_title": from_graph.get(node_not_found).get("title"),
                 "to_title": None,
@@ -108,6 +112,8 @@ def match_codes(from_graph, to_graph, model_name, threshold=0.7):
                 "created_at": str(datetime.now()),
                 "notes": None,
             }
+        summary[match_stage] = summary.get(match_stage, 0) + 1
+    result.update(uphill_results)
 
     return summary, list(result.values())
 
