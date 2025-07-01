@@ -10,6 +10,7 @@ from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
 from oberbaum.icd_graph.match import export_matches, match_codes
+from oberbaum.icd_graph.models import MODELS
 
 app = typer.Typer()
 graph_app = typer.Typer()
@@ -138,6 +139,30 @@ def embeddings(
         for graph in all_graphs():
             console.print(f"Storing embeddings for graph {graph.version_name}...")
             store_embeddings(graph, force)
+
+
+@graph_app.command()
+def experiments(threshold: float = 0.7):
+    console.print("Fetching all models...")
+    who_graph = get_graph("icd-10-who", gml_filepath="icd-10-who.gml")
+    for model in MODELS:
+        console.print(
+            f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
+        )
+        for graph in all_graphs():
+            model_name = model.name.split("/")[-1]
+            output = f"artifacts/{graph.version_name}___{who_graph.version_name}__{model_name}_{threshold}.csv"
+
+            matches_summary, matches = match_codes(
+                graph, who_graph, model.name, threshold=threshold
+            )
+            export_matches(matches, output)
+
+            console.print("\n[bold yellow]Match Summary:[/bold yellow]")
+            for key, value in matches_summary.items():
+                console.print(f"  {key}: {value}")
+
+            console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
 
 
 if __name__ == "__main__":
