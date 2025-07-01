@@ -6,18 +6,24 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
+    import duckdb
     import marimo as mo
     import plotly.express as px
     import polars as pl
     import umap.umap_ as umap
     from sentence_transformers import SentenceTransformer, util
-    import duckdb
 
     from oberbaum.cli import get_graph
-    from oberbaum.icd_graph.embeddings import similar_icd_codes, get_embedding
+    from oberbaum.icd_graph.embeddings import (
+        get_connection,
+        get_embedding,
+        similar_icd_codes,
+    )
+    from oberbaum.icd_graph.models import MODELS
     return (
+        MODELS,
         SentenceTransformer,
-        duckdb,
+        get_connection,
         get_embedding,
         get_graph,
         mo,
@@ -30,8 +36,8 @@ def _():
 
 
 @app.cell
-def _(duckdb):
-    conn = duckdb.connect("icd_embeddings.db")
+def _(get_connection):
+    conn = get_connection()
     return
 
 
@@ -149,13 +155,13 @@ def _(get_graph):
 
 @app.cell
 def _(B):
-    B.get("A507")
+    B.get("A05")
     return
 
 
 @app.cell
 def _(G):
-    G.get("A507")
+    G.get("A05")
     return
 
 
@@ -288,19 +294,35 @@ def _():
 
 @app.cell
 def _(get_embedding):
+    get_embedding("icd-10-who", "A05", model="jinaai/jina-embeddings-v3")
+    return
+
+
+@app.cell
+def _(get_embedding):
     get_embedding("icd-10-cm", "Y80", model="jinaai/jina-embeddings-v3") is None
     return
 
 
 @app.cell
 def _(similar_icd_codes):
-    def check(code):
-        print(similar_icd_codes("icd-10-who", "icd-10-gm", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
-        print(similar_icd_codes("icd-10-who", "icd-10-cm", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
-        print(similar_icd_codes("icd-10-who", "cid-10-bra", code, model="jinaai/jina-embeddings-v3", limit=5, dimensions=1024))
+    def check(code, model="jinaai/jina-embeddings-v3", dimensions=1024, limit=5):
+        print(similar_icd_codes("icd-10-who", "icd-10-gm", code, model, dimensions, limit))
+        print(similar_icd_codes("icd-10-who", "icd-10-cm", code, model, dimensions, limit))
+        print(similar_icd_codes("icd-10-who", "cid-10-bra", code, model, dimensions, limit))
 
     # check("X53")  # bom exemplo
     check("X50")  # bom exemplo
+    return (check,)
+
+
+@app.cell
+def _(MODELS, check):
+    # check("X53")  # bom exemplo
+    code = "A38"
+    for model in MODELS:
+        print(model.name, model.dimensions)
+        check(code, model.name, model.dimensions)
     return
 
 
