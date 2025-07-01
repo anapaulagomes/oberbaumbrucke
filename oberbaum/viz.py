@@ -20,8 +20,8 @@ header = html.Div(
                     [
                         dcc.Link("Tree View", href="/", style={"marginRight": "20px"}),
                         dcc.Link(
-                            "Statistics",
-                            href="/statistics",
+                            "Compare Graphs",
+                            href="/compare",
                             style={"marginRight": "20px"},
                         ),
                     ],
@@ -65,10 +65,10 @@ tree_view_layout = html.Div(
     ]
 )
 
-# Statistics Layout
-statistics_layout = html.Div(
+# Comparison Layout
+comparison_layout = html.Div(
     [
-        html.H1("ICD-10 Statistics", style={"textAlign": "center"}),
+        html.H1("ICD-10 Comparison", style={"textAlign": "center"}),
         # Search bar
         html.Div(
             [
@@ -96,7 +96,12 @@ statistics_layout = html.Div(
             [
                 html.Div(
                     [
-                        html.H3("Graph 1", style={"textAlign": "center"}),
+                        html.H3(
+                            id="graph-1-title",
+                            children="Graph 1",
+                            style={"textAlign": "center"},
+                        ),
+                        dcc.Store(id="filename-1"),
                         dcc.Upload(
                             id="upload-gml-1",
                             children=html.Div(
@@ -126,7 +131,12 @@ statistics_layout = html.Div(
                 ),
                 html.Div(
                     [
-                        html.H3("Graph 2", style={"textAlign": "center"}),
+                        html.H3(
+                            id="graph-2-title",
+                            children="Graph 2",
+                            style={"textAlign": "center"},
+                        ),
+                        dcc.Store(id="filename-2"),
                         dcc.Upload(
                             id="upload-gml-2",
                             children=html.Div(
@@ -162,7 +172,12 @@ statistics_layout = html.Div(
             [
                 html.Div(
                     [
-                        html.H3("Graph 3", style={"textAlign": "center"}),
+                        html.H3(
+                            id="graph-3-title",
+                            children="Graph 3",
+                            style={"textAlign": "center"},
+                        ),
+                        dcc.Store(id="filename-3"),
                         dcc.Upload(
                             id="upload-gml-3",
                             children=html.Div(
@@ -192,7 +207,12 @@ statistics_layout = html.Div(
                 ),
                 html.Div(
                     [
-                        html.H3("Graph 4", style={"textAlign": "center"}),
+                        html.H3(
+                            id="graph-4-title",
+                            children="Graph 4",
+                            style={"textAlign": "center"},
+                        ),
+                        dcc.Store(id="filename-4"),
                         dcc.Upload(
                             id="upload-gml-4",
                             children=html.Div(
@@ -236,8 +256,8 @@ app.layout = html.Div(
 # Callback for page routing
 @app.callback(Output("page-content", "children"), Input("url", "pathname"))
 def display_page(pathname):
-    if pathname == "/statistics":
-        return statistics_layout
+    if pathname == "/compare":
+        return comparison_layout
     else:
         return tree_view_layout
 
@@ -327,32 +347,57 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
         mode="lines",
     )
 
-    # Create node trace
+    # Discrete color palette (extend as needed)
+    palette = [
+        "#636EFA",  # blue
+        "#EF553B",  # red
+        "#00CC96",  # green
+        "#AB63FA",  # purple
+        "#FFA15A",  # orange
+        "#19D3F3",  # cyan
+        "#FF6692",  # pink
+        "#B6E880",  # light green
+        "#FF97FF",  # magenta
+        "#FECB52",  # yellow
+    ]
+
+    # Compute out-degree for each node
     node_x = []
     node_y = []
     node_text = []
     node_names = []
-    node_colors = []
-
+    node_outdegrees = []
     for node in subgraph.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-
-        # Create hover text with node attributes
         hover_text = f"Node: {node}<br>"
         for attr, value in G.nodes[node].items():
             hover_text += f"{attr}: {value}<br>"
         node_text.append(hover_text)
         node_names.append(str(node))
+        outdeg = G.out_degree(node)
+        node_outdegrees.append(outdeg)
 
-        # Color nodes based on whether they have children and if they match the search
-        has_children = len(list(G.successors(node))) > 0
-        if highlight_node and highlight_node.lower() in str(node).lower():
-            node_colors.append(2)  # Highlight color for matching nodes
-        else:
-            node_colors.append(1 if has_children else 0)
+    # Map out-degree to color
+    unique_outdegrees = sorted(set(node_outdegrees))
+    outdeg_to_color_idx = {
+        deg: i % len(palette) for i, deg in enumerate(unique_outdegrees)
+    }
+    node_colors = [palette[outdeg_to_color_idx[deg]] for deg in node_outdegrees]
 
+    # Highlight node (override color if search matches)
+    if highlight_node:
+        for i, node in enumerate(subgraph.nodes()):
+            if highlight_node.lower() in str(node).lower():
+                node_colors[i] = "#FF0000"  # Red for highlight
+
+    # Discrete colorbar ticks and labels
+    colorbar_ticks = list(range(len(unique_outdegrees)))
+    colorbar_ticktext = [str(deg) for deg in unique_outdegrees]
+
+    # Plotly doesn't support categorical colorbars directly, so we use a workaround:
+    # We set the colorbar to show the out-degree values as ticktext, but the colorbar will be a dummy.
     node_trace = go.Scatter(
         x=node_x,
         y=node_y,
@@ -362,19 +407,21 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
         textposition="top center",
         hovertext=node_text,
         marker=dict(
-            showscale=True,
-            colorscale=[
-                [0, "lightblue"],
-                [0.5, "blue"],
-                [1, "darkblue"],
-            ],  # Custom colorscale for highlighting
             size=10,
             color=node_colors,
-            colorbar=dict(thickness=15, title="Node Type", xanchor="left"),
+            colorbar=dict(
+                thickness=15,
+                title="Out-degree",
+                xanchor="left",
+                tickvals=colorbar_ticks,
+                ticktext=colorbar_ticktext,
+                lenmode="pixels",
+                len=200,
+            ),
+            showscale=True,
         ),
     )
 
-    # Create figure
     fig = go.Figure(
         data=[edge_trace, node_trace],
         layout=go.Layout(
@@ -385,7 +432,6 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         ),
     )
-
     return fig
 
 
@@ -419,12 +465,16 @@ def update_single_graph(contents, filename):
     [
         Output("graph-data-1", "data"),
         Output("graph-1", "figure"),
+        Output("filename-1", "data"),
         Output("graph-data-2", "data"),
         Output("graph-2", "figure"),
+        Output("filename-2", "data"),
         Output("graph-data-3", "data"),
         Output("graph-3", "figure"),
+        Output("filename-3", "data"),
         Output("graph-data-4", "data"),
         Output("graph-4", "figure"),
+        Output("filename-4", "data"),
         Output("error-message", "children", allow_duplicate=True),
     ],
     [
@@ -447,23 +497,20 @@ def update_multiple_graphs(
     """Update multiple graph visualizations when files are uploaded."""
     contents = [content1, content2, content3, content4]
     filenames = [filename1, filename2, filename3, filename4]
-
-    outputs = [None] * 8  # Initialize outputs for 4 graphs (data and figure each)
+    outputs = [None] * 12  # 4x (data, fig, filename)
     error = None
-
     for i, (content, filename) in enumerate(zip(contents, filenames)):
         if content is not None:
             G, error = parse_gml(content)
             if G is not None:
                 graph_data = nx.node_link_data(G)
                 fig = create_tree_visualization(G)
-                # Update the graph title with the filename
                 fig.update_layout(title=filename)
-                outputs[i * 2] = graph_data  # Store graph data
-                outputs[i * 2 + 1] = fig  # Store figure
+                outputs[i * 3] = graph_data
+                outputs[i * 3 + 1] = fig
+                outputs[i * 3 + 2] = filename
             else:
-                return [None] * 8 + [error]
-
+                return [None] * 12 + [error]
     return outputs + [error]
 
 
@@ -603,6 +650,17 @@ def handle_search(n_clicks, search_value, data1, data2, data3, data4):
             outputs.append(dash.no_update)
 
     return outputs
+
+
+# Add callbacks to update the graph titles
+for i in range(1, 5):
+
+    @app.callback(
+        Output(f"graph-{i}-title", "children"),
+        Input(f"filename-{i}", "data"),
+    )
+    def update_graph_title(filename, i=i):
+        return filename if filename else f"Graph {i}"
 
 
 if __name__ == "__main__":
