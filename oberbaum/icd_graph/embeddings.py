@@ -198,3 +198,29 @@ def get_embedding_from_descriptions(
                 }
             )
         return graph, graph.all_nodes(data=True)
+
+
+def import_csvs_to_duckdb(csv_pattern: str):
+    """Import CSV files from the experiments ran in get_embedding_from_descriptions.
+
+    Usage:
+        import_csvs_to_duckdb("artifacts/results/*.csv")
+    """
+    con = get_connection()
+    table_exists = (
+        con.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'matches';"
+        ).fetchone()[0]
+        > 0
+    )
+
+    if table_exists:
+        print("Table 'matches' already exists. Skipping import.")
+        con.close()
+        return
+
+    df = pl.read_csv(csv_pattern)
+    con.register("df_view", df)
+    con.execute("CREATE TABLE matches AS SELECT * FROM df_view")
+    con.close()
+    print("Table created and data imported successfully.")
