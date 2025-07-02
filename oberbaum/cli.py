@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.tree import Tree
 
 from oberbaum.icd_graph.embeddings import store_embeddings
+from oberbaum.icd_graph.graph_overlap import compare_graphs
 from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph, CID10Graph2008
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
@@ -141,8 +142,7 @@ def embeddings(
             store_embeddings(graph, force)
 
 
-@graph_app.command()
-def experiments(threshold: float = 0.7):
+def _match_all(threshold):
     console.print("Fetching all models...")
     who_graph = get_graph("icd-10-who", gml_filepath="icd-10-who.gml")
     for model in MODELS:
@@ -163,6 +163,25 @@ def experiments(threshold: float = 0.7):
                 console.print(f"  {key}: {value}")
 
             console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
+
+
+def _graphs_overlap(**kwargs):
+    graphs = all_graphs()
+    who_graph = next(graphs)
+    assert who_graph.version_name == "icd-10-who"
+
+    for graph in graphs:
+        compare_graphs(graph, who_graph, kwargs["only_codes"])
+
+
+@graph_app.command("experiments")
+def run_experiments(name, threshold: float = 0.7, only_codes: bool = False):
+    kwargs = {"threshold": threshold, "only_codes": only_codes}
+    experiments_available = {
+        "match_all": _match_all,
+        "graphs_overlap": _graphs_overlap,
+    }
+    experiments_available.get(name)(**kwargs)
 
 
 if __name__ == "__main__":
