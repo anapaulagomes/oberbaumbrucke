@@ -13,7 +13,7 @@ def _():
     import plotly.graph_objects as go
     import polars as pl
     from plotly.subplots import make_subplots
-    return go, make_subplots, pl, px
+    return go, make_subplots, mo, pl, px
 
 
 @app.cell
@@ -37,6 +37,12 @@ def _(pl):
 @app.cell
 def _(df):
     df.describe()
+    return
+
+
+@app.cell
+def _(df):
+    match_types = df["match_type"].unique()
     return
 
 
@@ -181,6 +187,61 @@ def _(df, pl, px):
     _fig.update_xaxes(matches=None)
     _fig.show()
 
+    return
+
+
+@app.cell
+def _(df):
+    df.columns
+    return
+
+
+@app.cell
+def _(mo):
+    match_type_dropdown = mo.ui.dropdown(
+        label="Select a match type",
+        options=["match_code_and_description", "not_found"],
+        value="not_found",
+    )
+    match_type_dropdown
+    return
+
+
+@app.cell
+def _(df, pl, px):
+    _summary = (
+        df.filter(pl.col("match_type").is_in(["match_code_and_description", "not_found"]), pl.col("from_version").ne("icd-10-who"))
+        .group_by(["from_version", "model", "match_type"])
+        .agg(pl.len().alias("count"))
+    )
+    _fig = px.density_heatmap(
+        _summary,
+        x="model",
+        y="from_version",
+        z="count",
+        facet_col="match_type",
+        text_auto=True,
+        color_continuous_scale="Blues",
+        labels={
+            "model": "Model",
+            "from_version": "From Version",
+            "count": "Count",
+            "match_type": "Match Type"
+        },
+    )
+
+    _fig.update_layout(
+        height=500,
+        width=1000,
+        coloraxis_colorbar=dict(title="Count"),
+    )
+    # _fig.write_image("dfsdfsd.pdf")
+    _fig
+    return
+
+
+@app.cell
+def _():
     return
 
 
