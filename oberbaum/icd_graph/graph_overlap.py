@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import networkx as nx
 import networkx_algo_common_subtree
 
+from oberbaum.icd_graph.embeddings import fetch_matches
 from oberbaum.icd_graph.graphs.base import ICDGraph
 
 
@@ -10,24 +11,19 @@ from oberbaum.icd_graph.graphs.base import ICDGraph
 class ICDTreesComparator:
     graph1: ICDGraph
     graph2: ICDGraph
+    model: str = "jinaai/jina-embeddings-v3"
 
     def overlap(self, only_codes: bool = False):
         """Compare the two ICD trees using the maximum common ordered subtree isomorphism
         and return the overlap results."""
-        node_affinity_func = (
-            self.compare_nodes if not only_codes else self.compare_codes_only
-        )
         subtree1, subtree2, score = (
             networkx_algo_common_subtree.maximum_common_ordered_subtree_isomorphism(
                 self.graph1._graph,
                 self.graph2._graph,
-                node_affinity=node_affinity_func,  # TODO add node_affinity with a db call
+                node_affinity=self.compare_nodes,
             )
         )
         # see more about it here: https://github.com/Erotemic/networkx_algo_common_subtree/blob/409da0a6744d687b245b97b1e547848712e17215/networkx_algo_common_subtree/tree_isomorphism.py#L49
-
-        # if only_codes:
-        #     score = 0.0  # TODO calculate the score based on codes only
 
         return {"score": score, "subtree1": subtree1, "subtree2": subtree2}
 
@@ -37,26 +33,13 @@ class ICDTreesComparator:
 
         Assume that the node1 and node2 belongs to graph1 and graph2 respectively.
         """
-        # node1_version = self.graph1.version_name
-        # node2_version = self.graph2.version_name
-        # TODO make a db call to get the node affinity
-        return self.graph1.get(node1).get("name") == self.graph2.get(node2).get("name")
+        node1_version = self.graph1.version_name
+        node2_version = self.graph2.version_name
+        result = fetch_matches(node1_version, node2_version, node1, node2, self.model)
+        if not result:
+            return False
 
-    def compare_codes_only(self, node1, node2):
-        """
-        Compare two nodes from ICD tree based on their attributes.
-
-        Assume that the node1 and node2 belongs to graph1 and graph2 respectively.
-        """
-        node1_graph1 = self.graph1.get(node1)
-        node2_graph2 = self.graph2.get(node2)
-
-        if all(
-            [node1_graph1.get("type") == "code", node2_graph2.get("type") == "code"]
-        ):
-            return self.compare_nodes(node1, node2)
-
-        return True
+        return result[0] != "not_found"  # match type
 
 
 def compare_graphs(graph, another_graph, only_codes: bool = False):
