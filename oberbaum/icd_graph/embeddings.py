@@ -224,3 +224,31 @@ def import_csvs_to_duckdb(csv_pattern: str):
     con.execute("CREATE TABLE matches AS SELECT * FROM df_view")
     con.close()
     print("Table created and data imported successfully.")
+
+
+def fetch_matches(
+    from_version: str,
+    to_version: str,
+    node_from_version: str,
+    node_to_version: str,
+    model: str,
+):
+    """Fetch matches from the database."""
+    con = get_connection()
+    result = con.execute(
+        """
+        SELECT match_type FROM matches
+        WHERE from_version = $from_version AND to_version = $to_version
+        AND from_icd_code = $from_icd_code AND to_icd_code = $to_icd_code
+        AND model = $model;
+        """,
+        {
+            "from_version": from_version,
+            "to_version": to_version,
+            "model": model,
+            "from_icd_code": node_from_version,
+            "to_icd_code": node_to_version,
+        },
+    ).fetchone()
+    con.close()
+    return result
