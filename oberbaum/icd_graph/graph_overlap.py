@@ -13,7 +13,7 @@ class ICDTreesComparator:
     graph2: ICDGraph
     model: str = "jinaai/jina-embeddings-v3"
 
-    def overlap(self, only_codes: bool = False):
+    def overlap(self):
         """Compare the two ICD trees using the maximum common ordered subtree isomorphism
         and return the overlap results."""
         subtree1, subtree2, score = (
@@ -42,13 +42,13 @@ class ICDTreesComparator:
         return result[0] != "not_found"  # match type
 
 
-def compare_graphs(graph, another_graph, only_codes: bool = False):
+def compare_graphs(graph, another_graph):
     results = {}
     for chapter in range(1, 23):  # split by chapter due to memory constraints
         chapter_descendants = nx.descendants(another_graph, str(chapter))
         chapter_subgraph = another_graph._graph.subgraph(chapter_descendants)
         comparator = ICDTreesComparator(graph1=graph, graph2=chapter_subgraph)
-        result = comparator.overlap(only_codes)
+        result = comparator.overlap()
         results[chapter] = result
 
     # TODO reconstruct the subgraphs from the results
