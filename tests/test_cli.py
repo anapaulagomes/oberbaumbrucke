@@ -26,6 +26,6 @@ class TestGetGraph:
 
     def test_graph_class_from_graph_file(self):
         graph = get_graph(
-            "cid-10-bra", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
+            "cid-10-bra-2008", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
         )
         assert isinstance(graph, CID10Graph2008)
