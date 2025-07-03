@@ -1,7 +1,8 @@
 import networkx as nx
+import pytest
 
 from oberbaum.cli import get_graph
-from oberbaum.icd_graph.graph_overlap import ICDTreesComparator
+from oberbaum.icd_graph.graph_overlap import ICDTreesComparator, compare_graphs
 
 
 def print_results(result):
@@ -59,3 +60,22 @@ class TestGraphOverlap:
         print_results(result)
 
         assert result["score"] == 0  # only root node is common
+
+
+@pytest.mark.skip
+class TestCompareGraphs:
+    def test_compare_graphs(self):
+        usa_graph = get_graph(
+            "icd-10-cm",
+            gml_filepath="subgraph-icd-10-cm-H938-include-children.gml",  # "icd-10-gm.gml"
+        )
+        who_graph = get_graph(
+            "icd-10-who",
+            gml_filepath="subgraph-icd-10-who-H93-include-children.gml",  # "icd-10-who.gml"
+        )
+
+        results = compare_graphs(usa_graph, who_graph)
+
+        assert results["score"] == 6
+        assert results["subtree1"]
+        assert results["subtree2"]

@@ -252,3 +252,25 @@ def fetch_matches(
     ).fetchone()
     con.close()
     return result
+
+
+def fetch_all_matches(
+    from_version: str,
+    to_version: str,
+    model: str,
+):
+    """Fetch matches from the database."""
+    con = get_connection()
+    df = con.execute(
+        """
+        SELECT * FROM matches
+        WHERE from_version = $from_version AND to_version = $to_version
+        AND model = $model;
+        """,
+        {
+            "from_version": from_version,
+            "to_version": to_version,
+            "model": model,
+        },
+    ).pl()
+    return df
