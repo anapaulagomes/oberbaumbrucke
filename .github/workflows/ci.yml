@@ -19,6 +19,8 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Configure pygraphviz
+      run: sudo apt-get install graphviz graphviz-dev
     - name: Lint with pre-commit
       run: |
         uv run pre-commit run --all-files
