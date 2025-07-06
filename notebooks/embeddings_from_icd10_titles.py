@@ -42,6 +42,18 @@ def _(get_connection):
 
 
 @app.cell
+def _():
+    COLOR_BY_VERSION = {
+        "icd-10-who": "deepskyblue",
+        "cid-10-bra": "green",
+        "cid-10-bra-2008": "green",
+        "icd-10-gm": "gold",
+        "icd-10-cm": "red",
+    }
+    return (COLOR_BY_VERSION,)
+
+
+@app.cell
 def _(mo):
     mo.md("""# ICD-10 labels to embeddings""")
     return
@@ -209,14 +221,12 @@ def _(B, G, U, W):
 
 
 @app.cell
-def _(pl, px, text_data):
+def _(COLOR_BY_VERSION, pl, px, text_data):
     _df_descriptions = pl.DataFrame(text_data)
     _grouped_df_descriptions = (
-        _df_descriptions.group_by("version")
-        .agg((pl.col("title").str.len_chars()).mean().alias("title_length_mean"))
-        .sort("title_length_mean")
+        _df_descriptions.select(pl.col("version"), pl.col("title").str.len_chars().alias("title_length"))
     )
-    _fig = px.bar(_grouped_df_descriptions, y="title_length_mean", x="version")
+    _fig = px.box(_grouped_df_descriptions, y="title_length", x="version", color="version", color_discrete_map=COLOR_BY_VERSION)
     # _fig.add_hline(y=_grouped_df_descriptions['title_length_mean'].max())
     _fig.show()
     return
@@ -237,17 +247,6 @@ def _(mo):
     """
     )
     return
-
-
-@app.cell
-def _():
-    COLOR_BY_VERSION = {
-        "icd-10-who": "deepskyblue",
-        "cid-10-bra": "green",
-        "icd-10-gm": "gold",
-        "icd-10-cm": "red",
-    }
-    return (COLOR_BY_VERSION,)
 
 
 @app.cell
