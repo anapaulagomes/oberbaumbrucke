@@ -6,12 +6,12 @@ from sentence_transformers import SentenceTransformer
 from oberbaum.icd_graph.models import MODELS
 
 
-def get_connection():
-    return duckdb.connect("icd10_embeddings_v2.db")
+def get_connection(writeable=False):
+    return duckdb.connect("icd10_embeddings_v2.db", read_only=not writeable)
 
 
 def store_embeddings(graph, force=False):
-    con = get_connection()
+    con = get_connection(writeable=True)
     for model in MODELS:
         if not force and is_embeddings_version_stored(
             con, graph.version_name, model.name
@@ -206,7 +206,7 @@ def import_csvs_to_duckdb(csv_pattern: str):
     Usage:
         import_csvs_to_duckdb("artifacts/results/*.csv")
     """
-    con = get_connection()
+    con = get_connection(writeable=True)
     table_exists = (
         con.execute(
             "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'matches';"
