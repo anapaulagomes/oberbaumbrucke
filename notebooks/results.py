@@ -47,6 +47,12 @@ def _(df):
 
 
 @app.cell
+def _(df):
+    versions = df["from_version"].unique()
+    return (versions,)
+
+
+@app.cell
 def _(df, px):
     models = df["model"].unique()
     _colors = px.colors.qualitative.T10[:len(models)]
@@ -67,52 +73,6 @@ def _(COLOR_BY_VERSION, df, pl, px):
     )
     _fig
     return
-
-
-@app.cell
-def _(COLOR_BY_MODEL, COLOR_BY_VERSION, df, go, make_subplots, models, pl):
-    versions = list(COLOR_BY_VERSION.keys())
-
-    _fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=versions,
-        vertical_spacing=0.08,
-        shared_xaxes=True
-    )
-
-    for i, version in enumerate(versions):
-        version_data = df.filter(pl.col("from_version").eq(version))
-        row = (i // 2) + 1
-        column = (i % 2) + 1
-
-        for model in models:
-            model_data = version_data.filter(pl.col("model").eq(model))
-            _fig.add_trace(
-                go.Box(
-                    x=model_data["title_score"].to_list(),
-                    name=model,
-                    legendgroup=model,  # group legend items
-                    showlegend=(i == 0),  # only show legend for first subplot
-                    marker_color=COLOR_BY_MODEL[model],
-                    boxmean=True
-                ),
-                row=row, col=column
-            )
-
-    _fig.update_layout(
-        height=800,
-        title_text="Model Scores by Version",
-        legend=dict(
-            orientation="h",
-            xanchor="center",
-            x=0.5,
-        )
-    )
-    _fig.update_xaxes(title_text="Score", row=4, col=1)
-    _fig.update_yaxes(title_text="ICD-10 version", showticklabels=False)
-    # _fig.write_image("artifacts/box_plot_model_scores_all_versions.png")
-    _fig
-    return (versions,)
 
 
 @app.cell
@@ -172,25 +132,6 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl, versions):
 
 
 @app.cell
-def _(df, pl, px):
-    _fig = px.scatter(
-        df.group_by(["match_type", "from_version", "model"]).agg([
-            pl.col("title_score").mean().alias("avg_title_score"),
-            pl.col("model").len().alias("count")
-        ]),
-        x="count",
-        y="avg_title_score",
-        color='match_type',
-        facet_col="from_version",
-        # hover_data=["model"]
-    )
-    _fig.update_xaxes(matches=None)
-    _fig.show()
-
-    return
-
-
-@app.cell
 def _(df):
     df.columns
     return
@@ -237,11 +178,6 @@ def _(df, pl, px):
     )
     # _fig.write_image("dfsdfsd.pdf")
     _fig
-    return
-
-
-@app.cell
-def _():
     return
 
 
