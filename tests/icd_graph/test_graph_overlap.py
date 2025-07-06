@@ -16,10 +16,12 @@ def print_results(result):
 class TestGraphOverlap:
     def test_get_overlap(self):
         ger_graph = get_graph(
-            "icd-10-gm", gml_filepath="subgraph-icd-10-gm-Z75-include-children.gml"
+            "icd-10-gm",
+            gml_filepath="tests/fixtures/subgraph-icd-10-gm-Z75-include-children.gml",
         )
         who_graph = get_graph(
-            "icd-10-who", gml_filepath="subgraph-icd-10-who-Z75-include-children.gml"
+            "icd-10-who",
+            gml_filepath="tests/fixtures/subgraph-icd-10-who-Z75-include-children.gml",
         )
 
         graph_overlap = ICDTreesComparator(ger_graph, who_graph)
@@ -31,10 +33,12 @@ class TestGraphOverlap:
 
     def test_get_overlap_from_partial_matches(self):
         usa_graph = get_graph(
-            "icd-10-cm", gml_filepath="subgraph-icd-10-cm-H938-include-children.gml"
+            "icd-10-cm",
+            gml_filepath="tests/fixtures/subgraph-icd-10-cm-H938-include-children.gml",
         )
         who_graph = get_graph(
-            "icd-10-who", gml_filepath="subgraph-icd-10-who-H93-include-children.gml"
+            "icd-10-who",
+            gml_filepath="tests/fixtures/subgraph-icd-10-who-H93-include-children.gml",
         )
 
         graph_overlap = ICDTreesComparator(usa_graph, who_graph)
@@ -48,10 +52,12 @@ class TestGraphOverlap:
 
     def test_no_overlap(self):
         ger_graph = get_graph(
-            "icd-10-gm", gml_filepath="subgraph-icd-10-gm-Z75-include-children.gml"
+            "icd-10-gm",
+            gml_filepath="tests/fixtures/subgraph-icd-10-gm-Z75-include-children.gml",
         )
         who_graph = get_graph(
-            "icd-10-who", gml_filepath="subgraph-icd-10-who-H93-include-children.gml"
+            "icd-10-who",
+            gml_filepath="tests/fixtures/subgraph-icd-10-who-H93-include-children.gml",
         )
 
         graph_overlap = ICDTreesComparator(ger_graph, who_graph)
@@ -67,11 +73,11 @@ class TestCompareGraphs:
     def test_compare_graphs(self):
         usa_graph = get_graph(
             "icd-10-cm",
-            gml_filepath="subgraph-icd-10-cm-H938-include-children.gml",  # "icd-10-gm.gml"
+            gml_filepath="tests/fixtures/subgraph-icd-10-cm-H938-include-children.gml",  # "icd-10-gm.gml"
         )
         who_graph = get_graph(
             "icd-10-who",
-            gml_filepath="subgraph-icd-10-who-H93-include-children.gml",  # "icd-10-who.gml"
+            gml_filepath="tests/fixtures/subgraph-icd-10-who-H93-include-children.gml",  # "icd-10-who.gml"
         )
 
         results = compare_graphs(usa_graph, who_graph)
