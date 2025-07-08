@@ -12,13 +12,19 @@ def _():
     import polars as pl
 
     from oberbaum.icd_graph.embeddings import get_connection
-    return get_connection, pl, px
+    return get_connection, mo, pl, px
 
 
 @app.cell
 def _(get_connection):
     con = get_connection()
     return (con,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""# Validation""")
+    return
 
 
 @app.cell
@@ -70,9 +76,27 @@ def _(df_omop, pl):
 
 
 @app.cell
+def _(df_omop, pl):
+    df_omop.filter(pl.col("concept_code_2") == 10685111000119102)
+    return
+
+
+@app.cell
+def _(con):
+    df_matches = con.execute("SELECT * FROM matches;").pl()
+    df_matches
+    return (df_matches,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Validation with the number of vocabularies found""")
+    return
+
+
+@app.cell
 def _(OMOP_NAMING_MAPPING, df_omop, pl):
-    def is_a_match(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False):
-        # print(OMOP_NAMING_MAPPING.get(vocabulary_2), OMOP_NAMING_MAPPING.get(vocabulary), icd_code)
+    def was_two_vocab_found(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False):
         result = df_omop.filter(
             pl.col("vocabulary_id").is_in([
                 OMOP_NAMING_MAPPING.get(vocabulary_2),
@@ -83,47 +107,94 @@ def _(OMOP_NAMING_MAPPING, df_omop, pl):
             print(result)
         return result.select(pl.col("vocabulary_id").n_unique()).item() == 2
 
-    return (is_a_match,)
+
+    was_two_vocab_found("icd-10-gm", "Z98890", show_results_table=True)
+    return (was_two_vocab_found,)
 
 
 @app.cell
-def _(is_a_match):
-    examples = [
-        ("C88", True),  # 3-char
-        ("J101", True),  # 4-char
-        ("M4693", True),  # 5-char
-        ("Z98890", False),  # 6-char
-        ("S99129G", False),  # 7-char
-        ("1", False),  # chapter
-        ("A00-A09", False),  # block
-    ]
+def _(mo):
+    mo.md(
+        r"""
+    ## Mappings table
 
-    for _version in ["icd-10-gm", "icd-10-cm"]:
-        for icd_code, expected in examples:
-            result = is_a_match(_version, icd_code)
-            assert result is expected, f"Expected {expected} for {icd_code}, but got {result}"
+    Examples:
 
+    * T463X2 (4 concept codes)
+    """
+    )
     return
 
 
 @app.cell
 def _(df_omop, pl):
-    df_omop.filter(pl.col("concept_code_2") == 10685111000119102)
+    source_df = df_omop.filter(pl.col("vocabulary_id").is_in(["ICD10CM", "ICD10GM"]))
+    target_df = df_omop.filter(pl.col("vocabulary_id").eq("ICD10"))
+
+    mapping_df = source_df.join(target_df, on="concept_code_2", suffix="_icd10who")  # how = inner; merge on snomed code
+    mapping_df
+    return (mapping_df,)
+
+
+@app.cell
+def _(OMOP_NAMING_MAPPING, mapping_df, pl):
+    def found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False):
+        result = mapping_df.filter(pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING.get(vocabulary)), pl.col("concept_code").eq(icd_code))
+        if show_results_table:
+            print(result)
+        return len(result) > 0
+
+    # found_in_mapping_table("icd-10-gm", "A281")
+    found_in_mapping_table("icd-10-gm", "Z98890", show_results_table=True)
+    return (found_in_mapping_table,)
+
+
+@app.cell
+def _(mapping_df, pl):
+    mapping_df.filter(pl.col("concept_code_2").eq(79974007))
     return
 
 
 @app.cell
-def _(con):
-    one_match = con.execute("SELECT * FROM matches;").fetchone()
-    one_match
+def _(mo):
+    mo.md(r"""## Run validation""")
     return
 
 
 @app.cell
-def _(con):
-    df_matches = con.execute("SELECT * FROM matches;").pl()
-    df_matches
-    return (df_matches,)
+def _(found_in_mapping_table, was_two_vocab_found):
+    def is_a_match(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="vocabs"):
+        if strategy == "vocabs":
+            return was_two_vocab_found(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="vocabs")
+        else:
+            return found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="table")
+    return (is_a_match,)
+
+
+@app.cell
+def _(is_a_match):
+    examples_gm_cm = [
+        ("C88", True, True),  # 3-char
+        ("J101", True, True),  # 4-char
+        ("M4693", True, True),  # 5-char
+        ("Z98890", False, True),  # 6-char
+        ("S99129G", False, True),  # 7-char
+        ("1", False, False),  # chapter
+        ("A00-A09", False, False),  # block
+    ]
+
+    print("Validation tests fro icd-10-gm...")
+    for icd_code, expected_gm, _ in examples_gm_cm:
+        result = is_a_match("icd-10-gm", icd_code, strategy="table")
+        assert result is expected_gm, f"Expected {expected_gm} for {icd_code}, but got {result}"
+    print("OK")
+
+    print("Validation tests fro icd-10-cm...")
+    for icd_code, _, expected_cm in examples_gm_cm:
+        result = is_a_match("icd-10-cm", icd_code, strategy="table")
+        assert result is expected_cm, f"Expected {expected_cm} for {icd_code}, but got {result}"
+    print("OK")
+    return
 
 
 @app.cell
