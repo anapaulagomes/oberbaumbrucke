@@ -19,7 +19,6 @@ dependencies = [
     "networkx-algo-common-subtree>=0.2.2",
     "plotly>=6.0.1",
     "polars>=1.27.1",
-    "pygraphviz>=1.14",
     "requests>=2.32.3",
     "sentence-transformers>=4.1.0",
     "transformers>=4.51.3",
@@ -42,6 +41,9 @@ dev = [
     "pyexcel-ods3>=0.6.1",
     "pytest>=8.3.5",
     "pytest-html>=4.1.1",
+]
+viz = [
+    "pygraphviz>=1.14",
 ]
 
 [tool.pytest.ini_options]
