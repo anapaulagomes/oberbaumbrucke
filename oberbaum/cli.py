@@ -142,7 +142,8 @@ def embeddings(
             store_embeddings(graph, force)
 
 
-def _match_all(threshold):
+def _match_all(**kwargs):
+    threshold = kwargs.get("threshold", 0.7)
     console.print("Fetching all models...")
     who_graph = get_graph("icd-10-who", gml_filepath="icd-10-who.gml")
     for model in MODELS:
@@ -166,17 +167,38 @@ def _match_all(threshold):
 
 
 def _graphs_overlap(**kwargs):
+    print(kwargs)
     graphs = all_graphs()
     who_graph = next(graphs)
     assert who_graph.version_name == "icd-10-who"
 
-    for graph in graphs:
-        compare_graphs(graph, who_graph, kwargs["only_codes"])
+    if kwargs.get("all_graphs", False):
+        for graph in graphs:
+            compare_graphs(graph, who_graph, kwargs["method"], kwargs["chapter"])
+    else:
+        graph_name = kwargs["graph_version_name"]
+        graph = get_graph(graph_name, gml_filepath=f"{graph_name}.gml")
+        compare_graphs(graph, who_graph, kwargs["method"], kwargs["chapter"])
 
 
 @graph_app.command("experiments")
-def run_experiments(name, threshold: float = 0.7, only_codes: bool = False):
-    kwargs = {"threshold": threshold, "only_codes": only_codes}
+def run_experiments(
+    name,
+    graph_version_name: str = None,
+    all_graphs: bool = False,
+    threshold: float = 0.7,
+    only_codes: bool = False,
+    method: str = "mcosi",
+    chapter: int = None,
+):
+    kwargs = {
+        "threshold": threshold,
+        "only_codes": only_codes,
+        "method": method,
+        "chapter": chapter,
+        "all_graphs": all_graphs,
+        "graph_version_name": graph_version_name,
+    }
     experiments_available = {
         "match_all": _match_all,
         "graphs_overlap": _graphs_overlap,
