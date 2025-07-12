@@ -13,13 +13,26 @@ def _():
     import networkx as nx
     import numpy as np
     import plotly.express as px
+    import plotly.graph_objects as go
     import polars as pl
     import venn
     from matplotlib_venn import venn2
     from polars.testing import assert_series_equal
 
     from oberbaum.cli import get_graph
-    return Path, assert_series_equal, get_graph, mo, np, nx, pl, px, re, venn
+    return (
+        Path,
+        assert_series_equal,
+        get_graph,
+        go,
+        mo,
+        np,
+        nx,
+        pl,
+        px,
+        re,
+        venn,
+    )
 
 
 @app.cell
@@ -42,6 +55,11 @@ def _(Path, assert_series_equal, pl, re):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(get_graph):
     graphs_name = [
         "icd-10-who",
@@ -52,7 +70,7 @@ def _(get_graph):
     graphs = {}
     for graph in graphs_name:
         graphs[graph] = get_graph(graph, gml_filepath=f"{graph}.gml")
-    return (graphs,)
+    return graphs, graphs_name
 
 
 @app.cell
@@ -229,7 +247,12 @@ def _(others_gm_df, others_who_df, overlap_combinations):
 
 @app.cell
 def _():
-    color_mapping = {'overlap':'grey', 'icd-10-gm':'gold', 'icd-10-who':'lightblue', 'icd-10-bra-2008': 'green'}
+    return
+
+
+@app.cell
+def _():
+    color_mapping = {'overlap':'grey', 'icd-10-gm':'gold', 'icd-10-who':'lightblue', 'cid-10-bra-2008': 'green', 'icd-10-cm':'red'}
     return (color_mapping,)
 
 
@@ -314,7 +337,93 @@ def _(
 
 
 @app.cell
-def _():
+def _(mo):
+    mo.md(r"""## Bar charts""")
+    return
+
+
+@app.cell
+def _(graphs_name):
+    graphs_name
+    return
+
+
+@app.cell
+def _(df, pl):
+    sum_overlap_per_version = df.group_by(["from"]).agg(pl.col("score").sum()).to_dict()
+    sum_overlap_per_version["total_codes"] = []
+    sum_overlap_per_version["from"]
+    return (sum_overlap_per_version,)
+
+
+@app.cell
+def _(graphs, sum_overlap_per_version):
+    for version_name in sum_overlap_per_version["from"]:
+        sum_overlap_per_version["total_codes"].append(len(list(graphs[version_name].all_nodes())))
+
+    sum_overlap_per_version
+    return
+
+
+@app.cell
+def _(graphs):
+    who_total_codes = len(list(graphs["icd-10-who"].all_nodes()))
+    who_total_codes
+    return (who_total_codes,)
+
+
+@app.cell
+def _(color_mapping, go, sum_overlap_per_version, who_total_codes):
+    _fig = go.Figure(data=[
+        go.Bar(
+            name='Codes',
+            x=sum_overlap_per_version["from"],
+            y=sum_overlap_per_version["total_codes"],
+            marker=dict(color=[color_mapping.get(version) for version in sum_overlap_per_version["from"]])
+        ),
+        go.Bar(
+            name='Overlap',
+            x=sum_overlap_per_version["from"],
+            y=sum_overlap_per_version["score"],
+            marker=dict(color='lightgrey'))
+    ])
+
+    _fig.update_layout(
+        barmode='group',
+        paper_bgcolor='rgba(0,0,0,0)',  # remove plotly blue background
+        plot_bgcolor='rgba(0,0,0,0)',
+        shapes=[
+            dict(
+                type='line',
+                xref='paper',
+                yref='y',
+                x0=0,
+                x1=1,
+                y0=who_total_codes,
+                y1=who_total_codes,
+                line=dict(
+                    color='black',
+                    width=2,
+                    dash='dash'
+                )
+            )
+        ],
+        annotations=[
+            dict(
+                x=1,
+                y=who_total_codes,
+                xref='paper',
+                yref='y',
+                text='WHO total codes',
+                showarrow=False,
+                xanchor='left',
+                yanchor='bottom',
+                font=dict(color='black')
+            )
+        ]
+    )
+    _fig.write_image("topological_overlap_between_versions.png")
+    _fig
     return
 
 
