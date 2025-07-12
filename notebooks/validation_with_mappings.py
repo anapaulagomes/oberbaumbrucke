@@ -165,9 +165,9 @@ def _(mo):
 def _(found_in_mapping_table, was_two_vocab_found):
     def is_a_match(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="vocabs"):
         if strategy == "vocabs":
-            return was_two_vocab_found(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="vocabs")
+            return was_two_vocab_found(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False)
         else:
-            return found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False, strategy="table")
+            return found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False)
     return (is_a_match,)
 
 
