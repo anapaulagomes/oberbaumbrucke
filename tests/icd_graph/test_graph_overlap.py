@@ -25,7 +25,7 @@ class TestGraphOverlap:
         )
 
         graph_overlap = ICDTreesComparator(ger_graph, who_graph)
-        result = graph_overlap.overlap()
+        result = graph_overlap.mcosi()
 
         print_results(result)
 
@@ -42,7 +42,7 @@ class TestGraphOverlap:
         )
 
         graph_overlap = ICDTreesComparator(usa_graph, who_graph)
-        result = graph_overlap.overlap()
+        result = graph_overlap.mcosi()
 
         print_results(result)
 
@@ -61,7 +61,7 @@ class TestGraphOverlap:
         )
 
         graph_overlap = ICDTreesComparator(ger_graph, who_graph)
-        result = graph_overlap.overlap()
+        result = graph_overlap.mcosi()
 
         print_results(result)
 
