@@ -205,42 +205,117 @@ def _(OMOP_NAMING_MAPPING, df_matches, is_a_match, pl):
             results[version] = []
 
             for match in df_matches.filter(pl.col("from_version").eq(version), pl.col("match_type").eq(match_type)).iter_rows(named=True):
-                results[match['from_version']].append(is_a_match(match['from_version'], match['from_icd_code']) and is_a_match(match['from_version'], match['to_icd_code']))
+                results[match['from_version']].append(
+                    is_a_match(match['from_version'], match['from_icd_code']) and is_a_match(match['from_version'], match['to_icd_code'])
+                )
         return results
 
     return (get_results_from_matches,)
 
 
 @app.function
-def print_match_validation_results(results):
+def match_validation_results(results):
+    final_result = {}
     for version_name, list_of_results in results.items():
         total = len(list_of_results)
-        did_match = list_of_results.count(True)
+        did_match = list_of_results.count(True)  # true positive / true negative
+        final_result.setdefault(version_name, {})
+        final_result[version_name]["true"] = did_match
         try:
             perc_did_match = (did_match*100)/total
         except ZeroDivisionError:
             print(f"perc_did_match ZeroDivisionError: {did_match}/{total}")
             perc_did_match = 0.0
-        did_not_match = list_of_results.count(False)
+        did_not_match = list_of_results.count(False)  # false positive / false negative
+        final_result[version_name]["false"] = did_not_match
         try:
             perc_did_not_match = (did_not_match*100)/total
         except ZeroDivisionError:
             print(f"perc_did_match ZeroDivisionError: {did_not_match}/{total}")
             perc_did_not_match = 0.0
         print(f"{version_name}: {did_match} ({perc_did_match:.2f} %) matched, {did_not_match} ({perc_did_not_match:.2f} %) did not match out of {total} total checks.")
+    return final_result
 
 
 @app.cell
 def _(get_results_from_matches):
     results_match_code_and_description = get_results_from_matches(match_type='match_code_and_description')
-    print_match_validation_results(results_match_code_and_description)
+    positive = match_validation_results(results_match_code_and_description)
+    return positive, results_match_code_and_description
+
+
+@app.cell
+def _(results_match_code_and_description):
+    results_match_code_and_description.keys()
     return
 
 
 @app.cell
 def _(get_results_from_matches):
     results_not_found = get_results_from_matches(match_type='not_found')
-    print_match_validation_results(results_not_found)
+    negative = match_validation_results(results_not_found)
+    return (negative,)
+
+
+@app.cell
+def _(negative, positive):
+    # positive = {
+    #   "icd-10-who": {
+    #     "true": 0,
+    #     "false": 62530
+    #   },
+    #   "icd-10-cm": {
+    #     "true": 47543,
+    #     "false": 1627
+    #   },
+    #   "icd-10-gm": {
+    #     "true": 44299,
+    #     "false": 1632
+    #   }
+    # }
+
+    # negative = {
+    #   "icd-10-who": {
+    #     "true": 0,
+    #     "false": 0
+    #   },
+    #   "icd-10-cm": {
+    #     "true": 0,
+    #     "false": 96720
+    #   },
+    #   "icd-10-gm": {
+    #     "true": 0,
+    #     "false": 3490
+    #   }
+    # }
+
+    def calculate_sensitivity(version_name):
+        try:
+            return positive[version_name]["true"]/(positive[version_name]["true"]+negative[version_name]["false"])
+        except ZeroDivisionError:
+            print(f"ZeroDivisionError: {version_name}")
+
+
+    def calculate_specificity(version_name):
+        try:
+            return positive[version_name]["false"]/(positive[version_name]["false"]+negative[version_name]["true"])
+        except ZeroDivisionError:
+            print(f"ZeroDivisionError: {version_name}")
+
+
+
+    def calculate_f_score(version_name):
+        try:
+            return (2*positive[version_name]["true"])/((2*positive[version_name]["true"])+negative[version_name]["true"]+negative[version_name]["false"])
+        except ZeroDivisionError:
+            print(f"ZeroDivisionError: {version_name}")
+
+
+    for version_name in positive.keys():
+        sensitivity = calculate_sensitivity(version_name)
+        specificity = calculate_specificity(version_name)
+        f_score = calculate_f_score(version_name)
+        print(f'[{version_name}] Sensitivity: {sensitivity} Specificity: {specificity} f-score: {f_score}')
     return
 
 
