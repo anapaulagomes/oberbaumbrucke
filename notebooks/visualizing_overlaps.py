@@ -243,12 +243,13 @@ def _(others_who_df):
 def _(others_gm_df, others_who_df, overlap_combinations):
     ind_overlaps = overlap_combinations.to_numpy().flatten()
     ind_who = [ind for ind in others_who_df.to_numpy().flatten() if ind not in ind_overlaps]
-    ind_gm = [ind for ind in others_gm_df.to_numpy().flatten() if ind not in ind_who]
+    ind_gm = [ind for ind in others_gm_df.to_numpy().flatten() if ind not in ind_overlaps]
     return ind_gm, ind_overlaps, ind_who
 
 
 @app.cell
-def _():
+def _(mo):
+    mo.md(r"""## Sunburst""")
     return
 
 
@@ -273,12 +274,13 @@ def _(color_mapping, df_gm, ind_gm, ind_overlaps, ind_who, np, px):
     for cat in _fig.data[-1].labels:
         if cat in ind_overlaps or cat in chapters_str:
             marker_colors.append(color_mapping["overlap"])
-        elif cat in ind_who:
-            marker_colors.append(color_mapping["icd-10-who"])
         elif cat in ind_gm:
             marker_colors.append(color_mapping["icd-10-gm"])
+        elif cat in ind_who:
+            marker_colors.append(color_mapping["icd-10-who"])
     _fig.update_traces(marker_colors=marker_colors)
-    _fig.write_html("who_gm_comparison_grouped_colored.html")
+    _fig.write_html("who_gm_comparison_grouped_colored_only_overlap_and_ger.html")
+    _fig.write_image("who_gm_comparison_grouped_colored_only_overlap_and_ger.png")
     return
 
 
