@@ -119,3 +119,34 @@ def compare_graphs(
 
     # TODO reconstruct the subgraphs from the results
     return results
+
+
+def merge_graphs(from_graph, to_graph, overlapped_nodes):
+    G1 = from_graph._graph
+    G2 = to_graph._graph
+    from_name = from_graph.version_name
+    to_name = to_graph.version_name
+    G_result = nx.compose(G1, G2)
+
+    attrs = {}
+    # consider all chapters as overlapped nodes
+    # given that this is not changed, and they were split
+    # during the job parallelization
+    for chapter in range(1, 23):
+        attrs[str(chapter)] = {
+            "overlap": True,
+            "from": from_name,
+            "to": to_name,
+        }
+    for node in overlapped_nodes:
+        if node == "root":
+            continue
+        attrs[node] = {
+            "overlap": True,
+            "from": from_name,
+            "to": to_name,
+            # "from_info": G1.nodes[node],
+            # "to_info": G2.nodes[node]
+        }
+    nx.set_node_attributes(G_result, attrs)
+    return G_result

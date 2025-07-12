@@ -57,9 +57,7 @@ tree_view_layout = html.Div(
             multiple=False,
         ),
         html.Div(id="error-message", style={"color": "red", "margin": "10px"}),
-        dcc.Graph(
-            id="tree-graph", style={"height": "80vh"}, config={"displayModeBar": True}
-        ),
+        html.Div(id="tree-graph-container"),
         dcc.Store(id="graph-data"),
         dcc.Store(id="expanded-nodes", data=json.dumps([])),
     ]
@@ -312,7 +310,9 @@ def get_visible_nodes(G, expanded_nodes):
     return visible_nodes
 
 
-def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
+def create_tree_visualization(
+    G, expanded_nodes=None, highlight_node=None, filename=None
+):
     """Create an interactive tree visualization using Plotly."""
     if G is None:
         return go.Figure()
@@ -322,6 +322,9 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
 
     visible_nodes = get_visible_nodes(G, expanded_nodes)
 
+    # Identify root node
+    root = get_root_node(G)
+
     # Create a subgraph with only visible nodes
     visible_edges = [
         (u, v) for u, v in G.edges() if u in visible_nodes and v in visible_nodes
@@ -330,43 +333,89 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
 
     pos = graphviz_layout(subgraph, prog="dot")
 
-    # Create edge trace
-    edge_x = []
-    edge_y = []
-    for edge in subgraph.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+    # After pos is computed and before creating the figure
+    x_vals = [p[0] for p in pos.values()]
+    y_vals = [p[1] for p in pos.values()]
+    x_range = [min(x_vals) - 50, max(x_vals) + 50]
+    y_range = [min(y_vals) - 50, max(y_vals) + 50]
 
-    edge_trace = go.Scatter(
-        x=edge_x,
-        y=edge_y,
-        line=dict(width=0.5, color="#888"),
-        hoverinfo="none",
-        mode="lines",
-    )
+    # --- EDGE STYLING ---
+    edge_x_solid = []
+    edge_y_solid = []
+    edge_x_dashed = []
+    edge_y_dashed = []
+    edge_width_solid = []
+    edge_width_dashed = []
+    for u, v in subgraph.edges():
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        overlap_u = G.nodes[u].get("overlap", None)
+        overlap_v = G.nodes[v].get("overlap", None)
+        # Edge is dashed if either node has overlap==None (i.e., missing overlap info)
+        # But if root is involved, always solid and thin
+        if (root is not None) and (u == root or v == root):
+            edge_x_solid.extend([x0, x1, None])
+            edge_y_solid.extend([y0, y1, None])
+            edge_width_solid.append(1)
+        elif overlap_u is None or overlap_v is None:
+            edge_x_dashed.extend([x0, x1, None])
+            edge_y_dashed.extend([y0, y1, None])
+            edge_width_dashed.append(2.5)
+        elif (overlap_u and not overlap_v) or (not overlap_u and overlap_v):
+            edge_x_dashed.extend([x0, x1, None])
+            edge_y_dashed.extend([y0, y1, None])
+            edge_width_dashed.append(2.5)
+        else:
+            edge_x_solid.extend([x0, x1, None])
+            edge_y_solid.extend([y0, y1, None])
+            edge_width_solid.append(1)
 
-    # Discrete color palette (extend as needed)
-    palette = [
-        "#636EFA",  # blue
-        "#EF553B",  # red
-        "#00CC96",  # green
-        "#AB63FA",  # purple
-        "#FFA15A",  # orange
-        "#19D3F3",  # cyan
-        "#FF6692",  # pink
-        "#B6E880",  # light green
-        "#FF97FF",  # magenta
-        "#FECB52",  # yellow
-    ]
+    edge_traces = []
+    # For solid edges, Plotly only supports one width per trace, so we use the max width (should be 1)
+    if edge_x_solid:
+        edge_traces.append(
+            go.Scatter(
+                x=edge_x_solid,
+                y=edge_y_solid,
+                line=dict(width=2.5, color="#888", dash="solid"),
+                hoverinfo="none",
+                mode="lines",
+                showlegend=False,
+            )
+        )
+    if edge_x_dashed:
+        edge_traces.append(
+            go.Scatter(
+                x=edge_x_dashed,
+                y=edge_y_dashed,
+                line=dict(width=1, color="#888", dash="dash"),
+                hoverinfo="none",
+                mode="lines",
+                showlegend=False,
+            )
+        )
 
-    # Compute out-degree for each node
+    # --- NODE COLORING ---
+    def get_filename_color(filename):
+        if not filename:
+            return "#636EFA"  # fallback blue
+        fname = filename.lower()
+        if "icd-10-cm" in fname:
+            return "#EF553B"  # red
+        elif "cid-10-bra-2008" in fname:
+            return "#00FF00"  # green
+        elif "icd-10-gm" in fname:
+            return "#FFD700"  # gold
+        elif "icd-10-who" in fname:
+            return "#87CEFA"  # lightblue
+        return "#636EFA"  # fallback blue
+
     node_x = []
     node_y = []
     node_text = []
     node_names = []
-    node_outdegrees = []
+    node_colors = []
+    node_sizes = []
     for node in subgraph.nodes():
         x, y = pos[node]
         node_x.append(x)
@@ -376,28 +425,17 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
             hover_text += f"{attr}: {value}<br>"
         node_text.append(hover_text)
         node_names.append(str(node))
-        outdeg = G.out_degree(node)
-        node_outdegrees.append(outdeg)
+        overlap = G.nodes[node].get("overlap", None)
+        if node == root:
+            node_colors.append("#333333")  # dark grey for root
+            node_sizes.append(10)
+        elif overlap is not None:
+            node_colors.append("#000000")  # black for overlap
+            node_sizes.append(18)
+        else:
+            node_colors.append(get_filename_color(filename))
+            node_sizes.append(12)
 
-    # Map out-degree to color
-    unique_outdegrees = sorted(set(node_outdegrees))
-    outdeg_to_color_idx = {
-        deg: i % len(palette) for i, deg in enumerate(unique_outdegrees)
-    }
-    node_colors = [palette[outdeg_to_color_idx[deg]] for deg in node_outdegrees]
-
-    # Highlight node (override color if search matches)
-    if highlight_node:
-        for i, node in enumerate(subgraph.nodes()):
-            if highlight_node.lower() in str(node).lower():
-                node_colors[i] = "#FF0000"  # Red for highlight
-
-    # Discrete colorbar ticks and labels
-    colorbar_ticks = list(range(len(unique_outdegrees)))
-    colorbar_ticktext = [str(deg) for deg in unique_outdegrees]
-
-    # Plotly doesn't support categorical colorbars directly, so we use a workaround:
-    # We set the colorbar to show the out-degree values as ticktext, but the colorbar will be a dummy.
     node_trace = go.Scatter(
         x=node_x,
         y=node_y,
@@ -406,30 +444,28 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
         text=node_names,
         textposition="top center",
         hovertext=node_text,
+        customdata=node_names,  # ensure node name is available in clickData
         marker=dict(
-            size=10,
-            color=node_colors,
-            colorbar=dict(
-                thickness=15,
-                title="Out-degree",
-                xanchor="left",
-                tickvals=colorbar_ticks,
-                ticktext=colorbar_ticktext,
-                lenmode="pixels",
-                len=200,
-            ),
-            showscale=True,
+            size=node_sizes,  # list of sizes
+            color=node_colors,  # list of hex color strings
+            line_width=2,
         ),
     )
 
     fig = go.Figure(
-        data=[edge_trace, node_trace],
+        data=edge_traces + [node_trace],
         layout=go.Layout(
             showlegend=False,
             hovermode="closest",
-            margin=dict(b=20, l=5, r=5, t=40),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            margin=dict(b=40, l=5, r=5, t=40),
+            xaxis=dict(
+                showgrid=False, zeroline=False, showticklabels=False, range=x_range
+            ),
+            yaxis=dict(
+                showgrid=False, zeroline=False, showticklabels=False, range=y_range
+            ),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
         ),
     )
     return fig
@@ -439,7 +475,7 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
 @app.callback(
     [
         Output("graph-data", "data"),
-        Output("tree-graph", "figure"),
+        Output("tree-graph-container", "children"),
         Output("error-message", "children"),
     ],
     [Input("upload-gml", "contents")],
@@ -448,16 +484,21 @@ def create_tree_visualization(G, expanded_nodes=None, highlight_node=None):
 def update_single_graph(contents, filename):
     """Update the single graph visualization when a new file is uploaded."""
     if contents is None:
-        return None, go.Figure(), None
+        return None, None, None
 
     G, error = parse_gml(contents)
     if G is None:
-        return None, go.Figure(), error
+        return None, None, error
 
     graph_data = nx.node_link_data(G)
-    fig = create_tree_visualization(G)
-
-    return graph_data, fig, None
+    fig = create_tree_visualization(G, filename=filename)
+    graph_component = dcc.Graph(
+        id="tree-graph",
+        figure=fig,
+        style={"height": "120vh"},
+        config={"displayModeBar": True},
+    )
+    return graph_data, graph_component, None
 
 
 # Callback for multiple graph uploads
@@ -504,7 +545,7 @@ def update_multiple_graphs(
             G, error = parse_gml(content)
             if G is not None:
                 graph_data = nx.node_link_data(G)
-                fig = create_tree_visualization(G)
+                fig = create_tree_visualization(G, filename=filename)
                 fig.update_layout(title=filename)
                 outputs[i * 3] = graph_data
                 outputs[i * 3 + 1] = fig
@@ -519,15 +560,24 @@ def update_multiple_graphs(
     Output("tree-graph", "figure", allow_duplicate=True),
     Output("expanded-nodes", "data"),
     [Input("tree-graph", "clickData")],
-    [State("graph-data", "data"), State("expanded-nodes", "data")],
+    [
+        State("graph-data", "data"),
+        State("expanded-nodes", "data"),
+        State("upload-gml", "filename"),
+    ],
     prevent_initial_call=True,
 )
-def handle_node_click(clickData, graph_data, expanded_nodes_json):
+def handle_node_click(clickData, graph_data, expanded_nodes_json, filename):
     """Handle node clicks to expand/collapse the tree."""
     if not clickData or not graph_data:
         return dash.no_update, dash.no_update
 
-    clicked_node = clickData["points"][0]["text"]
+    point = clickData["points"][0]
+    clicked_node = point.get("customdata")
+    if clicked_node is None:
+        # print('Available keys in point:', list(point.keys()))
+        return dash.no_update, dash.no_update
+
     expanded_nodes = json.loads(expanded_nodes_json)
 
     if clicked_node in expanded_nodes:
@@ -539,10 +589,11 @@ def handle_node_click(clickData, graph_data, expanded_nodes_json):
                 descendants.add(node)
         expanded_nodes = [n for n in expanded_nodes if n not in descendants]
     else:
-        # Expand node
         expanded_nodes.append(clicked_node)
 
-    fig = create_tree_visualization(nx.node_link_graph(graph_data), expanded_nodes)
+    fig = create_tree_visualization(
+        nx.node_link_graph(graph_data), expanded_nodes, filename=filename
+    )
     return fig, json.dumps(expanded_nodes)
 
 

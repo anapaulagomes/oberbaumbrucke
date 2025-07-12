@@ -20,11 +20,13 @@ def _():
     from polars.testing import assert_series_equal
 
     from oberbaum.cli import get_graph
+    from oberbaum.icd_graph.graph_overlap import merge_graphs
     return (
         Path,
         assert_series_equal,
         get_graph,
         go,
+        merge_graphs,
         mo,
         np,
         nx,
@@ -424,6 +426,46 @@ def _(color_mapping, go, sum_overlap_per_version, who_total_codes):
     )
     _fig.write_image("topological_overlap_between_versions.png")
     _fig
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    ## Graphs
+
+    The visualization for graphs is done through `viz.py` but in here we prepare the merged graph for visualization.
+    """
+    )
+    return
+
+
+@app.cell
+def _(df, merge_graphs, nx, pl):
+    def create_overlap_graph(from_version, from_graph, to_graph):
+        overlapped_nodes = df.filter(pl.col("from").eq(from_version)).explode("nodes_subtree")["nodes_subtree"].unique().to_list()
+        merged = merge_graphs(from_graph, to_graph, overlapped_nodes)
+        nx.write_gml(merged, f"overlap_graph_who_{from_version}.gml")
+        return merged
+    return (create_overlap_graph,)
+
+
+@app.cell
+def _(create_overlap_graph, gm_graph, who_graph):
+    create_overlap_graph("icd-10-gm", gm_graph, who_graph)
+    return
+
+
+@app.cell
+def _(create_overlap_graph, gm_graph, who_graph):
+    create_overlap_graph("icd-10-cm", gm_graph, who_graph)
+    return
+
+
+@app.cell
+def _(create_overlap_graph, gm_graph, who_graph):
+    create_overlap_graph("cid-10-bra-2008", gm_graph, who_graph)
     return
 
 
