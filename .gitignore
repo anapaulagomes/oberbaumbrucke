@@ -185,6 +185,7 @@ artifacts/
 *.zip
 *.out
 *.err
+*.png
 
 # MLflow
 mlartifacts/
