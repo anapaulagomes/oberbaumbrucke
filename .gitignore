@@ -186,6 +186,8 @@ artifacts/
 *.out
 *.err
 *.png
+*.pdf
+*.svg
 
 # MLflow
 mlartifacts/
