@@ -39,7 +39,6 @@ dev = [
     "fastexcel>=0.14.0",
     "ipdb>=0.13.13",
     "pre-commit>=4.2.0",
-    "pyexcel-ods3>=0.6.1",
     "pytest>=8.3.5",
     "pytest-html>=4.1.1",
 ]

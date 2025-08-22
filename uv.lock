@@ -632,15 +632,6 @@ wheels = [
 ]
 
 [[package]]
-name = "lml"
-version = "0.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2e/33/8043c7050233e889df10365d32838b276fc51464cc70f9abbb97c92771d6/lml-0.2.0.tar.gz", hash = "sha256:8dd5afb4367a593d1cdb2144a05874cd9938f5266bebb0c9e1413200423c0d74", size = 41633 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/da/c649f3d09155660bcc5bf4f7fb59effae968e4ffd872cdd738f0b6932400/lml-0.2.0-py2.py3-none-any.whl", hash = "sha256:20c80728189e46e8d986f5d0cdf6d83c493471fc25b1c31a8cb3fa96e80b58f8", size = 10846 },
-]
-
-[[package]]
 name = "loro"
 version = "1.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1199,7 +1190,6 @@ dev = [
     { name = "fastexcel" },
     { name = "ipdb" },
     { name = "pre-commit" },
-    { name = "pyexcel-ods3" },
     { name = "pytest" },
     { name = "pytest-html" },
 ]
@@ -1233,7 +1223,6 @@ dev = [
     { name = "fastexcel", specifier = ">=0.14.0" },
     { name = "ipdb", specifier = ">=0.13.13" },
     { name = "pre-commit", specifier = ">=4.2.0" },
-    { name = "pyexcel-ods3", specifier = ">=0.6.1" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-html", specifier = ">=4.1.1" },
 ]
@@ -1476,44 +1465,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/cb/65fa110b483339add6a9bc7b6373614166b14e20375d4daa73483755f830/pyarrow-20.0.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:f3b117b922af5e4c6b9a9115825726cac7d8b1421c37c2b5e24fbacc8930612c", size = 42839441 },
     { url = "https://files.pythonhosted.org/packages/98/7b/f30b1954589243207d7a0fbc9997401044bf9a033eec78f6cb50da3f304a/pyarrow-20.0.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:e724a3fd23ae5b9c010e7be857f4405ed5e679db5c93e66204db1a69f733936a", size = 44503279 },
     { url = "https://files.pythonhosted.org/packages/37/40/ad395740cd641869a13bcf60851296c89624662575621968dcfafabaa7f6/pyarrow-20.0.0-cp313-cp313t-win_amd64.whl", hash = "sha256:82f1ee5133bd8f49d31be1299dc07f585136679666b502540db854968576faf9", size = 25944982 },
-]
-
-[[package]]
-name = "pyexcel-ezodf"
-version = "0.3.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lxml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/8d/aba802912a3ffbaf6c3ae7f3208206f0811b72e48adff86edd0f933bb9d7/pyexcel-ezodf-0.3.4.tar.gz", hash = "sha256:972eeea9b0e4bab60dfc5cdcb7378cc7ba5e070a0b7282746c0182c5de011ff1", size = 138679 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5b/fd/4a1583b47a7527669f5c9d45c031c3b4ae35a4cd34b2113ed98b1b9f1bce/pyexcel_ezodf-0.3.4-py2.py3-none-any.whl", hash = "sha256:a74ac7636a015fff31d35c5350dc5ad347ba98ecb453de4dbcbb9a9168434e8c", size = 53861 },
-]
-
-[[package]]
-name = "pyexcel-io"
-version = "0.6.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ea/0e/2d8c933d560d290113cc8e6a354260758cdd356308f6fd3be5be5898784b/pyexcel_io-0.6.7.tar.gz", hash = "sha256:2c33d8df505e21a13bed585ac6ab7d30ec826a9f156b758394af5d22359bddb9", size = 75856 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/95/44376fb9c5a8200167fc7beac640be3522f85c07297a810865c5ad3fe440/pyexcel_io-0.6.7-py2.py3-none-any.whl", hash = "sha256:add9f3c1489070ab0a3226bab7d23d4b84a364f5b44f3a14e2ce785ede88fcb3", size = 44476 },
-]
-
-[[package]]
-name = "pyexcel-ods3"
-version = "0.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lxml" },
-    { name = "pyexcel-ezodf" },
-    { name = "pyexcel-io" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/68/49/6fa598189a41f75f87b4fa964cdc185dade813d20c241266a790ad91bde5/pyexcel-ods3-0.6.1.tar.gz", hash = "sha256:53740fc9bc6e91e43cdc0ee4f557bb3b252d8493d34f2c11d26a93c53cfebc2e", size = 48374 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/e9/5b4e415f8afc0dcf6e238df02797e98f7ab92a587034c8c889a6c0d7ece8/pyexcel_ods3-0.6.1-py3-none-any.whl", hash = "sha256:ca61d139879349a5d4b0a241add6504474c59fa280d1804b76f56ee4ba30eb8b", size = 9847 },
 ]
 
 [[package]]
