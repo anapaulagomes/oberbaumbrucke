@@ -1,7 +1,4 @@
-from collections import OrderedDict
-
 import pytest
-from pyexcel_ods3 import save_data
 
 from tests.helpers import download_and_unzip
 
@@ -47,62 +44,26 @@ def real_cid10_bra_2019_file_dir(real_icd10_who_file_dir):
     """File granted via the Brazilian Access to Information Bill (Freedom of Information Act).
 
     Protocol: https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=8826703"""
-    files_dir = "data/CID-10-20192"
+    files_dir = "data/CID-10-2019"
     who_url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
     download_and_unzip(who_url, files_dir, "icd102019enMeta.zip")
 
-    url = "https://github.com/anapaulagomes/datasus-dicionarios/raw/refs/heads/main/cid-10/lai-25072022911202531/Extracao%20CID10.ods"
-    yield download_and_unzip(url, files_dir, "Extracao CID10.ods")
+    url = "https://raw.githubusercontent.com/anapaulagomes/datasus-dicionarios/refs/heads/main/cid-10/lai-25072033421202561/PREVISAO_TABELA_CID10.csv"
+    yield download_and_unzip(url, files_dir, "PREVISAO_TABELA_CID10.csv")
 
 
 @pytest.fixture
 def cid10_bra_file_dir(icd10_who_file_dir, tmp_path):
-    codes_file = tmp_path / "Extracao CID10.ods"
-    data = OrderedDict()
-    data.update(
-        {
-            "Sheet 1": [
-                ["CID    ", "DESCRICAO          "],
-                [
-                    "A00",
-                    "Colera                                                                                                                                                                                                                                                                                  ",
-                ],
-                [
-                    "A01",
-                    "Febres tifoide e paratifoide                                                                                                                                                                                                                                                            ",
-                ],
-                [
-                    "A02",
-                    "Outras infeccoes por Salmonella                                                                                                                                                                                                                                                         ",
-                ],
-                [
-                    "A03",
-                    "Shiguelose                                                                                                                                                                                                                                                                              ",
-                ],
-                [
-                    "A04",
-                    "Outras gastroenterites e colites de origem infecciosa e as nao especificadas                                                                                                                                                                                                            ",
-                ],
-                [
-                    "A000",
-                    "Colera devida a Vibrio cholerae 01, biotipo cholerae                                                                                                                                                                                                                                    ",
-                ],
-                [
-                    "A001",
-                    "Colera devida a Vibrio cholerae 01, biotipo El Tor                                                                                                                                                                                                                                      ",
-                ],
-                [
-                    "A009",
-                    "Colera nao especificada                                                                                                                                                                                                                                                                 ",
-                ],
-                [
-                    "A010",
-                    "Febre tifoide                                                                                                                                                                                                                                                                           ",
-                ],
-            ]
-        }
+    codes_file = tmp_path / "PREVISAO_TABELA_CID10.csv"
+    codes_file.write_text(
+        "co_categoria_subcategoria,co_agrupamento,co_categoria_pai,no_categoria_subcategoria,st_cruz,st_asterisco,co_categ_subcateg_sp,st_registro_ativo,dt_inclusao,dt_atualizacao\n"
+        "A00,1,A00,Colera,-,-,A00,S,-,-\n"
+        'A00.0,1,A00,"Colera devida a Vibrio cholerae 01, biotipo cholerae",-,-,A000,S,-,-\n'
+        'A00.1,1,A00,"Colera devida a Vibrio cholerae 01, biotipo El Tor",-,-,A001,S,-,-\n'
+        "A00.9,1,A00,Colera nao especificada,-,-,A009,S,-,-\n"
+        "A01,1,A01,Febres tifoide e paratifoide,-,-,A01,S,-,-\n"
+        "A01.0,1,A01,Febre tifoide,-,-,A010,S,-,-'\n"
     )
-    save_data(str(codes_file), data)
     return str(tmp_path)
 
 

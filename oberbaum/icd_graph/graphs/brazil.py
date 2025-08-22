@@ -109,35 +109,38 @@ class CID10Graph2008(ICDGraph):
 class CID10Graph(WHOICDGraph):
     """Class for representing the Brazilian ICD-10 from 2019 version as a graph.
 
-    Files for download: http://plataforma.saude.gov.br/cc-br-fic/
+    Files for download:
+    http://plataforma.saude.gov.br/cc-br-fic/
+    https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=9182585
+
+    As confirmed by the Ministry of Health in official communication,
+    the structure of the Brazilian ICD-10 is based on the WHO version 2019.
+    For this reason, the blocks used are the same as those of WHO.
     """
 
     year: int = 2019
     version_name: str = "cid-10-bra"
-    _codes_filename: str = "Extracao CID10.ods"
-    # from WHO ICD-10 2019
-    _chapters_filename: str = (
-        "icd102019syst_chapters.txt"  # TODO get written confirmation of org
-    )
-    _block_filename: str = "icd102019syst_groups.txt"
+    _codes_filename: str = "PREVISAO_TABELA_CID10.csv"
 
     def add_codes(self):
         codes_file = Path(self.files_dir) / self._codes_filename
-        codes = pl.read_ods(source=codes_file)
-        codes.columns = [
-            "CID",
-            "DESCRICAO",
-        ]  # renaming columns to remove extra spaces in it
+        codes = pl.read_csv(source=codes_file)
+
+        # co_categoria_subcategoria,co_agrupamento,co_categoria_pai,no_categoria_subcategoria,
+        # st_cruz,st_asterisco,co_categ_subcateg_sp,st_registro_ativo,dt_inclusao,dt_atualizacao
         for line in codes.iter_rows(named=True):
-            code = line["CID"].strip().replace(".", "")
-            title = line["DESCRICAO"].strip()
-            three_char_category = code[:3]
+            if "Total de registros" in line["co_categoria_subcategoria"]:
+                # end of the file
+                break
+            code = line["co_categ_subcateg_sp"].strip()
+            title = line["no_categoria_subcategoria"].strip()
+            three_char_category = line["co_categoria_pai"]
             block = self.find_block(three_char_category)
             if not block:
                 print(f"Block not found for code {code}")
                 continue
 
-            chapter = self.get(block)["chapter_code"]
+            chapter = line["co_agrupamento"]
             self.add_or_update_code(
                 code,
                 chapter,
