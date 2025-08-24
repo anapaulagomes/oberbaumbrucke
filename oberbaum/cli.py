@@ -35,6 +35,7 @@ def all_graphs():
         "icd-10-who",
         "icd-10-gm",
         "icd-10-cm",
+        "cid-10-bra",
         "cid-10-bra-2008",
     ]
     for graph in graphs:
