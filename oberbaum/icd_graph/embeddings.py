@@ -54,7 +54,7 @@ def create_matching_table_if_not_exists(con):
     con.from_query(
         """
         CREATE SEQUENCE IF NOT EXISTS id_matching_sequence START 1;
-        CREATE TABLE IF NOT EXISTS icd_embeddings(
+        CREATE TABLE IF NOT EXISTS matches(
              id INTEGER DEFAULT nextval('id_matching_sequence'),
              from_version VARCHAR,
              to_version VARCHAR,
