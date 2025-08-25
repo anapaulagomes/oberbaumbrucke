@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import networkx as nx
 import typer
 from rich.console import Console
@@ -205,6 +207,36 @@ def run_experiments(
         "graphs_overlap": _graphs_overlap,
     }
     experiments_available.get(name)(**kwargs)
+
+
+def range_float(start, end, step=0.05):
+    while start < end:
+        result = round(start + step, 2)
+        if result < end:
+            yield result
+        start = result
+
+
+@graph_app.command()
+def create_jobs_file(
+    from_graph_version_name: str,
+    threshold: float = None,
+    to_graph_version_name: str = "icd-10-who",
+):
+    jobs_file = Path(Path.cwd() / "bin") / "jobs.txt"
+    lines = []
+    for chapter in range(1, 23):
+        if not threshold:
+            for range_threshold in range_float(0.7, 1):
+                lines.append(
+                    f"{from_graph_version_name} {to_graph_version_name} {chapter} {range_threshold}"
+                )
+        else:
+            lines.append(
+                f"{from_graph_version_name} {to_graph_version_name} {chapter} {threshold}"
+            )
+
+    jobs_file.write_text("\n".join(lines))
 
 
 if __name__ == "__main__":
