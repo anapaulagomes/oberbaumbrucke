@@ -45,6 +45,8 @@ def _(Path, assert_series_equal, pl, re):
         versions_and_chapter = a_file.name.replace("overlap-results-", "").replace(".json", "")
         matches = re.search(r"(?P<from>\w+-10-\w+(-2008)?)-(?P<to>\w+-10-\w+)-(?P<chapter>\d+)-\d{14}", a_file.name)
         _df = pl.read_json(a_file)
+        if not matches:
+            continue
         _df = _df.with_columns(chapter=pl.lit(int(matches.groupdict()["chapter"])))
         assert_series_equal(_df["nodes_subtree1"], _df["nodes_subtree2"], check_names=False)
         _df = _df.rename({"nodes_subtree1": "nodes_subtree"})
