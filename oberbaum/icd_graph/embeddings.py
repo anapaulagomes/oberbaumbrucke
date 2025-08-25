@@ -1,13 +1,20 @@
+import os
+
 import duckdb
 import polars as pl
+from dotenv import load_dotenv
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
 from oberbaum.icd_graph.models import MODELS
 
+load_dotenv()
+
+EMBEDDINGS_DB = os.getenv("ICD_EMBEDDINGS_DB", "icd10_embeddings_v2.db")
+
 
 def get_connection(writeable=False):
-    return duckdb.connect("icd10_embeddings_v2.db", read_only=not writeable)
+    return duckdb.connect(EMBEDDINGS_DB, read_only=not writeable)
 
 
 def store_embeddings(graph, force=False):
