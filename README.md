@@ -50,6 +50,41 @@ Then, create the db: `oberbaum db create` (you can pass the db name with `--db-n
 uv run pytest
 ```
 
+### Running experiments in HPC
+
+You can run the graph overlap experiment in Slurm by using the bash script in `bin/graphs_overlap_array.sh`.
+Make a copy of the script and edit it to your needs. The experiment will check the overlap from a version against
+the WHO 2019 version.
+To run it, you will need to specify a list of jobs with the params required for the command:
+
+```bash
+oberbaum graph experiments graphs_overlap --method mcosi --chapter $CHAPTER --graph-version-name $GRAPH --threshold $THRESHOLD
+```
+
+You can accomplish this with this bash script:
+
+```bash
+./bin/generate_jobs.sh icd-10-gm cid-10-bra > jobs.txt
+```
+
+In the example above, we are generating the params for each chapter for two versions: `cid-10-bra` and `icd-10-gm`.
+This is the format expected:
+
+```text
+icd-10-gm 1 0.75
+icd-10-gm 1 0.8
+icd-10-gm 1 0.85
+icd-10-gm 1 0.9
+icd-10-gm 1 0.95
+...
+cid-10-bra 22 0.8
+cid-10-bra 22 0.85
+cid-10-bra 22 0.9
+cid-10-bra 22 0.95
+```
+
+After the `jobs.txt` is created, you're ready to run: `sbatch graphs_overlap_array.sh`
+
 ### Troubleshooting
 
 #### Pygraphviz
