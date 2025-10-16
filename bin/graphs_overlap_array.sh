@@ -13,7 +13,7 @@ source .venv/bin/activate
 LINE=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" jobs.txt)
 set -- $LINE
 GRAPH=$1
-CHAPTER=$3
-THRESHOLD=$4
+CHAPTER=$2
+THRESHOLD=$3
 # example: cid-10-bra-2008 icd-10-who 22 0.85
 uv run oberbaum graph experiments graphs_overlap --method mcosi --chapter $CHAPTER --graph-version-name $GRAPH --threshold $THRESHOLD

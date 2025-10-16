@@ -5,8 +5,6 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
-OUTPUT="$@"
-
 oberbaum graph subgraph icd-10-who data/icd102019enMeta "$@"
 oberbaum graph subgraph icd-10-gm data/icd10gm2025/Klassifikationsdateien "$@"
 oberbaum graph subgraph cid-10-bra data/CID10CSV "$@"
