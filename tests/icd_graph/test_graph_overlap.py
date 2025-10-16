@@ -1,3 +1,5 @@
+import os
+
 import networkx as nx
 import pytest
 
@@ -13,6 +15,10 @@ def print_results(result):
     nx.write_network_text(result["subtree2"])
 
 
+@pytest.mark.skipif(
+    os.getenv("GITHUB_ACTIONS") == "true",
+    reason="These tests requires a database with embeddings results to compare trees accordingly",
+)
 class TestGraphOverlap:
     def test_get_overlap(self):
         ger_graph = get_graph(
