@@ -1,9 +1,16 @@
+import os
+
 import networkx as nx
 import typer
 from rich.console import Console
 from rich.tree import Tree
 
-from oberbaum.icd_graph.embeddings import store_embeddings
+from oberbaum.icd_graph.embeddings import (
+    create_embeddings_table_if_not_exists,
+    create_matching_table_if_not_exists,
+    get_connection,
+    store_embeddings,
+)
 from oberbaum.icd_graph.graph_overlap import compare_graphs
 from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph, CID10Graph2008
@@ -15,7 +22,9 @@ from oberbaum.icd_graph.models import MODELS
 
 app = typer.Typer()
 graph_app = typer.Typer()
+db_app = typer.Typer()
 app.add_typer(graph_app, name="graph")
+app.add_typer(db_app, name="db")
 console = Console()
 
 
@@ -207,6 +216,15 @@ def run_experiments(
         "graphs_overlap": _graphs_overlap,
     }
     experiments_available.get(name)(**kwargs)
+
+
+@db_app.command("create")
+def configure_db(db_name: str = None):
+    db_name = db_name or os.getenv("EMBEDDINGS_DB")
+    con = get_connection(writeable=True, db_name=db_name)
+    create_matching_table_if_not_exists(con)
+    create_embeddings_table_if_not_exists(con)
+    console.print(f"\n[bold green]DB {db_name} successfully created.[/bold green]")
 
 
 if __name__ == "__main__":

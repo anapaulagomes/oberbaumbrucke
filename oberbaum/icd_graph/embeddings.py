@@ -13,8 +13,8 @@ load_dotenv()
 EMBEDDINGS_DB = os.getenv("EMBEDDINGS_DB", "icd10_embeddings_v2.db")
 
 
-def get_connection(writeable=False):
-    return duckdb.connect(EMBEDDINGS_DB, read_only=not writeable)
+def get_connection(writeable=False, db_name=None):
+    return duckdb.connect(db_name or EMBEDDINGS_DB, read_only=not writeable)
 
 
 def store_embeddings(graph, force=False):

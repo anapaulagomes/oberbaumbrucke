@@ -8,8 +8,6 @@ A multilingual bridge between ICD-10 versions.
 
 ## Usage
 
-First, install [uv](https://docs.astral.sh/uv/).
-
 Create a graph from the data:
 
 ```bash
@@ -27,6 +25,8 @@ oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --outpu
 
 ## Development
 
+First, install [uv](https://docs.astral.sh/uv/).
+
 ### Install dependencies
 
 ```bash
@@ -41,6 +41,8 @@ If you have any issues with `pygraphviz`, you can try the troubleshooting steps 
 ```bash
 source .venv/bin/activate
 ```
+
+Then, create the db: `oberbaum db create` (you can pass the db name with `--db-name <name>`).
 
 ### Run tests
 
