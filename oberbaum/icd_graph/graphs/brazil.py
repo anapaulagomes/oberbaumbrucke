@@ -126,10 +126,11 @@ class CID10Graph(ICDGraph):
         chapters = pl.read_excel(source=chapters_file)
         for line in chapters.iter_rows(named=True):
             start, end = line["Intervalo de códigos"].strip().split("-")
+            chapter_name = line["Nome do capítulo"].strip()
             self.add_or_update_chapter(
                 str(line["Nº capitulo"]),
-                line["Nome do capítulo"],
-                description=line["Nome do capítulo"],
+                chapter_name,
+                description=chapter_name,
                 start=start,
                 end=end,
             )
@@ -160,7 +161,7 @@ class CID10Graph(ICDGraph):
         for line in codes.iter_rows(named=True):
             code = line["co_categ_subcateg_sp"].strip()
             title = line["no_categoria_subcategoria"].strip()
-            three_char_category = line["co_categoria_pai"]
+            three_char_category = line["co_categoria_pai"].strip()
             try:
                 block = self._block_internal_code[
                     int(line["Nº sequencial do agrupamento"])
