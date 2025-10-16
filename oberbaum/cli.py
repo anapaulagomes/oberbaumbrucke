@@ -161,8 +161,6 @@ def _match_all(**kwargs):
             f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
         )
         for graph in all_graphs():
-            if "bra" in graph.version_name:  # skip BRA by now
-                continue
             model_name = model.name.split("/")[-1]
             output = f"artifacts/{graph.version_name}___{who_graph.version_name}__{model_name}_{threshold}.csv"
 
