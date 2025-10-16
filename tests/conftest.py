@@ -1,3 +1,4 @@
+import polars as pl
 import pytest
 
 from tests.helpers import download_and_unzip
@@ -40,30 +41,75 @@ def real_cid10_bra_2008_file_dir():
 
 
 @pytest.fixture(scope="class")
-def real_cid10_bra_2019_file_dir(real_icd10_who_file_dir):
+def real_cid10_bra_2025_file_dir(real_icd10_who_file_dir):
     """File granted via the Brazilian Access to Information Bill (Freedom of Information Act).
 
-    Protocol: https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=8826703"""
-    files_dir = "data/CID-10-2019"
-    who_url = "https://icdcdn.who.int/icd10/meta/icd102019enMeta.zip"
-    download_and_unzip(who_url, files_dir, "icd102019enMeta.zip")
+    Protocol: https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=9499386"""
+    files_dir = "data/CID-10-2025"
 
-    url = "https://raw.githubusercontent.com/anapaulagomes/datasus-dicionarios/refs/heads/main/cid-10/lai-25072033421202561/PREVISAO_TABELA_CID10.csv"
-    yield download_and_unzip(url, files_dir, "PREVISAO_TABELA_CID10.csv")
+    url = "https://raw.githubusercontent.com/anapaulagomes/datasus-dicionarios/refs/heads/main/cid-10/lai-25072042773202515/SEI_MS%20-%200050159503.zip"
+    yield download_and_unzip(url, files_dir, "SEI_MS - 0050159503.zip")
 
 
 @pytest.fixture
 def cid10_bra_file_dir(icd10_who_file_dir, tmp_path):
-    codes_file = tmp_path / "PREVISAO_TABELA_CID10.csv"
-    codes_file.write_text(
-        "co_categoria_subcategoria,co_agrupamento,co_categoria_pai,no_categoria_subcategoria,st_cruz,st_asterisco,co_categ_subcateg_sp,st_registro_ativo,dt_inclusao,dt_atualizacao\n"
-        "A00,1,A00,Colera,-,-,A00,S,-,-\n"
-        'A00.0,1,A00,"Colera devida a Vibrio cholerae 01, biotipo cholerae",-,-,A000,S,-,-\n'
-        'A00.1,1,A00,"Colera devida a Vibrio cholerae 01, biotipo El Tor",-,-,A001,S,-,-\n'
-        "A00.9,1,A00,Colera nao especificada,-,-,A009,S,-,-\n"
-        "A01,1,A01,Febres tifoide e paratifoide,-,-,A01,S,-,-\n"
-        "A01.0,1,A01,Febre tifoide,-,-,A010,S,-,-'\n"
+    chapters_df = pl.DataFrame(
+        {
+            "Nº capitulo": [1, 2, 3],
+            "Nome do capítulo": [
+                "Algumas doenças infecciosas e parasitárias   ",
+                "Neoplasias (tumores)                         ",
+                "Doenças sangue órgãos hemat e transt imunitár",
+            ],
+            "Intervalo de códigos": ["A00-B99", "C00-D48", "D50-D89"],
+        }
     )
+    chapters_df.write_excel(tmp_path / "Anexo0050230380.xlsx")
+
+    blocks_df = pl.DataFrame(
+        {
+            "Nºordem": [1, 2],
+            "Nome agrupamento": ["Doenças infecciosas intestinais", "Tuberculose"],
+            "Intervalo": ["A00-A09", "A15-A19"],
+        }
+    )
+
+    blocks_df.write_excel(tmp_path / "Anexo 0050230367.xlsx")
+
+    codes_df = pl.DataFrame(
+        {
+            "Código": [1, 2, 3, 4, 5, 6],
+            "co_categoria_subcategoria": [
+                "A00",
+                "A00.0",
+                "A00.1",
+                "A00.9",
+                "A01",
+                "A01.0",
+            ],
+            "co_agrupamento": [1, 1, 1, 1, 1, 1],
+            "co_categoria_pai": ["A00", "A00", "A00", "A00", "A01", "A01"],
+            "no_categoria_subcategoria": [
+                "Colera",
+                "Colera devida a Vibrio cholerae 01, biotipo cholerae",
+                "Colera devida a Vibrio cholerae 01, biotipo El Tor",
+                "Colera nao especificada",
+                "Febres tifoide e paratifoide",
+                "Febre tifoide",
+            ],
+            "st_cruz": ["-", "-", "-", "-", "-", "-"],
+            "st_asterisco": ["-", "-", "-", "-", "-", "-"],
+            "co_categ_subcateg_sp": ["A00", "A000", "A001", "A009", "A01", "A010"],
+            "st_registro_ativo": ["S", "S", "S", "S", "S", "S"],
+            "dt_inclusao": ["-", "-", "-", "-", "-", "-"],
+            "dt_atualizacao": ["-", "-", "-", "-", "-", "-"],
+            "Nº do Capitulo": [1, 1, 1, 1, 1, 1],
+            "Nome do capítulo": ["Algumas doenças infecciosas e parasitárias"] * 6,
+            "Nome do agrupamento": ["Doenças infecciosas intestinais"] * 6,
+            "Nº sequencial do agrupamento": [1, 1, 1, 1, 1, 1],
+        }
+    )
+    codes_df.write_excel(tmp_path / "Anexo0050219792.xlsx")
     return str(tmp_path)
 
 

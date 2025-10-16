@@ -12,14 +12,13 @@ class TestCID10Graph:
         graph = CID10Graph(files_dir=cid10_bra_file_dir)
         chapters = graph.chapters()
         assert isinstance(chapters, list)
-        assert len(chapters) == 5  # using WHO ICD-10 chapters for Brazil 2019 version
+        assert len(chapters) == 3
 
     def test_blocks(self, cid10_bra_file_dir):
         graph = CID10Graph(files_dir=cid10_bra_file_dir)
 
         assert "A00-A09" in graph.blocks()
         assert "A15-A19" in graph.blocks()
-        assert "A20-A28" not in graph.blocks()  # true for version 2008, not 2019
 
         code = graph._graph.nodes["A009"]
         assert code["block"] == "A00-A09"
@@ -58,9 +57,9 @@ class TestCID10Graph:
         ],
     )
     def test_find_chapter_and_block(
-        self, real_cid10_bra_2019_file_dir, code, chapter, block, message
+        self, real_cid10_bra_2025_file_dir, code, chapter, block, message
     ):
-        graph = CID10Graph(files_dir=real_cid10_bra_2019_file_dir)
+        graph = CID10Graph(files_dir=real_cid10_bra_2025_file_dir)
         found_chapter = graph.find_chapter(code)
         found_block = graph.find_block(code)
 
@@ -70,38 +69,34 @@ class TestCID10Graph:
     def test_codes(self, cid10_bra_file_dir):
         graph = CID10Graph(files_dir=cid10_bra_file_dir)
         expected = {
-            "A009",
             "A00",
-            "A04",
-            "A02",
-            "A03",
-            "A00-A09",
-            "A01",
-            "A15-A19",
-            "A010",
-            "A001",
             "A000",
+            "A001",
+            "A009",
+            "A01",
+            "A010",
+            "A00-A09",
+            "A15-A19",
         }
         codes = graph.codes(exclude_3_char=False)
 
         assert codes == expected
 
-        expected = {"A009", "A001", "A010", "A000", "A04", "A02", "A03", "A15-A19"}
+        expected = {"A009", "A001", "A010", "A000", "A15-A19"}
         codes = graph.codes(exclude_3_char=True)
 
         assert codes == expected
 
     @pytest.mark.integration
-    def test_check_real_graph(self, real_cid10_bra_2019_file_dir):
-        graph = CID10Graph(files_dir=real_cid10_bra_2019_file_dir)
+    def test_check_real_graph(self, real_cid10_bra_2025_file_dir, caplog):
+        graph = CID10Graph(files_dir=real_cid10_bra_2025_file_dir)
 
         assert len(graph.chapters()) == 22
-        assert (
-            len(graph.blocks()) == 263
-        )  # using WHO ICD-10 blocks for Brazil 2019 version
-        assert len(graph.three_char_codes()) == 1968
-        assert len(graph.four_char_codes()) == 11651
-        assert len(graph.categories()) == 13619  # both three and four char codes
+        assert len(graph.blocks()) == 251
+        assert "Used 43 of the last block found" in caplog.text
+        assert len(graph.three_char_codes()) == 2065
+        assert len(graph.four_char_codes()) == 12381
+        assert len(graph.categories()) == 14446  # both three and four char codes
 
         assert graph.predecessors("A278") == ["A27", "A20-A28", "1"]
         assert graph.predecessors("B520") == ["B52", "B50-B64", "1"]
@@ -121,5 +116,5 @@ class TestCID10Graph:
         assert graph.predecessors("O031") == ["O03", "O00-O08", "15"]
         assert graph.predecessors("P369") == ["P36", "P35-P39", "16"]
         assert graph.predecessors("Q031") == ["Q03", "Q00-Q07", "17"]
-        assert graph.predecessors("R619") == ["R61", "R50-R69", "18"]
+        assert graph.predecessors("R619") == ["R61", "R00-R99", "18"]
         assert graph.predecessors("Y655") == ["Y65", "Y60-Y69", "20"]

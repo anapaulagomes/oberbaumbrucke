@@ -1,11 +1,11 @@
 import csv
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import polars as pl
 
 from oberbaum.icd_graph.graphs.base import ICDGraph
-from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
 
 @dataclass
@@ -106,41 +106,72 @@ class CID10Graph2008(ICDGraph):
 
 
 @dataclass
-class CID10Graph(WHOICDGraph):
-    """Class for representing the Brazilian ICD-10 from 2019 version as a graph.
+class CID10Graph(ICDGraph):
+    """Class for representing the Brazilian ICD-10 from 2025 version as a graph.
 
     Files for download:
     http://plataforma.saude.gov.br/cc-br-fic/
-    https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=9182585
-
-    As confirmed by the Ministry of Health in official communication,
-    the structure of the Brazilian ICD-10 is based on the WHO version 2019.
-    For this reason, the blocks used are the same as those of WHO.
+    https://buscalai.cgu.gov.br/PedidosLai/DetalhePedido?id=9499386
     """
 
-    year: int = 2019
+    year: int = 2025
     version_name: str = "cid-10-bra"
-    _codes_filename: str = "PREVISAO_TABELA_CID10.csv"
+    _chapters_filename: str = "Anexo0050230380.xlsx"
+    _block_filename: str = "Anexo 0050230367.xlsx"
+    _codes_filename: str = "Anexo0050219792.xlsx"
+    _block_internal_code: dict = None
+
+    def add_chapters(self):
+        chapters_file = Path(self.files_dir) / self._chapters_filename
+        chapters = pl.read_excel(source=chapters_file)
+        for line in chapters.iter_rows(named=True):
+            start, end = line["Intervalo de códigos"].strip().split("-")
+            self.add_or_update_chapter(
+                str(line["Nº capitulo"]),
+                line["Nome do capítulo"],
+                description=line["Nome do capítulo"],
+                start=start,
+                end=end,
+            )
+
+    def add_blocks(self):
+        blocks_file = Path(self.files_dir) / self._block_filename
+        blocks = pl.read_excel(source=blocks_file)
+        self._block_internal_code = {}
+
+        for line in blocks.iter_rows(named=True):
+            block_label = line["Intervalo"].strip()
+            start, end = block_label.split("-")
+            assert self.find_chapter(start) == self.find_chapter(end)
+            chapter_code = self.find_chapter(start)
+            block_name = self.add_or_update_block(
+                start, end, chapter_code, line["Nome agrupamento"].strip()
+            )
+            block_id = int(line["Nºordem"])
+            self._block_internal_code[block_id] = block_label
+            self.connect_chapter_block(chapter_code, block_name)
 
     def add_codes(self):
         codes_file = Path(self.files_dir) / self._codes_filename
-        codes = pl.read_csv(source=codes_file)
+        codes = pl.read_excel(source=codes_file)
+        last_block_found = None
+        number_of_last_block_found_used = 0
 
-        # co_categoria_subcategoria,co_agrupamento,co_categoria_pai,no_categoria_subcategoria,
-        # st_cruz,st_asterisco,co_categ_subcateg_sp,st_registro_ativo,dt_inclusao,dt_atualizacao
         for line in codes.iter_rows(named=True):
-            if "Total de registros" in line["co_categoria_subcategoria"]:
-                # end of the file
-                break
             code = line["co_categ_subcateg_sp"].strip()
             title = line["no_categoria_subcategoria"].strip()
             three_char_category = line["co_categoria_pai"]
-            block = self.find_block(three_char_category)
-            if not block:
-                print(f"Block not found for code {code}")
-                continue
-
-            chapter = line["co_agrupamento"]
+            try:
+                block = self._block_internal_code[
+                    int(line["Nº sequencial do agrupamento"])
+                ]
+                last_block_found = block
+            except TypeError:
+                # cover cases where "Nº sequencial do agrupamento" is None
+                # for this reason, we use the last block found as a fallback
+                block = last_block_found
+                number_of_last_block_found_used += 1
+            chapter = line["Nº do Capitulo"]
             self.add_or_update_code(
                 code,
                 chapter,
@@ -153,3 +184,7 @@ class CID10Graph(WHOICDGraph):
                 self.connect_block_three_char_category(block, code)
             else:
                 self.connect_codes_recursively(code)
+
+        logging.warning(
+            f"Used {number_of_last_block_found_used} of the last block found"
+        )
