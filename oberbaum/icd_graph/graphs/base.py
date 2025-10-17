@@ -337,7 +337,7 @@ class ICDGraph(ABC):
             }
         return all_codes
 
-    def levels(self):
+    def count_per_levels(self):
         levels = []
         for node, data in self._graph.nodes(data=True):
             if data.get("char_len"):
@@ -349,8 +349,10 @@ class ICDGraph(ABC):
         counter = Counter(levels)
         return dict(sorted(counter.items()))
 
-    def codes_per_level(self):
-        # FIXME misleading, since blocks and sub-blocks may vary and create different levels
+    def graph_levels(self):
+        """Display codes by levels in the graph.
+
+        Use count_per_levels() to see the number of codes in each level by the ICD-10 terminology."""
         if self._graph_ready and not self._levels:
             layers = list(nx.bfs_layers(self._graph, self._root_node))
             self._levels = {
@@ -383,11 +385,11 @@ class ICDGraph(ABC):
 
     def three_char_codes(self):
         # FIXME misleading, since blocks and sub-blocks may vary and create different levels
-        return self.codes_per_level()[3]
+        return self.graph_levels()[3]
 
     def four_char_codes(self):
         # FIXME misleading, since blocks and sub-blocks may vary and create different levels
-        return self.codes_per_level()[4]
+        return self.graph_levels()[4]
 
     def export(self):
         gml_file = f"{self.version_name}.gml"

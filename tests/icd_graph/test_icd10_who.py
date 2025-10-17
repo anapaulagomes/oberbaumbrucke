@@ -54,7 +54,7 @@ class TestWHOICD10Graph:
 
     def test_levels(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
-        levels = graph.levels()
+        levels = graph.count_per_levels()
         expected_levels = {1: 5, 2: 2, 3: 1, 4: 3}
 
         assert levels == expected_levels
@@ -69,7 +69,7 @@ class TestWHOICD10Graph:
 
     def test_codes_per_level(self, icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=icd10_who_file_dir)
-        codes_per_level = graph.codes_per_level()
+        codes_per_level = graph.graph_levels()
 
         expected = {
             1: ["1", "2", "3", "4", "5"],
@@ -173,7 +173,7 @@ class TestWHOICD10Graph:
     @pytest.mark.integration
     def test_levels_with_real_file(self, real_icd10_who_file_dir):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
-        levels = graph.levels()
+        levels = graph.count_per_levels()
         expected_levels = {1: 22, 2: 263, 3: 2050, 4: 10167, 5: 4}
 
         assert levels == expected_levels

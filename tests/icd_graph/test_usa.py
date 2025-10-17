@@ -31,7 +31,7 @@ class TestICD10CMGraph:
 
     def test_levels(self, real_icd10_cm_file_dir):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        levels = graph.levels()
+        levels = graph.count_per_levels()
 
         expected_levels = {
             1: 22,

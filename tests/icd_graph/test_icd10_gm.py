@@ -68,7 +68,7 @@ class TestICD10GMGraph:
 
     def test_levels(self, icd10_gm_file_dir):
         graph = ICD10GMGraph(files_dir=icd10_gm_file_dir)
-        levels = graph.levels()
+        levels = graph.count_per_levels()
         expected_levels = {1: 3, 2: 3, 3: 3, 4: 10}
 
         assert levels == expected_levels
@@ -83,7 +83,7 @@ class TestICD10GMGraph:
 
     def test_codes_per_level(self, icd10_gm_file_dir):
         graph = ICD10GMGraph(files_dir=icd10_gm_file_dir)
-        codes_per_level = graph.codes_per_level()
+        codes_per_level = graph.graph_levels()
 
         expected = {
             1: ["20", "21", "22"],
@@ -209,7 +209,7 @@ class TestICD10GMGraph:
     @pytest.mark.integration
     def test_levels_with_real_file(self, real_icd10_gm_file_dir):
         graph = ICD10GMGraph(files_dir=real_icd10_gm_file_dir)
-        levels = graph.levels()
+        levels = graph.count_per_levels()
         expected_levels = {1: 22, 2: 243, 3: 1754, 4: 9306, 5: 5757}
 
         assert levels == expected_levels
