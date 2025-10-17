@@ -6,7 +6,15 @@ A multilingual bridge between ICD-10 versions.
 
 [^1]: https://en.wikipedia.org/wiki/Oberbaum_Bridge
 
+This project consists of three main components:
+
+1. ICD-10 modelled as a graph (currently available for WHO, Brazil, Germany and USA)
+2. Comparison of semantic similarity between ICD-10 codes using different multilingual embedding models
+3. Comparison of the ICD-10 versions through its graph structure using Maximum Common Embedded Subtree (MCES)
+
 ## Usage
+
+### Graphs
 
 Create a graph from the data:
 
@@ -22,6 +30,16 @@ Finding the CM code corresponding to the GM code:
 ```bash
 oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --output "icd-10-who___cid-10-bra.csv"
 ```
+
+### Embeddings
+
+First, create the db: `oberbaum db create` (you can pass the db name with `--db-name <name>`). Then, run:
+
+```bash
+oberbaum graph embeddings
+```
+
+It will encode all descriptions from all codes for [all models](oberbaum/icd_graph/models.py) and store them in a table.
 
 ## Development
 
