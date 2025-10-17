@@ -169,6 +169,16 @@ class ICDGraph(ABC):
         title=None,
         **kwargs,
     ):
+        # naming following WHO guidelines  # TODO add tests
+        match len(code):
+            case 3:
+                category = "category"
+            case 4:
+                category = "subcategory"
+            case code_len if code_len >= 5:
+                category = "code"
+            case _:
+                category = None
         data = {
             "chapter": chapter,
             "block": block,
@@ -177,8 +187,8 @@ class ICDGraph(ABC):
             "name": code,
             "title": title,
             "type": "code",
-            "category": len(code),  # FIXME rename to char_len
-            # TODO create new attribute called category: category, subcategory, code
+            "category": category,
+            "char_len": len(code),
         }
 
         updated_data = {key: value for key, value in data.items() if value is not None}
@@ -330,11 +340,11 @@ class ICDGraph(ABC):
     def levels(self):
         levels = []
         for node, data in self._graph.nodes(data=True):
-            if data.get("category"):
-                levels.append(data["category"])
-            elif data.get("type") == "block":  # FIXME rename to type
+            if data.get("char_len"):
+                levels.append(data["char_len"])
+            elif data.get("type") == "block":
                 levels.append(2)
-            elif data.get("type") == "chapter":  # FIXME rename to type
+            elif data.get("type") == "chapter":
                 levels.append(1)
         counter = Counter(levels)
         return dict(sorted(counter.items()))
