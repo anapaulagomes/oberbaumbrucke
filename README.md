@@ -33,7 +33,8 @@ oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --outpu
 
 ### Embeddings
 
-First, create the db: `oberbaum db create` (you can pass the db name with `--db-name <name>`). Then, run:
+To run this step you will need all graphs from the previous section.
+After, create the db: `oberbaum db create` (you can pass the db name with `--db-name <name>`). Then, run:
 
 ```bash
 oberbaum graph embeddings
