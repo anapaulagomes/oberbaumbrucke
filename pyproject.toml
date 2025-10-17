@@ -14,7 +14,7 @@ dependencies = [
     "grandiso>=2.2.0",
     "kaleido==0.2.1",
     "lxml>=5.4.0",
-    "marimo==0.14.9",
+    "marimo==0.16.4",
     "matplotlib-venn>=1.1.2",
     "networkx>=3.4.2",
     "networkx-algo-common-subtree>=0.2.2",
