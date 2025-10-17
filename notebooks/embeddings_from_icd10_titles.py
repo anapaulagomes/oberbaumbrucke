@@ -281,12 +281,6 @@ def _(COLOR_BY_VERSION, px):
 
 @app.cell
 def _():
-    # TODO add note about abreviations in the Brazilian coding V25.4, V26.4, V27.4
-    return
-
-
-@app.cell
-def _():
     # embeddings_scatter_plot(reduce_embeddings(bra_codes_with_embeddings))
     return
 

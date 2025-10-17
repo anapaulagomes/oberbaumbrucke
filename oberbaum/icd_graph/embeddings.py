@@ -1,3 +1,4 @@
+import logging
 import os
 
 import duckdb
@@ -182,10 +183,12 @@ def get_embedding_from_descriptions(
 
         progress.add_task(description="Preparing nodes...", total=None)
         for node, data in graph.all_nodes(data=True):
-            descriptions.append(
-                f"{data.get('title', '')}. {data.get('description', '')}"
-            )
-            codes.append(data.get("name", node))
+            node_title = data.get("title", "")
+            node_name = data.get("name")
+            if not node_title or not node_name:
+                logging.warning(f"Empty title/name: {node} {data}")
+            descriptions.append(node_title)
+            codes.append(node_name or node)  # like A01
 
         progress.add_task(description="Getting embeddings...", total=None)
         tensor_embeddings = encode_icd_descriptions(descriptions, model)

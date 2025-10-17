@@ -130,7 +130,6 @@ class CID10Graph(ICDGraph):
             self.add_or_update_chapter(
                 str(line["Nº capitulo"]),
                 chapter_name,
-                description=chapter_name,
                 start=start,
                 end=end,
             )

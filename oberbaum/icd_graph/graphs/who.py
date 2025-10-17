@@ -25,9 +25,7 @@ class WHOICDGraph(ICDGraph):
         chapters_file = Path(self.files_dir) / self._chapters_filename
         for line in chapters_file.read_text().splitlines():
             chapter_code, chapter_name = line.split(";", 1)
-            self.add_or_update_chapter(
-                chapter_code, chapter_name, description=chapter_name
-            )
+            self.add_or_update_chapter(chapter_code, chapter_name)
 
     def add_blocks(self):
         blocks_file = Path(self.files_dir) / self._block_filename
