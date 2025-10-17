@@ -18,7 +18,6 @@ jobs:
     - name: Configure pygraphviz
       run: sudo apt-get install graphviz graphviz-dev
     - name: Lint with pre-commit
-      run: |
-        uv run pre-commit run --all-files
-    - name: Test with python ${{ matrix.python-version }}
+      run: uv run pre-commit run --all-files
+    - name: Test
       run: uv run --frozen pytest
