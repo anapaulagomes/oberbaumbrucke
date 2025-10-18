@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -113,7 +114,11 @@ def compare_graphs(
                     }
                 )
 
-    filename = f"overlap-results-{graph.version_name}-{another_graph.version_name}-{target_chapter or 'all-chapters'}-{datetime.now().strftime('%d%m%Y%H%M%S')}.json"
+    results_path = Path("results")
+    results_path.mkdir(exist_ok=True)
+    results_dir = os.getenv("RESULTS_DIR") or f"{results_path}"
+    now = datetime.now().strftime("%d%m%Y%H%M%S")
+    filename = f"{results_dir}/overlap-results-{graph.version_name}-{another_graph.version_name}-{target_chapter or 'all-chapters'}-{now}.json"
     print(f"Exporting results to: {filename}", flush=True)
     Path(filename).write_text(json.dumps(results))
 
