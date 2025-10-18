@@ -2,7 +2,7 @@ import pytest
 
 from oberbaum.cli import get_graph
 from oberbaum.icd_graph.graphs.base import ICDGraph
-from oberbaum.icd_graph.graphs.brazil import CID10Graph, CID10Graph2008
+from oberbaum.icd_graph.graphs.brazil import CID10Graph
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
 
@@ -26,6 +26,6 @@ class TestGetGraph:
 
     def test_graph_class_from_graph_file(self):
         graph = get_graph(
-            "cid-10-bra-2008", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
+            "cid-10-bra", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
         )
-        assert isinstance(graph, CID10Graph2008)
+        assert isinstance(graph, CID10Graph)
