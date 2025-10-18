@@ -7,7 +7,7 @@ fi
 
 for version in "$@"; do
     for chapter in {1..22}; do
-      for threshold in 0.75 0.8 0.85 0.9 0.95; do
+      for threshold in 0.7 0.75 0.8 0.85 0.9 0.95; do
           echo "$version $chapter $threshold";
       done
     done
