@@ -2,10 +2,10 @@
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=example@example
 #SBATCH --job-name=graphs_overlap_mcosi
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
-#SBATCH --time=06:00:00
-#SBATCH --array=0-65
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=64G
+#SBATCH --time=48:00:00
+#SBATCH --array=0-527
 #SBATCH --output=log_%A_%a.out
 #SBATCH --error=log_%A_%a.err
 source activate py311
