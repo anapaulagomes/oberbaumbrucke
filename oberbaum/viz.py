@@ -402,7 +402,7 @@ def create_tree_visualization(
         fname = filename.lower()
         if "icd-10-cm" in fname:
             return "#EF553B"  # red
-        elif "cid-10-bra-2008" in fname:
+        elif "cid-10-bra" in fname:
             return "#00FF00"  # green
         elif "icd-10-gm" in fname:
             return "#FFD700"  # gold

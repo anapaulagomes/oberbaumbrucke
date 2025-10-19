@@ -39,7 +39,7 @@ def _():
         OMOP_NAMING_MAPPING.get("icd-10-who"): "deepskyblue",
         OMOP_NAMING_MAPPING.get("icd-10-cm"): "red",
         OMOP_NAMING_MAPPING.get("icd-10-gm"): "gold",
-        # "cid-10-bra-2008": "green",
+        # "cid-10-bra": "green",
     }
 
     return COLOR_BY_VERSION, OMOP_NAMING_MAPPING

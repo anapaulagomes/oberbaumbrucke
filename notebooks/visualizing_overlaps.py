@@ -39,7 +39,7 @@ def _():
 
 @app.cell
 def _(Path, assert_series_equal, pl, re):
-    # dir: mcosi / overlap-results-cid-10-bra-2008-icd-10-who-1-10072025165804.json
+    # dir: mcosi / overlap-results-cid-10-bra-icd-10-who-1-10072025165804.json
     all_dfs = []
     for a_file in Path("notebooks/mcosi/").glob("*.json"):
         versions_and_chapter = a_file.name.replace("overlap-results-", "").replace(".json", "")
@@ -69,7 +69,7 @@ def _(get_graph):
         "icd-10-who",
         "icd-10-gm",
         "icd-10-cm",
-        "cid-10-bra-2008",
+        "cid-10-bra",
     ]
     graphs = {}
     for graph in graphs_name:
@@ -82,7 +82,7 @@ def _(graphs):
     who_graph = graphs["icd-10-who"]
     gm_graph = graphs["icd-10-gm"]
     us_graph = graphs["icd-10-cm"]
-    bra_graph = graphs["cid-10-bra-2008"]
+    bra_graph = graphs["cid-10-bra"]
     who_graph
     return bra_graph, gm_graph, us_graph, who_graph
 
@@ -257,7 +257,7 @@ def _(mo):
 
 @app.cell
 def _():
-    color_mapping = {'overlap':'grey', 'icd-10-gm':'gold', 'icd-10-who':'lightblue', 'cid-10-bra-2008': 'green', 'icd-10-cm':'red'}
+    color_mapping = {'overlap':'grey', 'icd-10-gm':'gold', 'icd-10-who':'lightblue', 'cid-10-bra': 'green', 'icd-10-cm':'red'}
     return (color_mapping,)
 
 
@@ -469,7 +469,7 @@ def _(create_overlap_graph, gm_graph, who_graph):
 
 @app.cell
 def _(create_overlap_graph, gm_graph, who_graph):
-    create_overlap_graph("cid-10-bra-2008", gm_graph, who_graph)
+    create_overlap_graph("cid-10-bra", gm_graph, who_graph)
     return
 
 

@@ -46,7 +46,7 @@ def _():
     COLOR_BY_VERSION = {
         "icd-10-who": "deepskyblue",
         "cid-10-bra": "green",
-        "cid-10-bra-2008": "green",
+        "cid-10-bra": "green",
         "icd-10-gm": "gold",
         "icd-10-cm": "red",
     }
@@ -160,7 +160,7 @@ def _(get_graph):
     G = get_graph("icd-10-gm", gml_filepath="icd-10-gm.gml")
     U = get_graph("icd-10-cm", gml_filepath="icd-10-cm.gml")
     B = get_graph(
-        "cid-10-bra-2008", gml_filepath="cid-10-bra-2008.gml"
+        "cid-10-bra", gml_filepath="cid-10-bra.gml"
     )
     return B, G, U, W
 

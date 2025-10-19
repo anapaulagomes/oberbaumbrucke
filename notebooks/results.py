@@ -48,7 +48,7 @@ def _(df):
 
 @app.cell
 def _():
-    versions = ["icd-10-who", "icd-10-gm", "icd-10-cm", "cid-10-bra-2008"]
+    versions = ["icd-10-who", "icd-10-gm", "icd-10-cm", "cid-10-bra"]
     return (versions,)
 
 
@@ -150,7 +150,7 @@ def _(df, px, versions):
 def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
     _fig = make_subplots(
         rows=1, cols=4,
-        subplot_titles=["icd-10-who", "icd-10-gm", "icd-10-cm", "cid-10-bra-2008"],
+        subplot_titles=["icd-10-who", "icd-10-gm", "icd-10-cm", "cid-10-bra"],
         vertical_spacing=0.08,
         shared_xaxes=True
     )
@@ -174,7 +174,7 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
     plot_version("icd-10-who", column=1)
     plot_version("icd-10-gm", column=2)
     plot_version("icd-10-cm", column=3)
-    plot_version("cid-10-bra-2008", column=4)
+    plot_version("cid-10-bra", column=4)
 
     _fig.update_layout(
         height=800,

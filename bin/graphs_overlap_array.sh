@@ -15,5 +15,5 @@ set -- $LINE
 GRAPH=$1
 CHAPTER=$2
 THRESHOLD=$3
-# example: cid-10-bra-2008 icd-10-who 22 0.85
+# example: cid-10-bra icd-10-who 22 0.85
 uv run oberbaum graph experiments graphs_overlap --method mcosi --chapter $CHAPTER --graph-version-name $GRAPH --threshold $THRESHOLD

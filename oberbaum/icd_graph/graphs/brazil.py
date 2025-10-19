@@ -19,7 +19,7 @@ class CID10Graph2008(ICDGraph):
     """
 
     year: int = 2008
-    version_name: str = "cid-10-bra-2008"
+    version_name: str = "cid-10-bra"
 
     def add_chapters(self):
         """The instructions mention 21 chapters but the file has 22."""
