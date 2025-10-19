@@ -8,20 +8,22 @@ app = marimo.App()
 def _():
     import plotly.express as px
     import polars as pl
+    from oberbaum.config import get_results_dir
 
-    return pl, px
+    return pl, px, get_results_dir
 
 
 @app.cell
-def load_data(pl):
+def load_data(pl, get_results_dir):
+    results_dir = get_results_dir("artifacts")
     df = pl.concat(
         [
-            pl.read_csv("artifacts/icd-10-who___icd-10-cm__bge-m3_0.75.csv"),
+            pl.read_csv(f"{results_dir}/icd-10-who___icd-10-cm__bge-m3_0.75.csv"),
             pl.read_csv(
-                "artifacts/icd-10-who___icd-10-cm__paraphrase-multilingual-MiniLM-L12-v2_0.75.csv"
+                f"{results_dir}/icd-10-who___icd-10-cm__paraphrase-multilingual-MiniLM-L12-v2_0.75.csv"
             ),
             pl.read_csv(
-                "artifacts/icd-10-who___icd-10-cm__distiluse-base-multilingual-cased-v2_0.75.csv"
+                f"{results_dir}/icd-10-who___icd-10-cm__distiluse-base-multilingual-cased-v2_0.75.csv"
             ),
         ]
     )

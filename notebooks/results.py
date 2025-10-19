@@ -13,7 +13,8 @@ def _():
     import plotly.graph_objects as go
     import polars as pl
     from plotly.subplots import make_subplots
-    return go, make_subplots, mo, pl, px
+    from oberbaum.config import get_results_dir
+    return go, make_subplots, mo, pl, px, get_results_dir
 
 
 @app.cell
@@ -28,8 +29,9 @@ def _():
 
 
 @app.cell
-def _(pl):
-    df = pl.read_csv("artifacts/results/*.csv")
+def _(pl, get_results_dir):
+    results_dir = get_results_dir("artifacts")
+    df = pl.read_csv(f"{results_dir}/results/*.csv")
     df
     return (df,)
 
