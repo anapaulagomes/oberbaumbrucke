@@ -5,6 +5,7 @@ import typer
 from rich.console import Console
 from rich.tree import Tree
 
+from oberbaum.config import get_results_dir
 from oberbaum.icd_graph.embeddings import (
     create_embeddings_table_if_not_exists,
     create_matching_table_if_not_exists,
@@ -89,7 +90,8 @@ def match(
         version = version.lower()
         other_version = other_version.lower()
         model_name = model.split("/")[-1]
-        output = f"artifacts/{version}___{other_version}__{model_name}_{threshold}.csv"
+        results_dir = get_results_dir(subfolder="artifacts")
+        output = f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
 
     console.print("[bold green]Loading graphs...[/bold green]")
     graph = get_graph(version, gml_filepath=version_gml_filepath)
@@ -154,13 +156,14 @@ def _match_all(**kwargs):
     threshold = kwargs.get("threshold", 0.7)
     console.print("Fetching all models...")
     who_graph = get_graph("icd-10-who", gml_filepath="icd-10-who.gml")
+    results_dir = get_results_dir(subfolder="artifacts")
     for model in MODELS:
         console.print(
             f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
         )
         for graph in all_graphs():
             model_name = model.name.split("/")[-1]
-            output = f"artifacts/{graph.version_name}___{who_graph.version_name}__{model_name}_{threshold}.csv"
+            output = f"{results_dir}/{graph.version_name}___{who_graph.version_name}__{model_name}_{threshold}.csv"
 
             matches_summary, matches = match_codes(
                 graph, who_graph, model.name, threshold=threshold

@@ -11,6 +11,7 @@ from networkx.algorithms.similarity import graph_edit_distance
 
 from oberbaum.icd_graph.embeddings import fetch_all_matches
 from oberbaum.icd_graph.graphs.base import ICDGraph
+from oberbaum.config import get_results_dir
 
 
 @dataclass
@@ -114,9 +115,7 @@ def compare_graphs(
                     }
                 )
 
-    results_path = Path("results")
-    results_path.mkdir(exist_ok=True)
-    results_dir = os.getenv("RESULTS_DIR") or f"{results_path}"
+    results_dir = get_results_dir(subfolder="overlap")
     now = datetime.now().strftime("%d%m%Y%H%M%S")
     filename = f"{results_dir}/overlap-results-{graph.version_name}-{another_graph.version_name}-{target_chapter or 'all-chapters'}-{now}.json"
     print(f"Exporting results to: {filename}", flush=True)

@@ -8,6 +8,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
 from oberbaum.icd_graph.models import MODELS
+from oberbaum.config import get_results_dir
+
 
 load_dotenv()
 
