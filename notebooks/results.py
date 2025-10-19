@@ -22,7 +22,7 @@ def _():
         "icd-10-who": "deepskyblue",
         "icd-10-cm": "red",
         "icd-10-gm": "gold",
-        "cid-10-bra-2008": "green",
+        "cid-10-bra": "green",
     }
     return (COLOR_BY_VERSION,)
 
