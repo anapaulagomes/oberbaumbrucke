@@ -7,7 +7,7 @@ load_dotenv()
 
 
 def get_results_dir(subfolder=None) -> str:
-    results_dir = os.getenv("RESULTS_DIR", "results")
+    results_dir = os.getenv("RESULTS_DIR") or "results"
     if subfolder:
         results_dir = Path(f"{results_dir}/{subfolder}")
         results_dir.mkdir(exist_ok=True)

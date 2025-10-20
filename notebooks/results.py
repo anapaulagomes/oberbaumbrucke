@@ -1,20 +1,29 @@
 import marimo
 
-__generated_with = "0.14.9"
+__generated_with = "0.16.4"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
-    from itertools import cycle
-
     import marimo as mo
     import plotly.express as px
     import plotly.graph_objects as go
     import polars as pl
     from plotly.subplots import make_subplots
+
     from oberbaum.config import get_results_dir
-    return go, make_subplots, mo, pl, px, get_results_dir
+    return get_results_dir, go, make_subplots, mo, pl, px
+
+
+@app.cell
+def _(get_results_dir):
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    results_dir = get_results_dir("artifacts")
+    results_dir
+    return (results_dir,)
 
 
 @app.cell
@@ -29,10 +38,15 @@ def _():
 
 
 @app.cell
-def _(pl, get_results_dir):
-    results_dir = get_results_dir("artifacts")
-    df = pl.read_csv(f"{results_dir}/results/*.csv")
-    df
+def _(pl, results_dir):
+    df_all_thresholds = pl.read_csv(f"{results_dir}/*.csv")
+    df_all_thresholds
+    return (df_all_thresholds,)
+
+
+@app.cell
+def _(df_all_thresholds, pl):
+    df = df_all_thresholds.filter(pl.col("threshold").eq(0.95))
     return (df,)
 
 
@@ -244,9 +258,9 @@ def _(df, pl, px):
         width=1000,
         coloraxis_colorbar=dict(title="Count"),
     )
-    _fig.write_image("match_types.pdf")
-    _fig.write_image("match_types.png")
-    _fig.write_image("match_types.svg")
+    # _fig.write_image("match_types.pdf")
+    # _fig.write_image("match_types.png")
+    # _fig.write_image("match_types.svg")
     _fig
     return
 
