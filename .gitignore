@@ -196,3 +196,5 @@ mlruns/
 
 # duckdb
 *.db
+
+**/logs
