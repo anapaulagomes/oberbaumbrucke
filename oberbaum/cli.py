@@ -12,6 +12,7 @@ from oberbaum.icd_graph.embeddings import (
     get_connection,
     store_embeddings,
 )
+from oberbaum.icd_graph.experiments import from_logs_to_df
 from oberbaum.icd_graph.graph_overlap import compare_graphs
 from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph
@@ -91,7 +92,9 @@ def match(
         other_version = other_version.lower()
         model_name = model.split("/")[-1]
         results_dir = get_results_dir(subfolder="artifacts")
-        output = f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
+        output = (
+            f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
+        )
 
     console.print("[bold green]Loading graphs...[/bold green]")
     graph = get_graph(version, gml_filepath=version_gml_filepath)
@@ -224,6 +227,21 @@ def configure_db(db_name: str = None):
     create_matching_table_if_not_exists(con)
     create_embeddings_table_if_not_exists(con)
     console.print(f"\n[bold green]DB {db_name} successfully created.[/bold green]")
+
+
+@graph_app.command("parse-logs")
+def parse_logs(
+    logs_dir: str,
+    output_file: str = None,
+):
+    """Parse logs and save to a CSV file."""
+    if not output_file:
+        results_dir = get_results_dir()
+        output_file = f"{results_dir}/results.csv"
+
+    df = from_logs_to_df(logs_dir)
+    df.write_csv(output_file)
+    console.print(f"[bold green]Parsed logs and saved to {output_file}[/bold green]")
 
 
 if __name__ == "__main__":
