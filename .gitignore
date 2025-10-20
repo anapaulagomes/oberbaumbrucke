@@ -175,6 +175,7 @@ cython_debug/
 
 # Data
 data/
+**/artifacts/
 artifacts/
 *.gml
 !tests/fixtures/*.gml
