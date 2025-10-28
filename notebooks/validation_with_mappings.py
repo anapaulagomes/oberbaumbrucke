@@ -1,12 +1,11 @@
 import marimo
 
-__generated_with = "0.14.9"
+__generated_with = "0.16.4"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
-    import duckdb
     import marimo as mo
     import plotly.express as px
     import polars as pl
@@ -39,9 +38,8 @@ def _():
         OMOP_NAMING_MAPPING.get("icd-10-who"): "deepskyblue",
         OMOP_NAMING_MAPPING.get("icd-10-cm"): "red",
         OMOP_NAMING_MAPPING.get("icd-10-gm"): "gold",
-        # "cid-10-bra": "green",
+        "cid-10-bra": "green",
     }
-
     return COLOR_BY_VERSION, OMOP_NAMING_MAPPING
 
 
@@ -59,18 +57,20 @@ def _(pl):
 @app.cell
 def _(COLOR_BY_VERSION, df_omop, pl, px):
     _grouped_df_descriptions = df_omop.select(pl.col("vocabulary_id"), pl.col("concept_code").str.len_chars().alias("code_length"))
-    _fig = px.box(_grouped_df_descriptions, y="code_length", x="vocabulary_id", color="vocabulary_id", color_discrete_map=COLOR_BY_VERSION)
+    _fig = px.box(
+        _grouped_df_descriptions,
+        y="code_length",
+        x="vocabulary_id",
+        color="vocabulary_id",
+        color_discrete_map=COLOR_BY_VERSION,
+        title="Code lenght by versions found in OMOP vocabularies"
+    )
     _fig
     return
 
 
 @app.cell
 def _(df_omop, pl):
-    # df_omop.filter(pl.col("concept_code_2") == 79974007)
-    # df_omop.group_by("concept_code_2").agg(pl.col("vocabulary_id"), pl.col("concept_code"))
-    # df_omop.filter(pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING.get("icd-10-who")), pl.col("concept_code").eq("J10"))
-    # df_omop.filter(pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING.get("icd-10-cm")), pl.col("concept_code").eq("J10"))
-
     df_omop.filter(pl.col("concept_code").str.len_chars() == 5).group_by("vocabulary_id", "concept_code").agg(pl.col("vocabulary_id").len().alias("count")).filter(pl.col("count") > 2)
     return
 
@@ -106,10 +106,24 @@ def _(OMOP_NAMING_MAPPING, df_omop, pl):
         if show_results_table:
             print(result)
         return result.select(pl.col("vocabulary_id").n_unique()).item() == 2
-
-
-    was_two_vocab_found("icd-10-gm", "Z98890", show_results_table=True)
     return (was_two_vocab_found,)
+
+
+@app.cell
+def _(OMOP_NAMING_MAPPING, mapping_df, pl):
+    def found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False):
+        result = mapping_df.filter(pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING.get(vocabulary)), pl.col("concept_code").eq(icd_code))
+        if show_results_table:
+            print(result)
+        return len(result) > 0
+
+    return (found_in_mapping_table,)
+
+
+@app.cell
+def _(was_two_vocab_found):
+    was_two_vocab_found("icd-10-gm", "Z98890", show_results_table=True)
+    return
 
 
 @app.cell
@@ -137,27 +151,8 @@ def _(df_omop, pl):
 
 
 @app.cell
-def _(OMOP_NAMING_MAPPING, mapping_df, pl):
-    def found_in_mapping_table(vocabulary, icd_code, vocabulary_2="icd-10-who", show_results_table=False):
-        result = mapping_df.filter(pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING.get(vocabulary)), pl.col("concept_code").eq(icd_code))
-        if show_results_table:
-            print(result)
-        return len(result) > 0
-
-    # found_in_mapping_table("icd-10-gm", "A281")
-    found_in_mapping_table("icd-10-gm", "Z98890", show_results_table=True)
-    return (found_in_mapping_table,)
-
-
-@app.cell
 def _(mapping_df, pl):
     mapping_df.filter(pl.col("concept_code_2").eq(79974007))
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""## Run validation""")
     return
 
 
@@ -183,17 +178,23 @@ def _(is_a_match):
         ("A00-A09", False, False),  # block
     ]
 
-    print("Validation tests fro icd-10-gm...")
+    print("Validation tests from icd-10-gm...")
     for icd_code, expected_gm, _ in examples_gm_cm:
         result = is_a_match("icd-10-gm", icd_code, strategy="table")
         assert result is expected_gm, f"Expected {expected_gm} for {icd_code}, but got {result}"
     print("OK")
 
-    print("Validation tests fro icd-10-cm...")
+    print("Validation tests from icd-10-cm...")
     for icd_code, _, expected_cm in examples_gm_cm:
         result = is_a_match("icd-10-cm", icd_code, strategy="table")
         assert result is expected_cm, f"Expected {expected_cm} for {icd_code}, but got {result}"
     print("OK")
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Check mapping for code and description""")
     return
 
 
@@ -209,7 +210,6 @@ def _(OMOP_NAMING_MAPPING, df_matches, is_a_match, pl):
                     is_a_match(match['from_version'], match['from_icd_code']) and is_a_match(match['from_version'], match['to_icd_code'])
                 )
         return results
-
     return (get_results_from_matches,)
 
 
@@ -302,15 +302,21 @@ def _(negative, positive):
         except ZeroDivisionError:
             print(f"ZeroDivisionError: {version_name}")
 
-
-
     def calculate_f_score(version_name):
         try:
             return (2*positive[version_name]["true"])/((2*positive[version_name]["true"])+negative[version_name]["true"]+negative[version_name]["false"])
         except ZeroDivisionError:
             print(f"ZeroDivisionError: {version_name}")
+    return calculate_f_score, calculate_sensitivity, calculate_specificity
 
 
+@app.cell
+def _(
+    calculate_f_score,
+    calculate_sensitivity,
+    calculate_specificity,
+    positive,
+):
     for version_name in positive.keys():
         sensitivity = calculate_sensitivity(version_name)
         specificity = calculate_specificity(version_name)
