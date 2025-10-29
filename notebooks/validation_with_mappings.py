@@ -353,5 +353,66 @@ def _(
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    ### CID-10-BRA
+
+    Partial evaluation restrict to known negative.
+
+    \[
+    \text{Precision}_{\text{neg}} = \frac{TP_{\text{neg}}}{TP_{\text{neg}} + FP_{\text{neg}}}
+    \]
+
+    * **True Positive neg**: excluded by our approach and present in the excluded list
+    * **False Positive neg**: included by our approach and present in the excluded list
+
+    """
+    )
+    return
+
+
+@app.cell
+def _(pl):
+    bra_df = pl.read_csv("data/mappings/cid-10-bra-added-removed.csv")
+    bra_df
+    return (bra_df,)
+
+
+@app.cell
+def _(df_matches):
+    df_matches
+    return
+
+
+@app.cell
+def _(bra_df, pl):
+    bra_codes = bra_df.filter(pl.col("change_type").eq("removed"))["code"].to_list()
+    return (bra_codes,)
+
+
+@app.cell
+def _(bra_codes, df_matches, pl):
+    precisions = {}
+    for threshold in df_matches["threshold"].unique():
+        _true_positive_neg = df_matches.filter(
+            pl.col("from_version").eq("cid-10-bra"),
+            pl.col("match_type").eq("not_found"),
+            pl.col("threshold").eq(threshold),
+            pl.col("from_icd_code").is_in(bra_codes)
+        ).select(pl.len())
+        _false_positive_neg = df_matches.filter(
+            pl.col("from_version").eq("cid-10-bra"),
+            pl.col("match_type").eq("match_code_and_description"),
+            pl.col("threshold").eq(threshold),
+            pl.col("from_icd_code").is_in(bra_codes)
+        ).select(pl.len())
+        precisions[threshold] = _true_positive_neg / (_true_positive_neg + _false_positive_neg)
+        print(threshold, precisions[threshold])
+
+    return
+
+
 if __name__ == "__main__":
     app.run()
