@@ -261,13 +261,13 @@ def _(df_matches, get_results_from_matches):
 @app.cell
 def _(calculate_validation_results):
     positive_results = calculate_validation_results('match_code_and_description')
-    return
+    return (positive_results,)
 
 
 @app.cell
 def _(calculate_validation_results):
     negative_results = calculate_validation_results('not_found')
-    return
+    return (negative_results,)
 
 
 @app.cell
@@ -286,7 +286,7 @@ def _(mo):
 
 
 @app.cell
-def _(negative, positive):
+def _():
     # positive = {
     #   "icd-10-who": {
     #     "true": 0,
@@ -317,39 +317,44 @@ def _(negative, positive):
     #   }
     # }
 
-    def calculate_sensitivity(version_name):
-        try:
-            return positive[version_name]["true"]/(positive[version_name]["true"]+negative[version_name]["false"])
-        except ZeroDivisionError:
-            print(f"ZeroDivisionError: {version_name}")
+    # def calculate_sensitivity(version_name):
+    #     try:
+    #         return positive[version_name]["true"]/(positive[version_name]["true"]+negative[version_name]["false"])
+    #     except ZeroDivisionError:
+    #         print(f"ZeroDivisionError: {version_name}")
 
 
-    def calculate_specificity(version_name):
-        try:
-            return positive[version_name]["false"]/(positive[version_name]["false"]+negative[version_name]["true"])
-        except ZeroDivisionError:
-            print(f"ZeroDivisionError: {version_name}")
+    # def calculate_specificity(version_name):
+    #     try:
+    #         return positive[version_name]["false"]/(positive[version_name]["false"]+negative[version_name]["true"])
+    #     except ZeroDivisionError:
+    #         print(f"ZeroDivisionError: {version_name}")
 
-    def calculate_f_score(version_name):
-        try:
-            return (2*positive[version_name]["true"])/((2*positive[version_name]["true"])+negative[version_name]["true"]+negative[version_name]["false"])
-        except ZeroDivisionError:
-            print(f"ZeroDivisionError: {version_name}")
-    return calculate_f_score, calculate_sensitivity, calculate_specificity
+    # def calculate_f_score(version_name):
+    #     try:
+    #         return (2*positive[version_name]["true"])/((2*positive[version_name]["true"])+negative[version_name]["true"]+negative[version_name]["false"])
+    #     except ZeroDivisionError:
+    #         print(f"ZeroDivisionError: {version_name}")
+    return
 
 
 @app.cell
-def _(
-    calculate_f_score,
-    calculate_sensitivity,
-    calculate_specificity,
-    positive,
-):
-    for version_name in positive.keys():
-        sensitivity = calculate_sensitivity(version_name)
-        specificity = calculate_specificity(version_name)
-        f_score = calculate_f_score(version_name)
-        print(f'[{version_name}] Sensitivity: {sensitivity} Specificity: {specificity} f-score: {f_score}')
+def _():
+    # for version_name in positive.keys():
+    #     sensitivity = calculate_sensitivity(version_name)
+    #     specificity = calculate_specificity(version_name)
+    #     f_score = calculate_f_score(version_name)
+    #     print(f'[{version_name}] Sensitivity: {sensitivity} Specificity: {specificity} f-score: {f_score}')
+    return
+
+
+@app.cell
+def _(negative_results, positive_results):
+    import json
+    from pathlib import Path
+
+    Path('positive_results.json').write_text(json.dumps(positive_results))
+    Path('negative_results.json').write_text(json.dumps(negative_results))
     return
 
 
@@ -359,7 +364,7 @@ def _(mo):
         r"""
     ### CID-10-BRA
 
-    Partial evaluation restrict to known negative.
+    Negative Predictive Value (NPV)
 
     \[
     \text{Precision}_{\text{neg}} = \frac{TP_{\text{neg}}}{TP_{\text{neg}} + FP_{\text{neg}}}
