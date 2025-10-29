@@ -21,6 +21,12 @@ def _(get_connection):
 
 
 @app.cell
+def _():
+    model_name = "jinaai/jina-embeddings-v3"
+    return (model_name,)
+
+
+@app.cell
 def _(mo):
     mo.md(r"""# Validation""")
     return
@@ -82,8 +88,8 @@ def _(df_omop, pl):
 
 
 @app.cell
-def _(con):
-    df_matches = con.execute("SELECT * FROM matches;").pl()
+def _(con, model_name, pl):
+    df_matches = con.execute("SELECT * FROM matches;").pl().filter(pl.col("model").eq(model_name))
     df_matches
     return (df_matches,)
 
@@ -116,7 +122,6 @@ def _(OMOP_NAMING_MAPPING, mapping_df, pl):
         if show_results_table:
             print(result)
         return len(result) > 0
-
     return (found_in_mapping_table,)
 
 
@@ -200,12 +205,12 @@ def _(mo):
 
 @app.cell
 def _(OMOP_NAMING_MAPPING, df_matches, is_a_match, pl):
-    def get_results_from_matches(match_type='match_code_and_description'):
+    def get_results_from_matches(match_type='match_code_and_description', threshold=0.7):
         results = {}
         for version in OMOP_NAMING_MAPPING:
             results[version] = []
-
-            for match in df_matches.filter(pl.col("from_version").eq(version), pl.col("match_type").eq(match_type)).iter_rows(named=True):
+            _filtered = df_matches.filter(pl.col("from_version").eq(version), pl.col("match_type").eq(match_type), pl.col("threshold").eq(threshold))
+            for match in _filtered.iter_rows(named=True):
                 results[match['from_version']].append(
                     is_a_match(match['from_version'], match['from_icd_code']) and is_a_match(match['from_version'], match['to_icd_code'])
                 )
@@ -238,23 +243,46 @@ def match_validation_results(results):
 
 
 @app.cell
-def _(get_results_from_matches):
-    results_match_code_and_description = get_results_from_matches(match_type='match_code_and_description')
-    positive = match_validation_results(results_match_code_and_description)
-    return positive, results_match_code_and_description
+def _(df_matches, get_results_from_matches):
+    def calculate_validation_results(match_type):
+        validation_results = {}
+        for threshold in df_matches["threshold"].unique():
+            print(threshold)
+            results_match_code_and_description = get_results_from_matches(match_type=match_type, threshold=threshold)
+            positive = match_validation_results(results_match_code_and_description)
+            validation_results[threshold] = {
+                "results_match_code_and_description": results_match_code_and_description,
+                "positive": positive
+            }
+        return validation_results
+    return (calculate_validation_results,)
 
 
 @app.cell
-def _(results_match_code_and_description):
-    results_match_code_and_description.keys()
+def _(calculate_validation_results):
+    positive_results = calculate_validation_results('match_code_and_description')
     return
 
 
 @app.cell
-def _(get_results_from_matches):
-    results_not_found = get_results_from_matches(match_type='not_found')
-    negative = match_validation_results(results_not_found)
-    return (negative,)
+def _(calculate_validation_results):
+    negative_results = calculate_validation_results('not_found')
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+
+    * True Positive (TP): matched by our approach, should be in the found list
+    * False Positive (FP): matched by our approached, but it was in the not found list
+    * True Negative (TN): not matched by our approach and it was in the excluded list
+    * False Negative (FN): not matched by our approach but should be in the found list
+
+    """
+    )
+    return
 
 
 @app.cell
