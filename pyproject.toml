@@ -15,7 +15,7 @@ dependencies = [
     "hf-xet>=1.1.10",
     "kaleido==0.2.1",
     "lxml>=5.4.0",
-    "marimo==0.16.4",
+    "marimo>=0.17.2",
     "matplotlib-venn>=1.1.2",
     "networkx>=3.4.2",
     "networkx-algo-common-subtree>=0.2.2",
