@@ -144,7 +144,7 @@ def _(mo):
 
 
 @app.cell
-def _(OMOP_NAMING_MAPPING, get_youndes_j, gm_df, mapping_df, pl):
+def _(OMOP_NAMING_MAPPING, gm_df, mapping_df, pl):
     _filtered = mapping_df.filter(
         pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING["icd-10-gm"]),
         pl.col("vocabulary_id_icd10who").eq(OMOP_NAMING_MAPPING["icd-10-who"])
@@ -178,8 +178,7 @@ def _(OMOP_NAMING_MAPPING, get_youndes_j, gm_df, mapping_df, pl):
         _sensitivity = get_sensitivity(_results["true_positive"], _results["false_negative"])
         _specificity = get_specificity(_results["true_negative"], _results["false_positive"])
         _f1_score = get_f1_score(_specificity, _sensitivity)
-        _youdens_j = get_youndes_j(_specificity, _sensitivity)
-        print(f'Sensitivity: {_sensitivity} Specificity: {_specificity} Youden\'s J statistic: {_youdens_j} F1 score: {_f1_score}')
+        print(f'Sensitivity: {_sensitivity} Specificity: {_specificity} F1 score: {_f1_score}')
     return
 
 
@@ -190,7 +189,7 @@ def _(mo):
 
 
 @app.cell
-def _(OMOP_NAMING_MAPPING, get_youndes_j, gm_df, mapping_df, pl):
+def _(OMOP_NAMING_MAPPING, gm_df, mapping_df, pl):
     _filtered = mapping_df.filter(
         pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING["icd-10-gm"]),
         pl.col("vocabulary_id_icd10who").eq(OMOP_NAMING_MAPPING["icd-10-who"])
@@ -223,7 +222,6 @@ def _(OMOP_NAMING_MAPPING, get_youndes_j, gm_df, mapping_df, pl):
     _sensitivity = get_sensitivity(_results["true_positive"], _results["false_negative"])
     _specificity = get_specificity(_results["true_negative"], _results["false_positive"])
     _f1_score = get_f1_score(_specificity, _sensitivity)
-    _youdens_j = get_youndes_j(_specificity, _sensitivity)
 
     print(f'Sensitivity: {_sensitivity} Specificity: {_specificity} Youden\'s J statistic: {_youdens_j} F1 score: {_f1_score}')
     return
@@ -245,7 +243,8 @@ def _(mo):
 def _():
     evaluated_code_chars = {
         "icd-10-cm": [3, 4, 5, 6],
-        "icd-10-gm": [3, 4, 5, 6, 7]
+        "icd-10-gm": [3, 4, 5, 6, 7],
+        "cid-10-bra": [3, 4, 5, 6]
     }
     return (evaluated_code_chars,)
 
@@ -268,13 +267,6 @@ def _(OMOP_NAMING_MAPPING, mapping_df, pl):
             pl.col("vocabulary_id_icd10who").eq(OMOP_NAMING_MAPPING["icd-10-who"])
         )
     return (filter_omop_vocabulary_by,)
-
-
-@app.cell
-def _(filter_matches_by):
-    for (_m, _t), _df in filter_matches_by("icd-10-gm").group_by(["model", "threshold"]):
-        print(_m, _t, _df.shape)
-    return
 
 
 @app.cell
@@ -337,14 +329,37 @@ def _(filter_matches_by, filter_omop_vocabulary_by, pl):
 
 
 @app.cell
+def _(px):
+    def plot_sens_spec_f1_score(metrics_df, version):
+        _fig_thresh = px.scatter(
+            metrics_df,
+            x='threshold',
+            y=['sensitivity', 'specificity', 'f1_score'],
+            title=f'Sensitivity, Specificity, and F1-score by Thresholds and Models - {version}',
+            facet_col="model",
+            width=1800,
+            height=400
+        )
+
+        return _fig_thresh
+    return (plot_sens_spec_f1_score,)
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""### ICD-10-GM""")
+    return
+
+
+@app.cell
 def _(calculate_metrics_by):
     metrics_gm = calculate_metrics_by("icd-10-gm")
     return (metrics_gm,)
 
 
 @app.cell
-def _(metrics_gm):
-    metrics_gm
+def _(metrics_gm, plot_sens_spec_f1_score):
+    plot_sens_spec_f1_score(metrics_gm)
     return
 
 
@@ -372,37 +387,91 @@ def _(best_metrics_per_model_threshold, metrics_gm):
 
 
 @app.cell
-def _():
-    # metrics_cm = calculate_metrics_by("icd-10-cm")
+def _(mo):
+    mo.md(r"""### ICD-10-CM""")
     return
 
 
 @app.cell
-def _():
-    # best_metrics_per_model_threshold(metrics_cm)
+def _(calculate_metrics_by):
+    metrics_cm = calculate_metrics_by("icd-10-cm")
+    return (metrics_cm,)
+
+
+@app.cell
+def _(best_metrics_per_model_threshold, metrics_cm):
+    best_metrics_per_model_threshold(metrics_cm)
     return
 
 
 @app.cell
-def _(metrics_gm, px):
-    _fig_thresh = px.scatter(
-        metrics_gm,
-        x='threshold',
-        y=['false_positive', 'true_positive'], # Plot both rates
-        title='TPR and FPR at every threshold',
-        log_y=True,
-        width=700,
-        height=500
+def _(metrics_cm, plot_sens_spec_f1_score):
+    plot_sens_spec_f1_score(metrics_cm)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    ### CID-10-BRA
+
+    Negative Predictive Value (NPV)
+
+    \[
+    \text{Precision}_{\text{neg}} = \frac{TP_{\text{neg}}}{TP_{\text{neg}} + FP_{\text{neg}}}
+    \]
+
+    * **True Positive neg**: excluded by our approach and present in the excluded list
+    * **False Positive neg**: included by our approach and present in the excluded list
+    """
     )
-
-    _fig_thresh.update_yaxes(title='Number of codes', rangemode='tozero')
-
-    _fig_thresh.show()
     return
 
 
 @app.cell
-def _():
+def _(pl):
+    bra_df = pl.read_csv("data/mappings/cid-10-bra-added-removed.csv")
+    bra_df
+    return (bra_df,)
+
+
+@app.cell
+def _(bra_df, pl):
+    bra_codes = bra_df.filter(pl.col("change_type").eq("removed"))["code"].to_list()
+    return (bra_codes,)
+
+
+@app.cell
+def _(bra_codes, df_matches, filter_matches_by, pl):
+    npv = {
+        "model": [],
+        "threshold": [],
+        "version": [],
+        "value": []
+    }
+    bra_matches = filter_matches_by("cid-10-bra")
+
+    for _model in df_matches["model"].unique():
+        for threshold in df_matches["threshold"].unique():
+            _true_positive_neg = df_matches.filter(
+                pl.col("from_version").eq("cid-10-bra"),
+                pl.col("match_type").eq("not_found"),
+                pl.col("threshold").eq(threshold),
+                pl.col("from_icd_code").is_in(bra_codes)
+            ).select(pl.len())
+            _false_positive_neg = bra_matches.filter(
+                pl.col("is_match").eq(True),
+                pl.col("threshold").eq(threshold),
+                pl.col("from_icd_code").is_in(bra_codes)
+            ).select(pl.len())
+
+            _value = _true_positive_neg / (_true_positive_neg + _false_positive_neg)
+            npv["model"].append(_model)
+            npv["threshold"].append(threshold)
+            npv["version"].append("cid-10-bra")
+            npv["value"].append(_value.item())
+    pl.DataFrame(npv)
     return
 
 
