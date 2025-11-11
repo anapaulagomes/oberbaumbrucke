@@ -226,8 +226,8 @@ def _(filter_matches_by, filter_omop_vocabulary_by, pl):
 @app.cell
 def _(px):
     def plot_sens_spec_f1_score(metrics_df, version):
-        _fig_thresh = px.scatter(
-            metrics_df,
+        _fig_thresh = px.line(
+            metrics_df.sort("threshold"),
             x='threshold',
             y=['sensitivity', 'specificity', 'f1_score'],
             title=f'Sensitivity, Specificity, and F1-score by Thresholds and Models - {version}',
@@ -254,7 +254,7 @@ def _(calculate_metrics_by):
 
 @app.cell
 def _(metrics_gm, plot_sens_spec_f1_score):
-    plot_sens_spec_f1_score(metrics_gm)
+    plot_sens_spec_f1_score(metrics_gm, "icd-10-gm")
     return
 
 
@@ -301,7 +301,7 @@ def _(best_metrics_per_model_threshold, metrics_cm):
 
 @app.cell
 def _(metrics_cm, plot_sens_spec_f1_score):
-    plot_sens_spec_f1_score(metrics_cm)
+    plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
     return
 
 
