@@ -29,6 +29,12 @@ def _(con, pl):
     return (df_matches,)
 
 
+@app.cell
+def _(df_matches):
+    df_matches
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
@@ -71,20 +77,21 @@ def _(pl):
 
 
 @app.cell
-def _(mapping_df, pl, px):
-    _grouped_df = mapping_df.with_columns(
-        pl.col("concept_code").str.len_chars().alias("code_length")
-    ).group_by(["code_length", "vocabulary_id"]).len(name="count")
+def _(pl, px):
+    def plot_matches_by_levels(df, version):
+        _grouped_df = df.with_columns(
+            pl.col("from_icd_code").str.len_chars().alias("code_length")
+        ).group_by(["code_length", "is_match"]).len(name="count")
 
-    _fig = px.bar(
-        _grouped_df,
-        x="code_length",
-        y="count",
-        color="vocabulary_id",
-        title="ICD-10-GM Code length OMOP vocab",
-        log_y=True
-    )
-    _fig
+        _fig = px.bar(
+            _grouped_df,
+            x="code_length",
+            y="count",
+            color="is_match",
+            title=f"{version} matches per level",
+            log_y=True
+        )
+        return _fig
     return
 
 
@@ -113,118 +120,6 @@ def get_f1_score(specificity, sensitivity):
         return 2 * (specificity * sensitivity) / (specificity + sensitivity)
     except TypeError:
         return None
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""## Test validation with matches using ICD-10-GM""")
-    return
-
-
-@app.cell
-def _(df_matches, pl):
-    _version = "icd-10-gm"
-    _model_name = "jinaai/jina-embeddings-v3"
-    _threshold = 0.80
-
-    gm_df = df_matches.filter(
-        pl.col("from_version").eq(_version),
-        pl.col("to_version").eq("icd-10-who"),
-        pl.col("model").eq(_model_name),
-        pl.col("threshold").eq(_threshold),
-    )
-    gm_df
-    return (gm_df,)
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""### Per char length""")
-    return
-
-
-@app.cell
-def _(OMOP_NAMING_MAPPING, gm_df, mapping_df, pl):
-    _filtered = mapping_df.filter(
-        pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING["icd-10-gm"]),
-        pl.col("vocabulary_id_icd10who").eq(OMOP_NAMING_MAPPING["icd-10-who"])
-    )
-    # True positive: is_match = true + found
-    # True negative: is_match = false + not found
-    # False positive: is_match = true + not found
-    # False negative: is_match = false + found
-    for char_len in range(3, 8):
-        _results = {
-            "true_positive": 0,
-            "true_negative": 0,
-            "false_positive": 0,
-            "false_negative": 0,
-        }
-        for _row in gm_df.filter(pl.col("code_length").eq(char_len)).iter_rows(named=True):
-            _found = _filtered.filter(
-                pl.col("concept_code").eq(_row["from_icd_code"])
-            )
-            _not_found = _found.is_empty()
-            if _not_found:
-                if _row["is_match"]:
-                    _results["false_positive"] += 1
-                else:
-                    _results["true_negative"] += 1
-            else:  # found
-                if _row["is_match"]:
-                    _results["true_positive"] += 1
-                else:
-                    _results["false_negative"] += 1
-        _sensitivity = get_sensitivity(_results["true_positive"], _results["false_negative"])
-        _specificity = get_specificity(_results["true_negative"], _results["false_positive"])
-        _f1_score = get_f1_score(_specificity, _sensitivity)
-        print(f'Sensitivity: {_sensitivity} Specificity: {_specificity} F1 score: {_f1_score}')
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""### All matches""")
-    return
-
-
-@app.cell
-def _(OMOP_NAMING_MAPPING, gm_df, mapping_df, pl):
-    _filtered = mapping_df.filter(
-        pl.col("vocabulary_id").eq(OMOP_NAMING_MAPPING["icd-10-gm"]),
-        pl.col("vocabulary_id_icd10who").eq(OMOP_NAMING_MAPPING["icd-10-who"])
-    )
-    # True positive: is_match = true + found
-    # True negative: is_match = false + not found
-    # False positive: is_match = true + not found
-    # False negative: is_match = false + found
-    _results = {
-        "true_positive": 0,
-        "true_negative": 0,
-        "false_positive": 0,
-        "false_negative": 0,
-    }
-    for _row in gm_df.iter_rows(named=True):
-        _found = _filtered.filter(
-            pl.col("concept_code").eq(_row["from_icd_code"])
-        )
-        _not_found = _found.is_empty()
-        if _not_found:
-            if _row["is_match"]:
-                _results["false_positive"] += 1
-            else:
-                _results["true_negative"] += 1
-        else:  # found
-            if _row["is_match"]:
-                _results["true_positive"] += 1
-            else:
-                _results["false_negative"] += 1
-    _sensitivity = get_sensitivity(_results["true_positive"], _results["false_negative"])
-    _specificity = get_specificity(_results["true_negative"], _results["false_positive"])
-    _f1_score = get_f1_score(_specificity, _sensitivity)
-
-    print(f'Sensitivity: {_sensitivity} Specificity: {_specificity} Youden\'s J statistic: {_youdens_j} F1 score: {_f1_score}')
-    return
 
 
 @app.cell(hide_code=True)
