@@ -84,36 +84,38 @@ def match(
     other_version: str,
     other_gml_filepath: str,
     output: str = None,
-    model: str = "BAAI/bge-m3",
+    results_dir: str = None,
+    chosen_model: str = None,
     threshold: float = 0.7,
 ):
-    if not output:
-        version = version.lower()
-        other_version = other_version.lower()
-        model_name = model.split("/")[-1]
-        results_dir = get_results_dir(subfolder="artifacts")
-        output = (
-            f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
-        )
-
     console.print("[bold green]Loading graphs...[/bold green]")
     graph = get_graph(version, gml_filepath=version_gml_filepath)
     other_graph = get_graph(other_version, gml_filepath=other_gml_filepath)
+    results_dir = results_dir or get_results_dir(subfolder="artifacts")
 
-    console.print(
-        f"[bold green]Using model: {model} with threshold: {threshold}[/bold green]"
-    )
-    matches_summary, matches = match_codes(
-        graph, other_graph, model, threshold=threshold
-    )
+    for model in MODELS:
+        if not (chosen_model is None or (chosen_model and model == chosen_model)):
+            continue
+        if not output:
+            version = version.lower()
+            other_version = other_version.lower()
+            model_name = model.name.split("/")[-1]
+            output = f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
 
-    export_matches(matches, output)
+        console.print(
+            f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
+        )
+        matches_summary, matches = match_codes(
+            graph, other_graph, model.name, threshold=threshold
+        )
 
-    console.print("\n[bold yellow]Match Summary:[/bold yellow]")
-    for key, value in matches_summary.items():
-        console.print(f"  {key}: {value}")
+        export_matches(matches, output)
 
-    console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
+        console.print("\n[bold yellow]Match Summary:[/bold yellow]")
+        for key, value in matches_summary.items():
+            console.print(f"  {key}: {value}")
+
+        console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
 
 
 @graph_app.command()
