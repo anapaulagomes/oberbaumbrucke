@@ -389,8 +389,8 @@ class ICDGraph(ABC):
         # FIXME misleading, since blocks and sub-blocks may vary and create different levels
         return self.graph_levels()[4]
 
-    def export(self):
-        gml_file = f"{self.version_name}.gml"
+    def export(self, label=None):
+        gml_file = f"{self.version_name}{label or ''}.gml"
         root_node = self._root_node
         graph_copy = self._graph.copy()
         graph_copy = from_none_to_empty(
