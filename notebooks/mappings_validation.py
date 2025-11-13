@@ -309,7 +309,9 @@ def _(metrics_cm, plot_sens_spec_f1_score):
 def _(mo):
     mo.md(
         r"""
-    ### CID-10-BRA
+    # Validation with country mappings
+
+    ## CID-10-BRA
 
     Negative Predictive Value (NPV)
 
@@ -338,35 +340,69 @@ def _(bra_df, pl):
 
 
 @app.cell
-def _(bra_codes, df_matches, filter_matches_by, pl):
+def _(filter_matches_by):
+    bra_matches = filter_matches_by("cid-10-bra")
+    bra_matches
+    return (bra_matches,)
+
+
+@app.cell
+def _(bra_codes):
+    bra_codes
+    return
+
+
+@app.cell
+def _(bra_codes, bra_matches, pl):
     npv = {
         "model": [],
         "threshold": [],
         "version": [],
         "value": []
     }
-    bra_matches = filter_matches_by("cid-10-bra")
 
-    for _model in df_matches["model"].unique():
-        for threshold in df_matches["threshold"].unique():
-            _true_positive_neg = df_matches.filter(
-                pl.col("from_version").eq("cid-10-bra"),
-                pl.col("match_type").eq("not_found"),
-                pl.col("threshold").eq(threshold),
-                pl.col("from_icd_code").is_in(bra_codes)
-            ).select(pl.len())
-            _false_positive_neg = bra_matches.filter(
-                pl.col("is_match").eq(True),
-                pl.col("threshold").eq(threshold),
-                pl.col("from_icd_code").is_in(bra_codes)
-            ).select(pl.len())
+    for (_model, _threshold), _filtered in bra_matches.group_by(["model", "threshold"]):
+        _filter_by_model_threshold = _filtered.filter(
+            pl.col("from_icd_code").is_in(bra_codes)
+        )
+        _true_positive_neg = _filter_by_model_threshold.filter(
+            pl.col("is_match").eq(False),    
+        ).select(pl.len())
+        _false_positive_neg = _filter_by_model_threshold.filter(
+            pl.col("is_match").eq(True)
+        ).select(pl.len())
+        print(_model, _threshold, _filter_by_model_threshold.filter(pl.col("is_match").eq(True)).shape)
 
-            _value = _true_positive_neg / (_true_positive_neg + _false_positive_neg)
-            npv["model"].append(_model)
-            npv["threshold"].append(threshold)
-            npv["version"].append("cid-10-bra")
-            npv["value"].append(_value.item())
-    pl.DataFrame(npv)
+        _value = get_sensitivity(_true_positive_neg, _false_positive_neg)
+        npv["model"].append(_model)
+        npv["threshold"].append(_threshold)
+        npv["version"].append("cid-10-bra")
+        npv["value"].append(_value.item())
+    metrics_br = pl.DataFrame(npv)
+    metrics_br
+    return (metrics_br,)
+
+
+@app.cell
+def _(bra_codes, bra_matches, pl):
+    bra_matches.filter(
+        pl.col("from_icd_code").is_in(bra_codes)
+    )
+    return
+
+
+@app.cell
+def _(metrics_br, px):
+    _fig_thresh = px.scatter(
+        metrics_br,
+        x='threshold',
+        y='value',
+        title='Sensitivity by Thresholds and Models - CID-10-BRA',
+        facet_col="model",
+        width=1800,
+        height=400
+    )
+    _fig_thresh
     return
 
 

@@ -26,47 +26,29 @@ def _(workbook):
 
 @app.cell
 def _(workbook):
-    def get_codes_in_bold(sheet_index, col, row):
-        for _row in workbook.worksheets[sheet_index].iter_rows(max_col=col, min_row=row):
-            if _row[0].font and _row[0].font.bold:
-                yield _row[0].value.replace(".", "").strip()
-
-    return (get_codes_in_bold,)
-
-
-@app.cell
-def _(workbook):
     def get_codes(sheet_index, col, row):
         for _row in workbook.worksheets[sheet_index].iter_rows(max_col=col, min_row=row):
             if _row[0].value:
-                yield _row[0].value.replace(".", "").strip()
-
+                yield _row[0].value.replace(".", "").strip(), _row[1].value.strip()
     return (get_codes,)
 
 
 @app.cell
-def _(get_codes_in_bold):
-    added = list(get_codes_in_bold(0, 1, 4))
-    return (added,)
-
-
-@app.cell
 def _(get_codes):
-    removed = list(get_codes(3, 1, 3))
+    removed = list(get_codes(3, 2, 3))
     return (removed,)
 
 
 @app.cell
-def _(added, pl, removed):
-    df = pl.DataFrame({"code": added, "change_type": ["added"] * len(added) })
-    df = df.vstack(pl.DataFrame({"code": removed, "change_type": ["removed"] * len(removed) }))
+def _(pl, removed):
+    df = pl.DataFrame(removed, schema=["code", "description"])
     df
     return (df,)
 
 
 @app.cell
 def _(df):
-    df.write_csv("data/mappings/cid-10-bra-added-removed.csv")
+    df.write_csv("data/mappings/cid-10-bra-removed.csv")
     return
 
 
