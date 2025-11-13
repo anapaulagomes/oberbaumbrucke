@@ -393,8 +393,8 @@ def _(bra_codes, bra_matches, pl):
 
 @app.cell
 def _(metrics_br, px):
-    _fig_thresh = px.scatter(
-        metrics_br,
+    _fig_thresh = px.line(
+        metrics_br.sort("threshold"),
         x='threshold',
         y='value',
         title='Sensitivity by Thresholds and Models - CID-10-BRA',
