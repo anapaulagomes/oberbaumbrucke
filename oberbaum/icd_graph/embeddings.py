@@ -8,8 +8,6 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
 from oberbaum.icd_graph.models import MODELS
-from oberbaum.config import get_results_dir
-
 
 load_dotenv()
 
@@ -216,7 +214,7 @@ def import_csvs_to_duckdb(csv_pattern: str):
     """Import CSV files from the experiments ran in get_embedding_from_descriptions.
 
     Usage:
-        import_csvs_to_duckdb("artifacts/results/*.csv")
+        import_csvs_to_duckdb("artifacts/*.csv")
     """
     con = get_connection(writeable=True)
     table_exists = (
