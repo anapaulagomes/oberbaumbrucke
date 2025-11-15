@@ -13,7 +13,7 @@ def _():
     from plotly.subplots import make_subplots
 
     from oberbaum.config import get_results_dir
-    return get_results_dir, go, make_subplots, mo, pl, px
+    return get_results_dir, go, make_subplots, pl, px
 
 
 @app.cell
@@ -38,16 +38,23 @@ def _():
 
 
 @app.cell
-def _(pl, results_dir):
-    df_all_thresholds = pl.read_csv(f"{results_dir}/*.csv")
-    df_all_thresholds
-    return (df_all_thresholds,)
+def _():
+    MODEL_NAME = 'jinaai/jina-embeddings-v3'
+    THRESHOLD = 0.5
+    return MODEL_NAME, THRESHOLD
 
 
 @app.cell
-def _(df_all_thresholds, pl):
-    df = df_all_thresholds.filter(pl.col("threshold").eq(0.95))
+def _(THRESHOLD, pl, results_dir):
+    df = pl.read_csv(f"{results_dir}/*.csv").filter(pl.col("threshold").eq(THRESHOLD))
+    df
     return (df,)
+
+
+@app.cell
+def _(MODEL_NAME, df, pl):
+    df_filtered = df.filter(pl.col("model").eq(MODEL_NAME))
+    return
 
 
 @app.cell
@@ -155,9 +162,9 @@ def _(df, px, versions):
     )
     _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
     _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
-    _fig.write_image("results_per_match_type.pdf")
-    _fig.write_image("results_per_match_type.png")
-    _fig.write_image("results_per_match_type.svg")
+    # _fig.write_image("results_per_match_type.pdf")
+    # _fig.write_image("results_per_match_type.png")
+    # _fig.write_image("results_per_match_type.svg")
     _fig
     return
 
@@ -206,9 +213,9 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
     )
     _fig.update_xaxes(range=[0, 1], title="Cosine similarity distance")
     _fig.update_yaxes(showticklabels=False)
-    _fig.write_image("box_plot_model_scores_all_versions.png")
-    _fig.write_image("box_plot_model_scores_all_versions.pdf")
-    _fig.write_image("box_plot_model_scores_all_versions.svg")
+    # _fig.write_image("box_plot_model_scores_all_versions.png")
+    # _fig.write_image("box_plot_model_scores_all_versions.pdf")
+    # _fig.write_image("box_plot_model_scores_all_versions.svg")
     _fig
     return
 
@@ -220,47 +227,41 @@ def _(df):
 
 
 @app.cell
-def _(mo):
-    match_type_dropdown = mo.ui.dropdown(
-        label="Select a match type",
-        options=["match_code_and_description", "not_found"],
-        value="not_found",
-    )
-    match_type_dropdown
-    return
-
-
-@app.cell
 def _(df, pl, px):
     _summary = (
-        df.filter(pl.col("match_type").is_in(["match_code_and_description"]), pl.col("from_version").ne("icd-10-who"))
-        .group_by(["from_version", "model", "match_type"])
-        .agg(pl.len().alias("count"))
+        df.filter(pl.col("from_version").ne("icd-10-who"))
+        .group_by(["from_version", "model"])
+        .agg([
+            pl.len().alias("total_count_per_version"),
+            (pl.col("match_type").eq("match_code_and_description")).sum().alias("match_code_and_desc_count")
+        ])
+        .with_columns(
+            (
+                pl.col("match_code_and_desc_count") / pl.col("total_count_per_version")
+            ).alias("percent")
+        )
     )
     _fig = px.density_heatmap(
         _summary,
         x="model",
         y="from_version",
-        z="count",
-        facet_col="match_type",
+        z="percent",
         text_auto=True,
         color_continuous_scale="Blues",
         labels={
             "model": "Model",
             "from_version": "From Version",
-            "count": "Count",
-            "match_type": "Match Type"
         },
     )
 
     _fig.update_layout(
         height=500,
         width=1000,
-        coloraxis_colorbar=dict(title="Count"),
+        coloraxis_colorbar=dict(title="%"),
     )
-    # _fig.write_image("match_types.pdf")
-    # _fig.write_image("match_types.png")
-    # _fig.write_image("match_types.svg")
+    _fig.update_traces(texttemplate='%{z:.2f}')
+    # _fig.write_image("match_code_description_0.5_normalized.pdf")
+    # _fig.write_image("match_code_description_0.5_normalized.png")
     _fig
     return
 
