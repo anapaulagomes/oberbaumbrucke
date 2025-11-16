@@ -15,6 +15,22 @@ def _():
 
 
 @app.cell
+def _():
+    import plotly.io as pio
+
+    tableau20_hex = [
+        '#1F77B4', '#AEC7E8', '#FF7F0E', '#FFBB78', '#2CA02C', '#98DF8A',
+        '#D62728', '#FF9896', '#9467BD', '#C5B0D5', '#8C564B', '#C49C94',
+        '#E377C2', '#F7B6D2', '#7F7F7F', '#C7C7C7', '#BCBD22', '#DBDB8D',
+        '#17BECF', '#9EDAE5'
+    ]
+
+    pio.templates['plotly'].layout.colorway = tableau20_hex
+    pio.templates.default = 'plotly'
+    return
+
+
+@app.cell
 def _(get_connection):
     con = get_connection()
     return (con,)
@@ -25,7 +41,6 @@ def _(con, pl):
     df_matches = con.execute("SELECT * FROM matches;").pl().with_columns(
         pl.col("from_icd_code").str.len_chars().alias("code_length")
     )
-    df_matches.head()
     return (df_matches,)
 
 
@@ -166,9 +181,9 @@ def _(OMOP_NAMING_MAPPING, mapping_df, pl):
 
 @app.cell
 def _(filter_matches_by, filter_omop_vocabulary_by, pl):
-    def calculate_metrics_by(version):
+    def calculate_metrics_by(version, _custom_matches=None):
         _omop_filtered = filter_omop_vocabulary_by(version)
-        _matches = filter_matches_by(version)
+        _matches = _custom_matches or filter_matches_by(version)
 
         _results_df = {
             "model": [],
@@ -226,16 +241,24 @@ def _(filter_matches_by, filter_omop_vocabulary_by, pl):
 @app.cell
 def _(px):
     def plot_sens_spec_f1_score(metrics_df, version):
+        sorted = metrics_df.sort("threshold")
+        thresholds = sorted["threshold"].unique().to_list()
         _fig_thresh = px.line(
-            metrics_df.sort("threshold"),
+            sorted,
             x='threshold',
             y=['sensitivity', 'specificity', 'f1_score'],
-            title=f'Sensitivity, Specificity, and F1-score by Thresholds and Models - {version}',
             facet_col="model",
-            width=1800,
-            height=400
+            width=1600,
+            height=800,
+            facet_col_wrap=3
         )
-
+        _fig_thresh.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
+        _fig_thresh.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
+        _fig_thresh.update_xaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
+        _fig_thresh.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',  # remove plotly blue background
+            xaxis={"tickmode": "array", "tickvals": thresholds}
+        )
         return _fig_thresh
     return (plot_sens_spec_f1_score,)
 
@@ -250,6 +273,12 @@ def _(mo):
 def _(calculate_metrics_by):
     metrics_gm = calculate_metrics_by("icd-10-gm")
     return (metrics_gm,)
+
+
+@app.cell
+def _(mo):
+    mo.md('**Sensitivity, Specificity, and F1-score** by Thresholds and Models - icd-10-gm')
+    return
 
 
 @app.cell
@@ -276,8 +305,22 @@ def _(pl):
 
 
 @app.cell
+def _(pl):
+    def best_model_per_threshold(metrics_df):
+        return metrics_df.group_by(pl.col("threshold")).agg(pl.col("model").filter(pl.col("true_positive") == pl.col("true_positive").max()))
+
+    return (best_model_per_threshold,)
+
+
+@app.cell
 def _(best_metrics_per_model_threshold, metrics_gm):
     best_metrics_per_model_threshold(metrics_gm)
+    return
+
+
+@app.cell
+def _(best_model_per_threshold, metrics_gm):
+    best_model_per_threshold(metrics_gm)
     return
 
 
@@ -294,6 +337,12 @@ def _(calculate_metrics_by):
 
 
 @app.cell
+def _(metrics_cm):
+    metrics_cm.head()
+    return
+
+
+@app.cell
 def _(best_metrics_per_model_threshold, metrics_cm):
     best_metrics_per_model_threshold(metrics_cm)
     return
@@ -302,6 +351,18 @@ def _(best_metrics_per_model_threshold, metrics_cm):
 @app.cell
 def _(metrics_cm, plot_sens_spec_f1_score):
     plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
+    return
+
+
+@app.cell
+def _(best_model_per_threshold, metrics_cm):
+    best_model_per_threshold(metrics_cm)
+    return
+
+
+@app.cell
+def _():
+    # plot_sens_spec_f1_score(metrics_cm.filter(pl.col("code_length").is_between(3, 5)), "icd-10-cm")  # FIXME
     return
 
 
@@ -328,27 +389,43 @@ def _(mo):
 
 @app.cell
 def _(pl):
-    bra_df = pl.read_csv("data/mappings/cid-10-bra-added-removed.csv")
+    bra_df = pl.read_csv("data/mappings/cid-10-bra-removed.csv")
     bra_df
     return (bra_df,)
 
 
 @app.cell
-def _(bra_df, pl):
-    bra_codes = bra_df.filter(pl.col("change_type").eq("removed"))["code"].to_list()
+def _(bra_df):
+    bra_codes = bra_df["code"].to_list()
     return (bra_codes,)
 
 
 @app.cell
-def _(filter_matches_by):
-    bra_matches = filter_matches_by("cid-10-bra")
+def _(mo):
+    mo.md(
+        r"""
+    These matches are from the experiment of creating a graph from the removed nodes with the removed list provided by Ministry of Health of Brazil.
+    Since the list provides the list of codes that were allegdly removed from the original version (ICD-10-WHO), it is expected that it has full adherence with the WHO version.
+    """
+    )
+    return
+
+
+@app.cell
+def _(pl):
+    bra_matches = pl.read_csv("/home/gomes-ferreiraa/scratch/oberbaumbrucke/results-bra/*.csv").with_columns(
+        pl.col("from_icd_code").str.len_chars().alias("code_length")
+    )
     bra_matches
     return (bra_matches,)
 
 
 @app.cell
-def _(bra_codes):
-    bra_codes
+def _(bra_matches, pl):
+    bra_matches.filter(
+        pl.col("from_title").ne("--- FOR VALIDATION PURPOSES ONLY ---"),
+        pl.col("code_length").is_in([3, 4, 5]),  # do not include chapters or blocks
+    )
     return
 
 
@@ -366,7 +443,7 @@ def _(bra_codes, bra_matches, pl):
             pl.col("from_icd_code").is_in(bra_codes)
         )
         _true_positive_neg = _filter_by_model_threshold.filter(
-            pl.col("is_match").eq(False),    
+            pl.col("is_match").eq(False),
         ).select(pl.len())
         _false_positive_neg = _filter_by_model_threshold.filter(
             pl.col("is_match").eq(True)
