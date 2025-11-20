@@ -10,8 +10,18 @@ def _():
     import plotly.express as px
     import polars as pl
 
-    from oberbaum.icd_graph.embeddings import get_connection
-    return get_connection, mo, pl, px
+    from oberbaum.config import get_results_dir
+    return get_results_dir, mo, pl, px
+
+
+@app.cell
+def _(get_results_dir):
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    results_dir = get_results_dir("artifacts")
+    results_dir
+    return (results_dir,)
 
 
 @app.cell
@@ -31,14 +41,8 @@ def _():
 
 
 @app.cell
-def _(get_connection):
-    con = get_connection()
-    return (con,)
-
-
-@app.cell
-def _(con, pl):
-    df_matches = con.execute("SELECT * FROM matches;").pl().with_columns(
+def _(pl, results_dir):
+    df_matches = pl.read_csv(f"{results_dir}/*.csv").with_columns(
         pl.col("from_icd_code").str.len_chars().alias("code_length")
     )
     return (df_matches,)
@@ -355,7 +359,6 @@ def _(px):
         _labels = {"total_from_version": version, "total_to_version": "icd-10-who", "correct_matches": "Validated matches"}
         _fig.for_each_trace(lambda t: t.update(name = _labels[t.name]))
         return _fig
-
     return (plot_comparison,)
 
 
@@ -420,7 +423,6 @@ def _(pl):
 def _(pl):
     def best_model_per_threshold(metrics_df):
         return metrics_df.group_by(pl.col("threshold")).agg(pl.col("model").filter(pl.col("true_positive") == pl.col("true_positive").max()))
-
     return (best_model_per_threshold,)
 
 
