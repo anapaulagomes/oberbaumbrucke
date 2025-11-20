@@ -1,5 +1,4 @@
 import json
-import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -9,9 +8,9 @@ import networkx_algo_common_subtree
 import polars as pl
 from networkx.algorithms.similarity import graph_edit_distance
 
+from oberbaum.config import get_results_dir
 from oberbaum.icd_graph.embeddings import fetch_all_matches
 from oberbaum.icd_graph.graphs.base import ICDGraph
-from oberbaum.config import get_results_dir
 
 
 @dataclass
