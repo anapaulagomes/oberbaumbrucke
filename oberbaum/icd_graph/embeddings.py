@@ -1,4 +1,3 @@
-import logging
 import os
 
 import duckdb
@@ -167,7 +166,7 @@ def encode_icd_descriptions(sentences, model):
 def get_embedding_from_descriptions(
     graph, model_name, model_args=None, only_embeddings=False
 ):
-    """Get the embeddings for all descriptions in the graph."""
+    """Get the embeddings for all titles in the graph."""
     if model_args is None:
         model_args = {}
 
@@ -178,20 +177,17 @@ def get_embedding_from_descriptions(
         TextColumn("[progress.description]{task.description}"),
         transient=True,
     ) as progress:
-        descriptions = []
+        titles = []
         codes = []
 
         progress.add_task(description="Preparing nodes...", total=None)
         for node, data in graph.all_nodes(data=True):
-            node_title = data.get("title", "")
-            node_name = data.get("name")
-            if not node_title or not node_name:
-                logging.warning(f"Empty title/name: {node} {data}")
-            descriptions.append(node_title)
-            codes.append(node_name or node)  # like A01
+            node_title = data["title"]
+            titles.append(node_title)
+            codes.append(node)  # like A01
 
         progress.add_task(description="Getting embeddings...", total=None)
-        tensor_embeddings = encode_icd_descriptions(descriptions, model)
+        tensor_embeddings = encode_icd_descriptions(titles, model)
         embeddings = [emb.tolist() for emb in tensor_embeddings]
 
         progress.add_task(description="Storing embeddings...", total=None)
@@ -202,7 +198,7 @@ def get_embedding_from_descriptions(
             return pl.DataFrame(
                 {
                     "embeddings": embeddings,
-                    "title": descriptions,
+                    "title": titles,
                     "version": graph.version_name,
                     "code": codes,
                 }
