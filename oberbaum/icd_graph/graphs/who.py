@@ -83,11 +83,11 @@ class WHOICDGraph(ICDGraph):
 
             self.add_or_update_code(
                 code,
-                chapter,
-                block,
-                three_char_category,
-                description,
-                title,
+                chapter=chapter,
+                block=block,
+                three_char_category=three_char_category,
+                description=description,
+                title=title,
                 **extra_data,
             )
 

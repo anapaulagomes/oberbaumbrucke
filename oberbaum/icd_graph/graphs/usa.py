@@ -101,8 +101,8 @@ class ICD10CMGraph(ICDGraph):
 
                     self.add_or_update_code(
                         code,
-                        chapter,
-                        block,
+                        chapter=chapter,
+                        block=block,
                         three_char_category=three_char_category,
                         title=description,
                         **extra_data,
@@ -127,9 +127,9 @@ class ICD10CMGraph(ICDGraph):
         code = internal_diag_element.findtext("name").replace(".", "")
         created_code = self.add_or_update_code(
             code,
-            chapter,
-            block,
-            three_char_category,
+            chapter=chapter,
+            block=block,
+            three_char_category=three_char_category,
             title=internal_diag_element.findtext("desc"),
             **{"placeholder": bool(internal_diag_element.attrib.get("placeholder"))},
         )

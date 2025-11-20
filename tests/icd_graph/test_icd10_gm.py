@@ -284,3 +284,13 @@ class TestICD10GMGraph:
             code["parent_description"]
             == "Bösartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane"
         )
+
+    def test_check_titles_and_descriptions_with_same_description(
+        self, real_icd10_gm_file_dir
+    ):
+        graph = ICD10GMGraph(files_dir=real_icd10_gm_file_dir)
+        code = graph.get("Q716")
+
+        assert code["title"] == "Spalthand"
+        assert code["description"] == "Spalthand"
+        assert code["parent_description"] == "Reduktionsdefekte der oberen Extremität"

@@ -69,8 +69,8 @@ class CID10Graph2008(ICDGraph):
             extra_data = {"classification": classification}
             code = self.add_or_update_code(
                 code,
-                chapter_code,
-                sub_block or block,
+                chapter=chapter_code,
+                block=sub_block or block,
                 description=description,
                 title=title,
                 **extra_data,
@@ -96,8 +96,8 @@ class CID10Graph2008(ICDGraph):
 
             self.add_or_update_code(
                 code,
-                chapter_code,
-                sub_block or block,
+                chapter=chapter_code,
+                block=sub_block or block,
                 description=description,
                 title=title,
             )
@@ -174,9 +174,9 @@ class CID10Graph(ICDGraph):
             chapter = line["Nº do Capitulo"]
             self.add_or_update_code(
                 code,
-                chapter,
-                block,
-                three_char_category,
+                chapter=chapter,
+                block=block,
+                three_char_category=three_char_category,
                 title=title,
             )
 
