@@ -28,13 +28,29 @@ def _(get_results_dir):
 
 @app.cell
 def _():
+    import plotly.io as pio
+
+    tableau20_hex = [
+        '#1F77B4', '#AEC7E8', '#FF7F0E', '#FFBB78', '#2CA02C', '#98DF8A',
+        '#D62728', '#FF9896', '#9467BD', '#C5B0D5', '#8C564B', '#C49C94',
+        '#E377C2', '#F7B6D2', '#7F7F7F', '#C7C7C7', '#BCBD22', '#DBDB8D',
+        '#17BECF', '#9EDAE5'
+    ]
+
+    pio.templates['plotly'].layout.colorway = tableau20_hex
+    pio.templates.default = 'plotly'
+    return
+
+
+@app.cell
+def _():
     COLOR_BY_VERSION = {
         "icd-10-who": "deepskyblue",
         "icd-10-cm": "red",
         "icd-10-gm": "gold",
         "cid-10-bra": "green",
     }
-    return (COLOR_BY_VERSION,)
+    return
 
 
 @app.cell
@@ -54,7 +70,7 @@ def _(THRESHOLD, pl, results_dir):
 @app.cell
 def _(MODEL_NAME, df, pl):
     df_filtered = df.filter(pl.col("model").eq(MODEL_NAME))
-    return
+    return (df_filtered,)
 
 
 @app.cell
@@ -85,34 +101,42 @@ def _(df, px):
 
 
 @app.cell
-def _(COLOR_BY_VERSION, df, pl, px):
+def _(df_filtered, pl, px):
     _fig = px.histogram(
-        df.filter(pl.col("from_version").ne("icd-10-who")),
+        df_filtered.filter(pl.col("from_version").ne("icd-10-who")),
         x="title_score",
         color="from_version",
-        # title="Histogram of the ICD-10 title/description scores",
-        color_discrete_map=COLOR_BY_VERSION,
+        # color_discrete_map=COLOR_BY_VERSION,
         histnorm="percent",
-        opacity=0.6
+        # opacity=0.6,
+        facet_col="from_version",
     )
-    # _fig.update_xaxes(showgrid=True)
-    # _fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='black')
+
     _fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgrey')
+    _fig.update_xaxes(title='')
+
+    _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
+    _fig.add_annotation(
+        showarrow=False,
+        xanchor='center',
+        xref='paper',
+        x=0.5,
+        yref='paper',
+        y=-0.1,
+        text='Cosine similarity',
+        font={"size": 20}
+    )
+
     _fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',  # remove plotly blue background
         plot_bgcolor='rgba(0,0,0,0)',
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.2,
-            xanchor="center",
-            x=0.5  # position (centered)
-        ),
+        showlegend=False,
+        font_size=16,
+        height=600,
+        width=1800,
         barmode='overlay'
     )
     # _fig.write_image("histogram_distances.png")
-    # _fig.write_image("histogram_distances.pdf")
-    # _fig.write_image("histogram_distances.svg")
+    # _fig.write_image("histogram_cosine_similarities.pdf")
     _fig
     return
 
@@ -124,6 +148,46 @@ def _(df):
 
 
 @app.cell
+def _(THRESHOLD, df_filtered, pl, px, versions):
+    _grouped_df = df_filtered.filter(pl.col("threshold").eq(THRESHOLD)).group_by(["match_type", "from_version"]).len(name="count")
+    _fig = px.bar(
+        _grouped_df,
+        x="match_type",
+        y="count",
+        text="count",
+        facet_col="from_version",
+        facet_row_spacing=0.06,
+        category_orders={"from_version": versions, "match_type": ["match_code", "match_code_and_description", "uphill_match", "not_found"]}
+    )
+
+    _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', tickangle=45, tickfont={"size": 16}, title='')
+    _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 16})
+    _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
+
+    _fig.add_annotation(
+        showarrow=False,
+        xanchor='center',
+        xref='paper',
+        x=0.5,
+        yref='paper',
+        y=-0.25,
+        text='Match type',
+        font={"size": 20}
+    )
+
+    _fig.update_layout(
+        height=1000,
+        width=1800,
+        margin=dict(r=250),
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_size=16,
+    )
+    _fig.write_image("results_per_match_type.pdf")
+    _fig
+    return
+
+
+@app.cell
 def _(df, px, versions):
     _grouped_df = df.group_by(["match_type", "from_version", "model"]).len(name="count")
     _grouped_df["model"].unique()
@@ -131,6 +195,7 @@ def _(df, px, versions):
         _grouped_df,
         x="match_type", y="count", barmode="group",
         facet_row="model", facet_col="from_version",
+        facet_row_spacing=0.06,
         category_orders={"from_version": versions, "match_type": ["match_code", "match_code_and_description", "uphill_match", "not_found"]}
     )
     new_annotations = []
@@ -155,11 +220,14 @@ def _(df, px, versions):
         )
 
     _fig.update_layout(
-        height=800,
+        height=1000,
         width=1800,
         margin=dict(r=250),
-        annotations=new_annotations
+        annotations=new_annotations,
+        plot_bgcolor='rgba(0,0,0,0)',
+
     )
+    _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
     _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
     _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
     # _fig.write_image("results_per_match_type.pdf")
@@ -223,6 +291,46 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
 @app.cell
 def _(df):
     df.columns
+    return
+
+
+@app.cell
+def _(df, pl, px):
+    _summary = (
+        df.filter(pl.col("from_version").ne("icd-10-who"))
+        .group_by(["from_version", "model"])
+        .agg([
+            pl.len().alias("total_count_per_version"),
+            (pl.col("match_type").eq("match_code_and_description")).sum().alias("match_code_and_desc_count")
+        ])
+        .with_columns(
+            (
+                pl.col("match_code_and_desc_count") / pl.col("total_count_per_version")
+            ).alias("percent")
+        )
+    )
+    _fig = px.density_heatmap(
+        _summary,
+        x="model",
+        y="from_version",
+        z="percent",
+        text_auto=True,
+        color_continuous_scale="Blues",
+        labels={
+            "model": "Model",
+            "from_version": "From Version",
+        },
+    )
+
+    _fig.update_layout(
+        height=500,
+        width=1000,
+        coloraxis_colorbar=dict(title="%"),
+    )
+    _fig.update_traces(texttemplate='%{z:.2f}')
+    # _fig.write_image("match_code_description_0.5_normalized.pdf")
+    # _fig.write_image("match_code_description_0.5_normalized.png")
+    _fig
     return
 
 

@@ -165,7 +165,8 @@ def _(df_matches, evaluated_code_chars, pl):
         return df_matches.filter(
             pl.col("from_version").eq(version),
             pl.col("to_version").eq("icd-10-who"),
-        ).filter(pl.col("code_length").is_in(evaluated_code_chars[version]))
+            pl.col("code_length").is_in(evaluated_code_chars[version])
+        )
     return (filter_matches_by,)
 
 
@@ -181,9 +182,9 @@ def _(OMOP_NAMING_MAPPING, mapping_df, pl):
 
 @app.cell
 def _(filter_matches_by, filter_omop_vocabulary_by, pl):
-    def calculate_metrics_by(version, _custom_matches=None):
+    def calculate_metrics_by(version):
         _omop_filtered = filter_omop_vocabulary_by(version)
-        _matches = _custom_matches or filter_matches_by(version)
+        _matches = filter_matches_by(version)
 
         _results_df = {
             "model": [],
@@ -257,15 +258,118 @@ def _(px):
         _fig_thresh.update_xaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
         _fig_thresh.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',  # remove plotly blue background
-            xaxis={"tickmode": "array", "tickvals": thresholds}
+            xaxis={"tickmode": "array", "tickvals": thresholds},
+            legend={"yanchor": "top", "y": 0.29, "xanchor": "right", "x": 0.89}
         )
         return _fig_thresh
     return (plot_sens_spec_f1_score,)
 
 
 @app.cell
+def _(df_matches, pl):
+    code_len_count = df_matches.filter(pl.col("from_version").eq("icd-10-who"), pl.col("threshold").eq(0.5), pl.col("model").eq("jinaai/jina-embeddings-v3")).select(pl.col("code_length").value_counts()).unnest("code_length").to_dict()
+    who_count_per_code_len = {cl: ct for cl, ct in zip(code_len_count['code_length'], code_len_count['count'])}
+    return (who_count_per_code_len,)
+
+
+@app.cell
+def _(filter_omop_vocabulary_by, pl):
+    filter_omop_vocabulary_by("icd-10-cm").with_columns(
+        pl.col("concept_code_icd10who").str.len_chars().alias("code_length")
+    )
+    return
+
+
+@app.cell
+def _(
+    df_matches,
+    evaluated_code_chars,
+    filter_omop_vocabulary_by,
+    pl,
+    who_count_per_code_len,
+):
+    def comparison(version, threshold=0.5, model_name="jinaai/jina-embeddings-v3", only_validated=True):
+        _omop_filtered = filter_omop_vocabulary_by(version)
+        _matches = df_matches.filter(
+            pl.col("from_version").eq(version),
+            pl.col("to_version").eq("icd-10-who"),
+            pl.col("threshold").eq(threshold),
+            pl.col("model").eq(model_name),
+        )
+        if only_validated:
+            _matches = _matches.filter(pl.col("code_length").is_in(evaluated_code_chars[version]))
+        _matches = _matches.sort("code_length")
+
+        _results_df = {
+            "code_length": [],
+            "correct_matches": [],
+            "total_to_version": [],  # who
+            "total_from_version": [],
+        }
+
+        for code_length, _filtered in _matches.group_by("code_length"):
+            _correct_matches = 0
+
+            for _row in _filtered.iter_rows(named=True):
+                _found = _omop_filtered.filter(
+                    pl.col("concept_code").eq(_row["from_icd_code"]),
+                )
+                _found = not _found.is_empty()
+                if _found and _row["is_match"]:
+                    _correct_matches += 1
+
+            _total_who = who_count_per_code_len.get(code_length[0], 0)
+            _total_version = len(_filtered.filter(pl.col("from_version").eq(version)).unique())
+            _results_df["code_length"].append(code_length[0])
+            _results_df["correct_matches"].append(_correct_matches)
+            _results_df["total_to_version"].append(_total_who)
+            _results_df["total_from_version"].append(_total_version)
+
+        return pl.DataFrame(_results_df)
+    return (comparison,)
+
+
+@app.cell
 def _(mo):
     mo.md(r"""### ICD-10-GM""")
+    return
+
+
+@app.cell
+def _(comparison):
+    df_comparison_gm = comparison("icd-10-gm")
+    df_comparison_gm
+    return (df_comparison_gm,)
+
+
+@app.cell
+def _(px):
+    def plot_comparison(df_comparison, version):
+        _fig = px.bar(df_comparison, x="code_length", y=["total_from_version", "total_to_version", "correct_matches"], log_y=True, barmode="group")
+        _fig.update_layout(
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99}
+        )
+        _fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
+        _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
+        _labels = {"total_from_version": version, "total_to_version": "icd-10-who", "correct_matches": "Validated matches"}
+        _fig.for_each_trace(lambda t: t.update(name = _labels[t.name]))
+        return _fig
+
+    return (plot_comparison,)
+
+
+@app.cell
+def _(df_comparison_gm, plot_comparison):
+    plot_comparison(df_comparison_gm, "icd-10-gm")
+    return
+
+
+@app.cell
+def _(comparison, plot_comparison):
+    _fig = plot_comparison(comparison("icd-10-gm", only_validated=False), "icd-10-gm")
+    _fig.write_image("comparison_code_len_icd-10-gm.pdf")
+    _fig
     return
 
 
@@ -276,14 +380,22 @@ def _(calculate_metrics_by):
 
 
 @app.cell
+def _(metrics_gm):
+    metrics_gm.head()
+    return
+
+
+@app.cell
 def _(mo):
-    mo.md('**Sensitivity, Specificity, and F1-score** by Thresholds and Models - icd-10-gm')
+    mo.md("""**Sensitivity, Specificity, and F1-score** by Thresholds and Models - icd-10-gm""")
     return
 
 
 @app.cell
 def _(metrics_gm, plot_sens_spec_f1_score):
-    plot_sens_spec_f1_score(metrics_gm, "icd-10-gm")
+    _fig = plot_sens_spec_f1_score(metrics_gm, "icd-10-gm")
+    # _fig.write_image("sensitivity_specificitity_f1_icd-10-gm.pdf")
+    _fig
     return
 
 
@@ -350,7 +462,9 @@ def _(best_metrics_per_model_threshold, metrics_cm):
 
 @app.cell
 def _(metrics_cm, plot_sens_spec_f1_score):
-    plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
+    _fig = plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
+    _fig.write_image("sensitivity_specificitity_f1_icd-10-cm.pdf")
+    _fig
     return
 
 
@@ -361,8 +475,23 @@ def _(best_model_per_threshold, metrics_cm):
 
 
 @app.cell
-def _():
-    # plot_sens_spec_f1_score(metrics_cm.filter(pl.col("code_length").is_between(3, 5)), "icd-10-cm")  # FIXME
+def _(comparison):
+    df_comparison_cm = comparison("icd-10-cm")
+    df_comparison_cm
+    return (df_comparison_cm,)
+
+
+@app.cell
+def _(df_comparison_cm, plot_comparison):
+    plot_comparison(df_comparison_cm, "icd-10-cm")
+    return
+
+
+@app.cell
+def _(comparison, plot_comparison):
+    _fig = plot_comparison(comparison("icd-10-cm", only_validated=False), "icd-10-cm")
+    # _fig.write_image("comparison_code_len_icd-10-cm.pdf")
+    _fig
     return
 
 
