@@ -118,3 +118,10 @@ class TestCID10Graph:
         assert graph.predecessors("Q031") == ["Q03", "Q00-Q07", "17"]
         assert graph.predecessors("R619") == ["R61", "R00-R99", "18"]
         assert graph.predecessors("Y655") == ["Y65", "Y60-Y69", "20"]
+
+    def test_check_titles_and_descriptions(self, real_cid10_bra_2025_file_dir):
+        graph = CID10Graph(files_dir=real_cid10_bra_2025_file_dir)
+        code = graph.get("C570")
+
+        assert code["title"] == "Trompa de Falopio"
+        assert code["description"] is None

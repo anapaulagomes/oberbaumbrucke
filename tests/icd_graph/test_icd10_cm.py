@@ -189,6 +189,13 @@ class TestICD10CMGraph:
         ]
         assert nodes_without_description == []
 
+    def test_check_titles_and_descriptions(self, real_icd10_cm_file_dir):
+        graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
+        code = graph.get("C570")
+
+        assert code["title"] == "Malignant neoplasm of fallopian tube"
+        assert code["description"] is None
+
 
 class TestCompareCodes:
     @pytest.fixture(scope="class")

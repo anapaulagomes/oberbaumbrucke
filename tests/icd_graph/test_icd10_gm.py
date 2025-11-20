@@ -273,3 +273,14 @@ class TestICD10GMGraph:
         assert graph.predecessors("R572") == ["R57", "R50-R69", "18"]
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
+
+    def test_check_titles_and_descriptions(self, real_icd10_gm_file_dir):
+        graph = ICD10GMGraph(files_dir=real_icd10_gm_file_dir)
+        code = graph.get("C570")
+
+        assert code["title"] == "Tuba uterina [Falloppio]"
+        assert code["description"] == "Bösartige Neubildung: Tuba uterina [Falloppio]"
+        assert (
+            code["parent_description"]
+            == "Bösartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane"
+        )
