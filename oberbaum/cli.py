@@ -100,7 +100,7 @@ def match(
             version = version.lower()
             other_version = other_version.lower()
             model_name = model.name.split("/")[-1]
-            output = f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
+            default_output = f"{results_dir}/{version}___{other_version}__{model_name}_{threshold}.csv"
 
         console.print(
             f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
@@ -109,13 +109,14 @@ def match(
             graph, other_graph, model.name, threshold=threshold
         )
 
-        export_matches(matches, output)
+        output_to = output or default_output
+        export_matches(matches, output_to)
 
         console.print("\n[bold yellow]Match Summary:[/bold yellow]")
         for key, value in matches_summary.items():
             console.print(f"  {key}: {value}")
 
-        console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
+        console.print(f"\n[bold green]Matches exported to {output_to}[/bold green]")
 
 
 @graph_app.command()
