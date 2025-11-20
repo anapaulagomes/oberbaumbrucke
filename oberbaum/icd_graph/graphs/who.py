@@ -78,8 +78,8 @@ class WHOICDGraph(ICDGraph):
             block = self.find_block(three_char_category)
             chapter = fields[3]
             description = fields[8]
-            title = fields[9]
-            extra_data = {"subtitle": fields[10], "formatted_code": fields[5]}
+            title = fields[10]
+            extra_data = {"parent_description": fields[9], "formatted_code": fields[5]}
 
             self.add_or_update_code(
                 code,
