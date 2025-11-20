@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.9"
+__generated_with = "0.17.2"
 app = marimo.App(width="medium")
 
 
@@ -96,12 +96,18 @@ def _(SentenceTransformer):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(example_model, util):
     example = [
-        "Disorders of refraction and accommodation",  # WHO and USA
-        "Akkommodationsstörungen und Refraktionsfehler",  # German
-        "Transtornos da refração e da acomodação",  # Portugues
-        "Vices de réfraction et troubles de l'accommodation",  # French
+        "Other mosquito-borne viral fevers",  # WHO
+        "Zika virus disease",# USA
+        "Sonstige durch Moskitos [Stechmücken] übertragene Viruskrankheiten",  # German
+        "Doenca pelo Zika virus",  # Portugues
+        # "Vices de réfraction et troubles de l'accommodation",  # French
     ]
     _embeddings = example_model.encode(example, convert_to_tensor=True)
     example_results = {"sentence_1": [], "sentence_2": [], "score": []}
@@ -120,6 +126,13 @@ def _(example_model, util):
 
 
 @app.cell
+def _():
+    import plotly.io as pio
+    pio.kaleido.scope.mathjax = None
+    return
+
+
+@app.cell
 def _(example_results, pl, px):
     example_matrix = pl.DataFrame(example_results).pivot(
         values="score", index="sentence_2", on="sentence_1"
@@ -131,10 +144,9 @@ def _(example_results, pl, px):
         y=example_y,
         color_continuous_scale="rdpu",
         text_auto=True,
-        title="H52: Disorders of refraction and accommodation",
     )
     _fig.update_yaxes(side="left")
-    # _fig.write_image("icd10_example_h52_jina.pdf")  # TODO
+    _fig.write_image("icd10_example_A925_jina.pdf")
     _fig.show()
     return
 
@@ -167,26 +179,26 @@ def _(get_graph):
 
 @app.cell
 def _(B):
-    B.get("A05")
+    B.get("A925")
     return
 
 
 @app.cell
 def _(G):
-    G.get("A05")
+    G.get("A925")
     return
 
 
 @app.cell
 def _(W):
-    W.get("A507")
+    W.get("A925")
     return
 
 
 @app.cell
 def _(U):
     U.get(
-        "A507"
+        "A925"
     )  # TODO check naming in WHO guidelines
     return
 
@@ -259,7 +271,6 @@ def _(pl, umap):
         return df_embeddings.with_columns(
             [pl.Series("u0", projection[:, 0]), pl.Series("u1", projection[:, 1])]
         )
-
     return
 
 
@@ -275,7 +286,6 @@ def _(COLOR_BY_VERSION, px):
             color_discrete_map=COLOR_BY_VERSION,
         )
         return _fig.show()
-
     return
 
 
