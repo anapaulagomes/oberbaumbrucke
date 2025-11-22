@@ -14,7 +14,6 @@ def _():
 
     from oberbaum.cli import get_graph
     from oberbaum.embeddings import (
-        get_connection,
         get_embedding,
         similar_icd_codes,
     )
@@ -22,7 +21,6 @@ def _():
     return (
         MODELS,
         SentenceTransformer,
-        get_connection,
         get_embedding,
         get_graph,
         mo,
@@ -32,12 +30,6 @@ def _():
         umap,
         util,
     )
-
-
-@app.cell
-def _(get_connection):
-    conn = get_connection()
-    return
 
 
 @app.cell
