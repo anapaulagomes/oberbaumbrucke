@@ -19,25 +19,24 @@ def get_connection(writeable=False, db_name=None):
 
 def store_embeddings(graph, force=False):
     con = get_connection(writeable=True)
-    for model in MODELS:
+    for model_metadata in MODELS:
         if not force and is_embeddings_version_stored(
-            con, graph.version_name, model.name
+            con, graph.version_name, model_metadata.name
         ):
             print(
-                f"Embeddings for {graph.version_name} with model {model.name} already stored."
+                f"Embeddings for {graph.version_name} with model {model_metadata.name} already stored."
             )
             continue
         else:
-            codes_with_embeddings = get_embedding_from_titles(
-                graph, model.name, model.args, only_embeddings=True
-            )
+            model = SentenceTransformer(model_metadata.name, **model_metadata.args)
+            codes_with_embeddings = get_embedding_from_titles(graph, model)
             print(
-                f"Storing embeddings for {graph.version_name} with model {model.name}."
+                f"Storing embeddings for {graph.version_name} with model {model_metadata.name}."
             )
             con.register("df_view", codes_with_embeddings)
             con.execute(f"""
                 INSERT INTO icd_embeddings (version, icd_code, title, embedding, model)
-                SELECT version, code, title, embeddings, '{model.name}' AS model FROM df_view
+                SELECT version, code, title, embeddings, '{model_metadata.name}' AS model FROM df_view
             """)
 
 
@@ -141,14 +140,8 @@ def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def get_embedding_from_titles(
-    graph, model_name, model_args=None, only_embeddings=False
-):
+def get_embedding_from_titles(graph, model):
     """Get the embeddings for all titles in the graph."""
-    if model_args is None:
-        model_args = {}
-
-    model = SentenceTransformer(model_name, **model_args)
 
     with Progress(
         SpinnerColumn(),
@@ -172,16 +165,14 @@ def get_embedding_from_titles(
         for index, (node, data) in enumerate(graph.all_nodes(data=True)):
             data["embeddings"] = embeddings[index]
 
-        if only_embeddings:
-            return pl.DataFrame(
-                {
-                    "embeddings": embeddings,
-                    "title": titles,
-                    "version": graph.version_name,
-                    "code": codes,
-                }
-            )
-        return graph, graph.all_nodes(data=True)
+        return pl.DataFrame(
+            {
+                "embeddings": embeddings,
+                "title": titles,
+                "version": graph.version_name,
+                "code": codes,
+            }
+        )
 
 
 def import_csvs_to_duckdb(csv_pattern: str):
