@@ -1,5 +1,5 @@
-from oberbaum.icd_graph.graphs.brazil import CID10Graph
-from oberbaum.icd_graph.graphs.who import WHOICDGraph
+from oberbaum.graphs.brazil import CID10Graph
+from oberbaum.graphs.who import WHOICDGraph
 
 
 class TestLoadGraphFromFile:

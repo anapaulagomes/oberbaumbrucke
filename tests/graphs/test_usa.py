@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import networkx as nx
 import pytest
 
-from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
+from oberbaum.graphs.usa import ICD10CMGraph
 from tests.helpers import download_and_unzip
 
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from oberbaum.icd_graph.graphs.base import ICDGraph
+from oberbaum.graphs.base import ICDGraph
 
 
 @dataclass

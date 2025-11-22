@@ -6,7 +6,6 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import duckdb
     import marimo as mo
     import plotly.express as px
     import polars as pl
@@ -14,12 +13,12 @@ def _():
     from sentence_transformers import SentenceTransformer, util
 
     from oberbaum.cli import get_graph
-    from oberbaum.icd_graph.embeddings import (
+    from oberbaum.embeddings import (
         get_connection,
         get_embedding,
         similar_icd_codes,
     )
-    from oberbaum.icd_graph.models import MODELS
+    from oberbaum.models import MODELS
     return (
         MODELS,
         SentenceTransformer,

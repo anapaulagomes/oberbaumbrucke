@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
-from oberbaum.icd_graph.models import MODELS
+from oberbaum.models import MODELS
 
 load_dotenv()
 

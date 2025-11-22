@@ -4,7 +4,7 @@ from pathlib import Path
 
 from lxml import etree
 
-from oberbaum.icd_graph.graphs.base import ICDGraph
+from oberbaum.graphs.base import ICDGraph
 
 logger = logging.getLogger(__name__)
 

@@ -40,7 +40,7 @@ After, create the db: `oberbaum db create` (you can pass the db name with `--db-
 oberbaum graph embeddings
 ```
 
-It will encode all descriptions from all codes for [all models](oberbaum/icd_graph/models.py) and store them in a table.
+It will encode all descriptions from all codes for [all models](oberbaum/models.py) and store them in a table.
 
 ## Development
 

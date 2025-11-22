@@ -1,10 +1,10 @@
 import pytest
 
 from oberbaum.cli import get_graph
-from oberbaum.icd_graph.graphs.base import ICDGraph
-from oberbaum.icd_graph.graphs.brazil import CID10Graph
-from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
-from oberbaum.icd_graph.graphs.who import WHOICDGraph
+from oberbaum.graphs.base import ICDGraph
+from oberbaum.graphs.brazil import CID10Graph
+from oberbaum.graphs.germany import ICD10GMGraph
+from oberbaum.graphs.who import WHOICDGraph
 
 
 class TestGetGraph:

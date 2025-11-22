@@ -6,22 +6,22 @@ from rich.console import Console
 from rich.tree import Tree
 
 from oberbaum.config import get_results_dir
-from oberbaum.icd_graph.embeddings import (
+from oberbaum.embeddings import (
     create_embeddings_table_if_not_exists,
     get_connection,
     store_embeddings,
 )
-from oberbaum.icd_graph.experiments import (
+from oberbaum.experiments import (
     export_matches,
     from_slurm_logs_to_df,
     match_codes,
 )
-from oberbaum.icd_graph.graphs.base import get_subgraph
-from oberbaum.icd_graph.graphs.brazil import CID10Graph
-from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
-from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
-from oberbaum.icd_graph.graphs.who import WHOICDGraph
-from oberbaum.icd_graph.models import MODELS
+from oberbaum.graphs.base import get_subgraph
+from oberbaum.graphs.brazil import CID10Graph
+from oberbaum.graphs.germany import ICD10GMGraph
+from oberbaum.graphs.usa import ICD10CMGraph
+from oberbaum.graphs.who import WHOICDGraph
+from oberbaum.models import MODELS
 
 app = typer.Typer()
 graph_app = typer.Typer()

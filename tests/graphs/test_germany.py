@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import networkx as nx
 import pytest
 
-from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
+from oberbaum.graphs.germany import ICD10GMGraph
 
 
 class TestICD10GMGraph:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import polars as pl
 
-from oberbaum.icd_graph.graphs.base import ICDGraph
+from oberbaum.graphs.base import ICDGraph
 
 
 @dataclass

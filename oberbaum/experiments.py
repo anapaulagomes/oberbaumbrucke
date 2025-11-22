@@ -6,8 +6,8 @@ from pathlib import Path
 import polars as pl
 from rich.progress import track
 
-from oberbaum.icd_graph.embeddings import get_semantic_score_for_same_code
-from oberbaum.icd_graph.models import get_model_object
+from oberbaum.embeddings import get_semantic_score_for_same_code
+from oberbaum.models import get_model_object
 
 
 def from_slurm_logs_to_df(logs_dir):
