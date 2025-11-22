@@ -57,28 +57,6 @@ def create_embeddings_table_if_not_exists(con):
     )
 
 
-def create_matching_table_if_not_exists(con):
-    con.from_query(
-        """
-        CREATE SEQUENCE IF NOT EXISTS id_matching_sequence START 1;
-        CREATE TABLE IF NOT EXISTS matches(
-             id INTEGER DEFAULT nextval('id_matching_sequence'),
-             from_version VARCHAR,
-             to_version VARCHAR,
-             from_icd_code VARCHAR,
-             to_icd_code VARCHAR,
-             match_type VARCHAR,
-             title_score FLOAT,
-             from_title VARCHAR,
-             to_title VARCHAR,
-             model VARCHAR,
-             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-             threshold FLOAT
-        );
-        """
-    )
-
-
 def is_embeddings_version_stored(con, version, model):
     create_embeddings_table_if_not_exists(con)
     result = con.execute(

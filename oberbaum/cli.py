@@ -8,18 +8,19 @@ from rich.tree import Tree
 from oberbaum.config import get_results_dir
 from oberbaum.icd_graph.embeddings import (
     create_embeddings_table_if_not_exists,
-    create_matching_table_if_not_exists,
     get_connection,
     store_embeddings,
 )
-from oberbaum.icd_graph.experiments import from_logs_to_df
-from oberbaum.icd_graph.graph_overlap import compare_graphs
+from oberbaum.icd_graph.experiments import (
+    export_matches,
+    from_slurm_logs_to_df,
+    match_codes,
+)
 from oberbaum.icd_graph.graphs.base import get_subgraph
 from oberbaum.icd_graph.graphs.brazil import CID10Graph
 from oberbaum.icd_graph.graphs.germany import ICD10GMGraph
 from oberbaum.icd_graph.graphs.usa import ICD10CMGraph
 from oberbaum.icd_graph.graphs.who import WHOICDGraph
-from oberbaum.icd_graph.match import export_matches, match_codes
 from oberbaum.icd_graph.models import MODELS
 
 app = typer.Typer()
@@ -40,7 +41,7 @@ def get_graph(version_name: str, files_dir: str = None, gml_filepath: str = None
     return versions[version_name](files_dir=files_dir, gml_filepath=gml_filepath)
 
 
-def all_graphs():
+def get_all_graphs():
     graphs = [
         "icd-10-who",
         "icd-10-gm",
@@ -153,7 +154,7 @@ def embeddings(
         store_embeddings(graph, force)
     else:
         console.print("Fetching all graphs...")
-        for graph in all_graphs():
+        for graph in get_all_graphs():
             console.print(f"Storing embeddings for graph {graph.version_name}...")
             store_embeddings(graph, force)
 
@@ -167,7 +168,7 @@ def _match_all(**kwargs):
         console.print(
             f"[bold green]Using model: {model.name} with threshold: {threshold}[/bold green]"
         )
-        for graph in all_graphs():
+        for graph in get_all_graphs():
             model_name = model.name.split("/")[-1]
             output = f"{results_dir}/{graph.version_name}___{who_graph.version_name}__{model_name}_{threshold}.csv"
 
@@ -181,21 +182,6 @@ def _match_all(**kwargs):
                 console.print(f"  {key}: {value}")
 
             console.print(f"\n[bold green]Matches exported to {output}[/bold green]")
-
-
-def _graphs_overlap(**kwargs):
-    print(kwargs)
-    graphs = all_graphs()
-    who_graph = next(graphs)
-    assert who_graph.version_name == "icd-10-who"
-
-    if kwargs.get("all_graphs", False):
-        for graph in graphs:
-            compare_graphs(graph, who_graph, kwargs["method"], kwargs["chapter"])
-    else:
-        graph_name = kwargs["graph_version_name"]
-        graph = get_graph(graph_name, gml_filepath=f"{graph_name}.gml")
-        compare_graphs(graph, who_graph, kwargs["method"], kwargs["chapter"])
 
 
 @graph_app.command("experiments")
@@ -218,7 +204,6 @@ def run_experiments(
     }
     experiments_available = {
         "match_all": _match_all,
-        "graphs_overlap": _graphs_overlap,
     }
     experiments_available.get(name)(**kwargs)
 
@@ -227,7 +212,6 @@ def run_experiments(
 def configure_db(db_name: str = None):
     db_name = db_name or os.getenv("EMBEDDINGS_DB")
     con = get_connection(writeable=True, db_name=db_name)
-    create_matching_table_if_not_exists(con)
     create_embeddings_table_if_not_exists(con)
     console.print(f"\n[bold green]DB {db_name} successfully created.[/bold green]")
 
@@ -242,7 +226,7 @@ def parse_logs(
         results_dir = get_results_dir()
         output_file = f"{results_dir}/results.csv"
 
-    df = from_logs_to_df(logs_dir)
+    df = from_slurm_logs_to_df(logs_dir)
     df.write_csv(output_file)
     console.print(f"[bold green]Parsed logs and saved to {output_file}[/bold green]")
 
