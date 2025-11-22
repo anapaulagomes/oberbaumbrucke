@@ -28,7 +28,7 @@ def store_embeddings(graph, force=False):
             )
             continue
         else:
-            codes_with_embeddings = get_embedding_from_descriptions(
+            codes_with_embeddings = get_embedding_from_titles(
                 graph, model.name, model.args, only_embeddings=True
             )
             print(
@@ -141,7 +141,7 @@ def encode_icd_descriptions(sentences, model):
     return model.encode(sentences, convert_to_tensor=True)
 
 
-def get_embedding_from_descriptions(
+def get_embedding_from_titles(
     graph, model_name, model_args=None, only_embeddings=False
 ):
     """Get the embeddings for all titles in the graph."""
