@@ -10,7 +10,7 @@ from oberbaum.icd_graph.models import MODELS
 
 load_dotenv()
 
-EMBEDDINGS_DB = os.getenv("EMBEDDINGS_DB", "icd10_embeddings_v2.db")
+EMBEDDINGS_DB = os.getenv("EMBEDDINGS_DB")
 
 
 def get_connection(writeable=False, db_name=None):
