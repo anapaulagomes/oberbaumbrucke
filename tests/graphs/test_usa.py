@@ -189,12 +189,27 @@ class TestICD10CMGraph:
         ]
         assert nodes_without_description == []
 
-    def test_check_titles_and_descriptions(self, real_icd10_cm_file_dir):
+    @pytest.mark.parametrize(
+        "code,expected_title",
+        [
+            ("A00", "Cholera"),
+            ("Z21", "Asymptomatic human immunodeficiency virus [HIV] infection status"),
+            ("A000", "Cholera due to Vibrio cholerae 01, biovar cholerae"),
+            ("C570", "Malignant neoplasm of fallopian tube"),
+            ("Q716", "Lobster-claw hand"),
+            ("H05352", "Exostosis of left orbit"),
+            (
+                "M84669",
+                "Pathological fracture in other disease, unspecified tibia and fibula",
+            ),
+        ],
+    )
+    def test_check_titles_and_descriptions(
+        self, real_icd10_cm_file_dir, code, expected_title
+    ):
         graph = ICD10CMGraph(files_dir=real_icd10_cm_file_dir)
-        code = graph.get("C570")
 
-        assert code["title"] == "Malignant neoplasm of fallopian tube"
-        assert code["description"] is None
+        assert graph.get(code).get("title") == expected_title
 
 
 class TestCompareCodes:

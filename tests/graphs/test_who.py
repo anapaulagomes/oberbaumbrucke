@@ -238,13 +238,23 @@ class TestWHOICD10Graph:
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
 
-    def test_check_titles_and_descriptions(self, real_icd10_who_file_dir):
+    @pytest.mark.parametrize(
+        "code,expected_title",
+        [
+            ("C570", "Fallopian tube"),
+            ("O470", "False labour before 37 completed weeks of gestation"),
+            ("Z21", "Asymptomatic human immunodeficiency virus [HIV] infection status"),
+            ("A00", "Cholera"),
+            ("A000", "Cholera due to Vibrio cholerae 01, biovar cholerae"),
+            (
+                "B1809",
+                "Chronic viral hepatitis B with delta-agent: other and unspecified phase",
+            ),
+        ],
+    )
+    def test_check_titles_and_descriptions(
+        self, real_icd10_who_file_dir, code, expected_title
+    ):
         graph = WHOICDGraph(files_dir=real_icd10_who_file_dir)
-        code = graph.get("C570")
 
-        assert code["title"] == "Fallopian tube"
-        assert code["description"] == "Malignant neoplasm: Fallopian tube"
-        assert (
-            code["parent_description"]
-            == "Malignant neoplasm of other and unspecified female genital organs"
-        )
+        assert graph.get(code).get("title") == expected_title

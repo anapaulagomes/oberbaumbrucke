@@ -274,23 +274,38 @@ class TestICD10GMGraph:
         assert graph.predecessors("S065") == ["S06", "S00-S09", "19"]
         assert graph.predecessors("T201") == ["T20", "T20-T25", "19"]
 
-    def test_check_titles_and_descriptions(self, real_icd10_gm_file_dir):
-        graph = ICD10GMGraph(files_dir=real_icd10_gm_file_dir)
-        code = graph.get("C570")
-
-        assert code["title"] == "Tuba uterina [Falloppio]"
-        assert code["description"] == "Bösartige Neubildung: Tuba uterina [Falloppio]"
-        assert (
-            code["parent_description"]
-            == "Bösartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane"
-        )
-
-    def test_check_titles_and_descriptions_with_same_description(
-        self, real_icd10_gm_file_dir
+    @pytest.mark.parametrize(
+        "code,expected_title",
+        [
+            (
+                "C57",
+                "Bösartige Neubildung sonstiger und nicht näher bezeichneter weiblicher Genitalorgane",
+            ),
+            (
+                "U85",
+                "Humanes Immundefizienz-Virus mit Resistenz gegen Virustatika oder Proteinaseinhibitoren",
+            ),
+            (
+                "Z21",
+                "Asymptomatische HIV-Infektion [Humane Immundefizienz-Virusinfektion]",
+            ),
+            ("A00", "Cholera"),
+            ("C570", "Tuba uterina [Falloppio]"),
+            (
+                "O470",
+                "Frustrane Kontraktionen vor 37 vollendeten Schwangerschaftswochen",
+            ),
+            ("A000", "Cholera durch Vibrio cholerae O:1, Biovar cholerae"),
+            (
+                "M0159",
+                "Arthritis bei sonstigen anderenorts klassifizierten Viruskrankheiten: Nicht näher bezeichnete Lokalisation",
+            ),
+            ("Z2928", "Sonstige prophylaktische Chemotherapie"),
+        ],
+    )
+    def test_check_titles_and_descriptions(
+        self, real_icd10_gm_file_dir, code, expected_title
     ):
         graph = ICD10GMGraph(files_dir=real_icd10_gm_file_dir)
-        code = graph.get("Q716")
 
-        assert code["title"] == "Spalthand"
-        assert code["description"] == "Spalthand"
-        assert code["parent_description"] == "Reduktionsdefekte der oberen Extremität"
+        assert graph.get(code).get("title") == expected_title

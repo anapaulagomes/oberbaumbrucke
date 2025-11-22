@@ -273,9 +273,22 @@ class TestCID10Graph:
         assert graph.predecessors("R619") == ["R61", "R00-R99", "18"]
         assert graph.predecessors("Y655") == ["Y65", "Y60-Y69", "20"]
 
-    def test_check_titles_and_descriptions(self, real_cid10_bra_2025_file_dir):
+    @pytest.mark.parametrize(
+        "code,expected_title",
+        [
+            ("A00", "Colera"),
+            (
+                "Z21",
+                "Estado de infeccao assintomatica pelo virus da imunodeficiencia humana [HIV]",
+            ),
+            ("A000", "Colera devida a Vibrio cholerae 01, biotipo cholerae"),
+            ("C570", "Trompa de Falopio"),
+            ("Q716", "Mao em garra de lagosta"),
+        ],
+    )
+    def test_check_titles_and_descriptions(
+        self, real_cid10_bra_2025_file_dir, code, expected_title
+    ):
         graph = CID10Graph(files_dir=real_cid10_bra_2025_file_dir)
-        code = graph.get("C570")
 
-        assert code["title"] == "Trompa de Falopio"
-        assert code["description"] is None
+        assert graph.get(code).get("title") == expected_title

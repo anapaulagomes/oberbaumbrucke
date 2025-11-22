@@ -1,10 +1,13 @@
+import pytest
+
+from oberbaum.cli import get_graph
 from oberbaum.graphs.brazil import CID10Graph
 from oberbaum.graphs.who import WHOICDGraph
 
 
 class TestLoadGraphFromFile:
     def test_load_graph_from_file(self):
-        graph = CID10Graph(gml_filepath="tests/fixtures/subgraph_B180_cid10.gml")
+        graph = CID10Graph(gml_filepath="tests/fixtures/subgraph-cid-10-bra-B180.gml")
 
         assert graph.chapters()
         assert graph.blocks()
@@ -33,3 +36,21 @@ class TestLoadGraphFromFile:
         assert graph.get("A929")["category"] == "subcategory"
         assert graph.get("B1810")["char_len"] == 5
         assert graph.get("B1810")["category"] == "code"
+
+
+class TestAllGraphs:
+    @pytest.mark.parametrize(
+        "version_name,files_dir",
+        [
+            ("icd-10-who", "icd10_who_file_dir"),
+            ("cid-10-bra", "cid10_bra_file_dir"),
+            ("icd-10-gm", "icd10_gm_file_dir"),
+            ("icd-10-cm", "real_icd10_cm_file_dir"),
+        ],
+    )
+    def test_check_titles(self, version_name, files_dir, request):
+        files_dir = request.getfixturevalue(files_dir)
+        graph = get_graph(version_name, files_dir=files_dir)
+        for node, data in graph.all_nodes(data=True):
+            assert node
+            assert bool(data["title"]) is True, node

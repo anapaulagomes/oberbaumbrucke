@@ -77,16 +77,21 @@ class WHOICDGraph(ICDGraph):
             three_char_category = code[:3]
             block = self.find_block(three_char_category)
             chapter = fields[3]
-            description = fields[8]
-            title = fields[10]
-            extra_data = {"parent_description": fields[9], "formatted_code": fields[5]}
+
+            if len(code) == 3:
+                title = fields[9]
+            elif len(code) == 4:
+                title = fields[10]
+            else:
+                title = fields[8]
+
+            extra_data = {"formatted_code": fields[5]}
 
             self.add_or_update_code(
                 code,
                 chapter=chapter,
                 block=block,
                 three_char_category=three_char_category,
-                description=description,
                 title=title,
                 **extra_data,
             )

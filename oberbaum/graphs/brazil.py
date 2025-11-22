@@ -29,13 +29,10 @@ class CID10Graph2008(ICDGraph):
         )
         for line in reader:
             chapter_code = line["NUMCAP"]
-            chapter_name = line["DESCRABREV"]
+            chapter_name = line["DESCRICAO"]
             start = line["CATINIC"]
             end = line["CATFIM"]
-            description = line["DESCRICAO"]
-            self.add_or_update_chapter(
-                chapter_code, chapter_name, start, end, description
-            )
+            self.add_or_update_chapter(chapter_code, chapter_name, start, end)
 
     def add_blocks(self):
         blocks_file_dir = f"{self.files_dir}/CID-10-GRUPOS.CSV"
@@ -45,7 +42,7 @@ class CID10Graph2008(ICDGraph):
         for line in reader:
             start = line["CATINIC"]
             end = line["CATFIM"]
-            title = line["DESCRABREV"]
+            title = line["DESCRICAO"]
             block_name = self.add_or_update_block(start, end, title=title)
             self.connect_blocks_sub_blocks(block_name)
 
@@ -57,8 +54,7 @@ class CID10Graph2008(ICDGraph):
         )
         for line in reader:
             code = line["CAT"]
-            description = line["DESCRICAO"]
-            title = line["DESCRABREV"]
+            title = line["DESCRICAO"]
             chapter_code = self.find_chapter(code)
             blocks = self.find_block(code, include_subblocks=True)
             block = blocks[0]
@@ -71,7 +67,6 @@ class CID10Graph2008(ICDGraph):
                 code,
                 chapter=chapter_code,
                 block=sub_block or block,
-                description=description,
                 title=title,
                 **extra_data,
             )
@@ -85,8 +80,7 @@ class CID10Graph2008(ICDGraph):
         for line in reader:
             # FIXME text encoding
             code = line["SUBCAT"]
-            description = line["DESCRICAO"]
-            title = line["DESCRABREV"]
+            title = line["DESCRICAO"]
             chapter_code = self.find_chapter(code)
             blocks = self.find_block(code, include_subblocks=True)
             block = blocks[0]
@@ -98,7 +92,6 @@ class CID10Graph2008(ICDGraph):
                 code,
                 chapter=chapter_code,
                 block=sub_block or block,
-                description=description,
                 title=title,
             )
 
