@@ -43,7 +43,7 @@ dev = [
     "fastexcel>=0.14.0",
     "ipdb>=0.13.13",
     "pre-commit>=4.2.0",
-    "pytest>=8.3.5",
+    "pytest==9.0.0",
     "pytest-html>=4.1.1",
     "xlsxwriter>=3.2.9",
 ]
