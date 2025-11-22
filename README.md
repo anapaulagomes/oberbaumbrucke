@@ -78,38 +78,18 @@ uv run pytest
 
 ### Running experiments in HPC
 
-You can run the graph overlap experiment in Slurm by using the bash script in `bin/graphs_overlap_array.sh`.
-Make a copy of the script and edit it to your needs. The experiment will check the overlap from a version against
-the WHO 2019 version.
-To run it, you will need to specify a list of jobs with the params required for the command:
+You can run the experiments in Slurm by using the bash script in `bin/graphs_match.sh`.
+Make a copy of the script and edit it to your needs. The experiment will run the matches from
+the versions available against the WHO 2019 version. For this, you will need to have:
 
-```bash
-oberbaum graph experiments graphs_overlap --method mcosi --chapter $CHAPTER --graph-version-name $GRAPH --threshold $THRESHOLD
-```
+1. All versions graph files created upfront (use the command `oberbaum graph create`)
+2. Embeddings stored in the db
 
-You can accomplish this with this bash script:
+It will run all thresholds from 0.3-0.9, with all [models available](oberbaum/models.py).
 
-```bash
-./bin/generate_jobs.sh icd-10-gm cid-10-bra > jobs.txt
-```
+You can run all these steps with `bin/prepare_matches.sh` assuming data the version's file are in the `data/` directory.
 
-In the example above, we are generating the params for each chapter for two versions: `cid-10-bra` and `icd-10-gm`.
-This is the format expected:
-
-```text
-icd-10-gm 1 0.75
-icd-10-gm 1 0.8
-icd-10-gm 1 0.85
-icd-10-gm 1 0.9
-icd-10-gm 1 0.95
-...
-cid-10-bra 22 0.8
-cid-10-bra 22 0.85
-cid-10-bra 22 0.9
-cid-10-bra 22 0.95
-```
-
-After the `jobs.txt` is created, you're ready to run: `sbatch graphs_overlap_array.sh`
+Run the parallel jobs with: `sbatch bin/graphs_match.sh`
 
 ### Troubleshooting
 

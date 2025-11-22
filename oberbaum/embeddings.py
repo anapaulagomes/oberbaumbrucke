@@ -154,6 +154,7 @@ def get_embedding_from_titles(graph, model):
         progress.add_task(description="Preparing nodes...", total=None)
         for node, data in graph.all_nodes(data=True):
             node_title = data["title"]
+            assert node_title
             titles.append(node_title)
             codes.append(node)  # like A01
 
