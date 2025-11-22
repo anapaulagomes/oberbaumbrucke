@@ -4,6 +4,7 @@ from oberbaum.cli import get_graph
 from oberbaum.graphs.base import ICDGraph
 from oberbaum.graphs.brazil import CID10Graph
 from oberbaum.graphs.germany import ICD10GMGraph
+from oberbaum.graphs.usa import ICD10CMGraph
 from oberbaum.graphs.who import WHOICDGraph
 
 
@@ -14,6 +15,7 @@ class TestGetGraph:
             ("icd-10-who", WHOICDGraph, "icd10_who_file_dir"),
             ("cid-10-bra", CID10Graph, "cid10_bra_file_dir"),
             ("icd-10-gm", ICD10GMGraph, "icd10_gm_file_dir"),
+            ("icd-10-cm", ICD10CMGraph, "real_icd10_cm_file_dir"),
         ],
     )
     def test_get_graph_by_name(self, version, expected_class, file_dir, request):
@@ -26,6 +28,6 @@ class TestGetGraph:
 
     def test_graph_class_from_graph_file(self):
         graph = get_graph(
-            "cid-10-bra", gml_filepath="tests/fixtures/subgraph_B180_cid10.gml"
+            "cid-10-bra", gml_filepath="tests/fixtures/subgraph-cid-10-bra-B180.gml"
         )
         assert isinstance(graph, CID10Graph)
