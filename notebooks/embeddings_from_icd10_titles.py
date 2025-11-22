@@ -46,7 +46,6 @@ def _():
     COLOR_BY_VERSION = {
         "icd-10-who": "deepskyblue",
         "cid-10-bra": "green",
-        "cid-10-bra": "green",
         "icd-10-gm": "gold",
         "icd-10-cm": "red",
     }
