@@ -31,6 +31,13 @@ Finding the CM code corresponding to the GM code:
 oberbaum graph match icd-10-who icd-10-who.gml cid-10-bra cid-10-bra.gml --output "icd-10-who___cid-10-bra.csv"
 ```
 
+### Subgraphs
+
+```
+oberbaum graph subgraph icd-10-who data/icd102019enMeta "X53" --include-children
+oberbaum graph subgraph icd-10-cm data/icd10cm-table-index-April-2025 "H938" --include-children
+```
+
 ### Embeddings
 
 To run this step you will need all graphs from the previous section.
