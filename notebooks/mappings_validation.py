@@ -192,11 +192,32 @@ def _(OMOP_NAMING_MAPPING, mapping_df, pl):
 
 
 @app.cell
-def _(filter_matches_by, filter_omop_vocabulary_by, pl):
-    def calculate_metrics_by(version):
-        _omop_filtered = filter_omop_vocabulary_by(version)
-        _matches = filter_matches_by(version)
+def _(filter_omop_vocabulary_by):
+    omop_gm = filter_omop_vocabulary_by("icd-10-gm")
+    return (omop_gm,)
 
+
+@app.cell
+def _(filter_matches_by):
+    matches_gm = filter_matches_by("icd-10-gm")
+    return (matches_gm,)
+
+
+@app.cell
+def _(filter_omop_vocabulary_by):
+    omop_cm = filter_omop_vocabulary_by("icd-10-cm")
+    return (omop_cm,)
+
+
+@app.cell
+def _(filter_matches_by):
+    matches_cm = filter_matches_by("icd-10-cm")
+    return (matches_cm,)
+
+
+@app.cell
+def _(pl):
+    def calculate_metrics_by(version, matches, omop_mapping):
         _results_df = {
             "model": [],
             "threshold": [],
@@ -219,7 +240,7 @@ def _(filter_matches_by, filter_omop_vocabulary_by, pl):
             }
 
             for _row in _filtered.iter_rows(named=True):
-                _found = _omop_filtered.filter(
+                _found = omop_mapping.filter(
                     pl.col("concept_code").eq(_row["from_icd_code"])
                 )
                 _not_found = _found.is_empty()
@@ -347,45 +368,104 @@ def _(mo):
 
 
 @app.cell
-def _(comparison):
-    df_comparison_gm = comparison("icd-10-gm")
+def _(comparison, matches_gm, omop_gm):
+    df_comparison_gm = comparison("icd-10-gm", matches_gm, omop_gm)
     df_comparison_gm
     return (df_comparison_gm,)
 
 
 @app.cell
-def _(px):
+def _(code_type_order, px):
     def plot_comparison(df_comparison, version):
-        _fig = px.bar(df_comparison, x="code_length", y=["total_from_version", "total_to_version", "correct_matches"], log_y=True, barmode="group")
+        _fig = px.bar(
+            df_comparison,
+            x="code_type",
+            y=["total_from_version", "total_to_version", "correct_matches"],
+            log_y=True,
+            barmode="group",
+            category_orders={'code_type': code_type_order}
+        )
         _fig.update_layout(
             plot_bgcolor='rgba(0,0,0,0)',
-            legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99}
+            legend={"yanchor": "top", "y": 0.85, "xanchor": "right", "x": 0.25}
         )
         _fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
         _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
-        _labels = {"total_from_version": version, "total_to_version": "icd-10-who", "correct_matches": "Validated matches"}
+        _labels = {"total_from_version": version, "total_to_version": "icd-10-who", "correct_matches": "validated matches"}
         _fig.for_each_trace(lambda t: t.update(name = _labels[t.name]))
         return _fig
-    return (plot_comparison,)
-
-
-@app.cell
-def _(df_comparison_gm, plot_comparison):
-    plot_comparison(df_comparison_gm, "icd-10-gm")
     return
 
 
 @app.cell
-def _(comparison, plot_comparison):
-    _fig = plot_comparison(comparison("icd-10-gm", only_validated=False), "icd-10-gm")
-    _fig.write_image("comparison_code_len_icd-10-gm.pdf")
+def _(code_type_order, go, pl):
+    def plot_comparison_with_texture(df_comparison, version):
+        df_comparison = df_comparison.with_columns(
+            match_base=pl.col("correct_matches") - pl.col("uphill")
+        )
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=df_comparison["code_type"],
+            y=df_comparison["total_from_version"],
+            name=str(version),
+            offsetgroup=0,  #position of the group
+            # marker_color='#636EFA' # Plotly Blue
+        ))
+
+        fig.add_trace(go.Bar(
+            x=df_comparison["code_type"],
+            y=df_comparison["total_to_version"],
+            name="icd-10-who",
+            offsetgroup=1,
+            # marker_color='#EF553B' # Plotly Red
+        ))
+
+        fig.add_trace(go.Bar(
+            x=df_comparison["code_type"],
+            y=df_comparison["match_base"],
+            name="validated matches",
+            offsetgroup=2,
+            # marker_color='#00CC96' # Plotly Green
+        ))
+
+        fig.add_trace(go.Bar(
+            x=df_comparison["code_type"],
+            y=df_comparison["uphill"],
+            name="validated matches w/ uphill",
+            offsetgroup=2, # Same group as match_base
+            base=df_comparison["match_base"], # Stacks this bar on top of the base
+            # marker_color='#00CC96', # Same color as the base
+            marker_pattern_shape="/",
+            showlegend=True
+        ))
+
+        fig.update_layout(
+            yaxis_type="log",
+            barmode="group",
+            plot_bgcolor='rgba(0,0,0,0)',
+            legend={"yanchor": "top", "y": 0.9, "xanchor": "right", "x": 0.28}
+        )
+
+        fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
+        fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', categoryorder='array', categoryarray=code_type_order)
+
+        return fig
+    return (plot_comparison_with_texture,)
+
+
+@app.cell
+def _(df_comparison_gm, plot_comparison_with_texture):
+    _fig = plot_comparison_with_texture(df_comparison_gm, "icd-10-gm")
+    _fig.write_image("comparison_code_type_icd-10-gm.pdf")
     _fig
     return
 
 
 @app.cell
-def _(calculate_metrics_by):
-    metrics_gm = calculate_metrics_by("icd-10-gm")
+def _(calculate_metrics_by, matches_gm, omop_gm):
+    metrics_gm = calculate_metrics_by("icd-10-gm", matches_gm, omop_gm)
     return (metrics_gm,)
 
 
@@ -464,8 +544,8 @@ def _(mo):
 
 
 @app.cell
-def _(calculate_metrics_by):
-    metrics_cm = calculate_metrics_by("icd-10-cm")
+def _(calculate_metrics_by, matches_cm, omop_cm):
+    metrics_cm = calculate_metrics_by("icd-10-cm", matches_cm, omop_cm)
     return (metrics_cm,)
 
 
@@ -507,22 +587,16 @@ def _(best_model_per_threshold, metrics_cm):
 
 
 @app.cell
-def _(comparison):
-    df_comparison_cm = comparison("icd-10-cm")
+def _(comparison, matches_cm, omop_cm):
+    df_comparison_cm = comparison("icd-10-cm", matches_cm, omop_cm)
     df_comparison_cm
     return (df_comparison_cm,)
 
 
 @app.cell
-def _(df_comparison_cm, plot_comparison):
-    plot_comparison(df_comparison_cm, "icd-10-cm")
-    return
-
-
-@app.cell
-def _(comparison, plot_comparison):
-    _fig = plot_comparison(comparison("icd-10-cm", only_validated=False), "icd-10-cm")
-    # _fig.write_image("comparison_code_len_icd-10-cm.pdf")
+def _(df_comparison_cm, plot_comparison_with_texture):
+    _fig = plot_comparison_with_texture(df_comparison_cm, "icd-10-cm")
+    _fig.write_image("comparison_code_len_icd-10-cm.pdf")
     _fig
     return
 
