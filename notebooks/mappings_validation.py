@@ -298,65 +298,42 @@ def _(px):
 
 
 @app.cell
-def _(df_matches, pl):
-    code_len_count = df_matches.filter(pl.col("from_version").eq("icd-10-who"), pl.col("threshold").eq(0.5), pl.col("model").eq("jinaai/jina-embeddings-v3")).select(pl.col("code_length").value_counts()).unnest("code_length").to_dict()
-    who_count_per_code_len = {cl: ct for cl, ct in zip(code_len_count['code_length'], code_len_count['count'])}
-    return (who_count_per_code_len,)
-
-
-@app.cell
-def _(filter_omop_vocabulary_by, pl):
-    filter_omop_vocabulary_by("icd-10-cm").with_columns(
-        pl.col("concept_code_icd10who").str.len_chars().alias("code_length")
-    )
-    return
-
-
-@app.cell
-def _(
-    df_matches,
-    evaluated_code_chars,
-    filter_omop_vocabulary_by,
-    pl,
-    who_count_per_code_len,
-):
-    def comparison(version, threshold=0.5, model_name="jinaai/jina-embeddings-v3", only_validated=True):
-        _omop_filtered = filter_omop_vocabulary_by(version)
-        _matches = df_matches.filter(
-            pl.col("from_version").eq(version),
-            pl.col("to_version").eq("icd-10-who"),
+def _(pl, who_count_per_code_len):
+    def comparison(version, matches, omop_mapping, threshold=0.5, model_name="jinaai/jina-embeddings-v3"):
+        _matches = matches.filter(
             pl.col("threshold").eq(threshold),
             pl.col("model").eq(model_name),
         )
-        if only_validated:
-            _matches = _matches.filter(pl.col("code_length").is_in(evaluated_code_chars[version]))
-        _matches = _matches.sort("code_length")
 
         _results_df = {
-            "code_length": [],
+            "code_type": [],
             "correct_matches": [],
             "total_to_version": [],  # who
             "total_from_version": [],
+            "uphill": []
         }
 
-        for code_length, _filtered in _matches.group_by("code_length"):
+        for code_type, _filtered in _matches.group_by("code_type"):
             _correct_matches = 0
+            _uphill = 0
 
             for _row in _filtered.iter_rows(named=True):
-                _found = _omop_filtered.filter(
-                    pl.col("concept_code").eq(_row["from_icd_code"]),
+                _found = omop_mapping.filter(
+                    pl.col("concept_code").eq(_row["from_icd_code"])
                 )
                 _found = not _found.is_empty()
                 if _found and _row["is_match"]:
                     _correct_matches += 1
+                    if _row["match_type"] == "uphill_match":
+                        _uphill += 1
 
-            _total_who = who_count_per_code_len.get(code_length[0], 0)
+            _total_who = who_count_per_code_len.get(code_type[0], 0)
             _total_version = len(_filtered.filter(pl.col("from_version").eq(version)).unique())
-            _results_df["code_length"].append(code_length[0])
-            _results_df["correct_matches"].append(_correct_matches)
-            _results_df["total_to_version"].append(_total_who)
+            _results_df["code_type"].append(code_type[0])
             _results_df["total_from_version"].append(_total_version)
-
+            _results_df["total_to_version"].append(_total_who)
+            _results_df["correct_matches"].append(_correct_matches)
+            _results_df["uphill"].append(_uphill)
         return pl.DataFrame(_results_df)
     return (comparison,)
 
