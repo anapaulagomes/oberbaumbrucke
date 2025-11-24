@@ -1,17 +1,18 @@
 import marimo
 
-__generated_with = "0.16.4"
-app = marimo.App(width="full")
+__generated_with = "0.17.2"
+app = marimo.App(width="medium")
 
 
 @app.cell
 def _():
     import marimo as mo
     import plotly.express as px
+    import plotly.graph_objects as go
     import polars as pl
 
     from oberbaum.config import get_results_dir
-    return get_results_dir, mo, pl, px
+    return get_results_dir, go, mo, pl, px
 
 
 @app.cell
@@ -106,7 +107,7 @@ def _():
 
 
 @app.cell
-def _(pl):
+def _(pl, who_codes):
     df_omop = pl.read_csv(
         "data/mappings/omop_mappings_select_cr_concept_id_1_c1_vocabulary_id_c1_concept_cod_202507061258.csv",
         new_columns=["concept_id", "vocabulary_id", "concept_code", "concept_name", "relationship_id", "concept_id_2", "vocabulary_id_2", "concept_code_2", "concept_name_2"],
@@ -116,27 +117,18 @@ def _(pl):
     _source_df = df_omop.filter(pl.col("vocabulary_id").is_in(["ICD10CM", "ICD10GM"]))
     _target_df = df_omop.filter(pl.col("vocabulary_id").eq("ICD10"))
 
-    mapping_df = _source_df.join(_target_df, on="concept_code_2", suffix="_icd10who")  # how = inner; merge on snomed code
+    mapping_df = _source_df.join(
+        _target_df, on="concept_code_2", suffix="_icd10who"  # how = inner; merge on snomed code
+    )
+    mapping_df = mapping_df.filter(pl.col("concept_code_icd10who").is_in(who_codes))
     mapping_df
     return (mapping_df,)
 
 
 @app.cell
-def _(pl, px):
-    def plot_matches_by_levels(df, version):
-        _grouped_df = df.with_columns(
-            pl.col("from_icd_code").str.len_chars().alias("code_length")
-        ).group_by(["code_length", "is_match"]).len(name="count")
-
-        _fig = px.bar(
-            _grouped_df,
-            x="code_length",
-            y="count",
-            color="is_match",
-            title=f"{version} matches per level",
-            log_y=True
-        )
-        return _fig
+def _(mapping_df, who_codes):
+    # icd-10-who from SNOMED CT has 15470 codes vs 12506 from WHO files
+    len(who_codes), len(mapping_df["concept_code_icd10who"].unique())
     return
 
 
@@ -169,12 +161,6 @@ def get_f1_score(specificity, sensitivity):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r""" """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
     mo.md(r"""## Validation""")
     return
 
@@ -187,7 +173,7 @@ def _(df_matches, pl):
                 pl.col("from_version").eq(version),
                 pl.col("to_version").eq("icd-10-who"),
                 pl.col("code_type").is_in(targeted_groups)
-            )   
+            )
         return df_matches.filter(
             pl.col("from_version").eq(version),
             pl.col("to_version").eq("icd-10-who"),
@@ -224,7 +210,7 @@ def _(filter_matches_by, filter_omop_vocabulary_by, pl):
         }
 
 
-        for (_model, _threshold), _filtered in _matches.group_by(["model", "threshold"]):
+        for (_model, _threshold), _filtered in matches.group_by(["model", "threshold"]):
             _results = {
                 "true_positive": 0,
                 "true_negative": 0,
@@ -418,7 +404,19 @@ def _(mo):
 @app.cell
 def _(metrics_gm, plot_sens_spec_f1_score):
     _fig = plot_sens_spec_f1_score(metrics_gm, "icd-10-gm")
-    # _fig.write_image("sensitivity_specificitity_f1_icd-10-gm.pdf")
+    _fig.write_image("sensitivity_specificitity_f1_icd-10-gm.pdf")
+    _fig
+    return
+
+
+@app.cell
+def _(calculate_metrics_by, matches_gm, omop_gm, pl, plot_sens_spec_f1_score):
+    _version = "icd-10-gm"
+    _matches_by_targeted_groups_gm = matches_gm.filter(pl.col("code_type").is_in(["3", "4"]))
+    _fig = plot_sens_spec_f1_score(
+        calculate_metrics_by(_version, _matches_by_targeted_groups_gm, omop_gm), _version
+    )
+    _fig.write_image("sensitivity_specificitity_f1_icd-10-gm-3-and-4.pdf")
     _fig
     return
 
@@ -487,6 +485,17 @@ def _(best_metrics_per_model_threshold, metrics_cm):
 def _(metrics_cm, plot_sens_spec_f1_score):
     _fig = plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
     _fig.write_image("sensitivity_specificitity_f1_icd-10-cm.pdf")
+    _fig
+    return
+
+
+@app.cell
+def _(calculate_metrics_by, matches_cm, omop_cm, pl, plot_sens_spec_f1_score):
+    _version = "icd-10-cm"
+    _matches_by_targeted_groups_cm = matches_cm.filter(pl.col("code_type").is_in(["3", "4"]))
+    _metrics = calculate_metrics_by(_version, _matches_by_targeted_groups_cm, omop_cm)
+    _fig = plot_sens_spec_f1_score(_metrics, _version)
+    _fig.write_image("sensitivity_specificitity_f1_icd-10-cm-3-and-4.pdf")
     _fig
     return
 
