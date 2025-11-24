@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.16.4"
+__generated_with = "0.17.2"
 app = marimo.App(width="full")
 
 
@@ -106,9 +106,7 @@ def _(df_filtered, pl, px):
         df_filtered.filter(pl.col("from_version").ne("icd-10-who")),
         x="title_score",
         color="from_version",
-        # color_discrete_map=COLOR_BY_VERSION,
-        histnorm="percent",
-        # opacity=0.6,
+        log_y=True,
         facet_col="from_version",
     )
 
@@ -136,14 +134,8 @@ def _(df_filtered, pl, px):
         barmode='overlay'
     )
     # _fig.write_image("histogram_distances.png")
-    # _fig.write_image("histogram_cosine_similarities.pdf")
+    _fig.write_image("histogram_cosine_similarities.pdf")
     _fig
-    return
-
-
-@app.cell
-def _(df):
-    df.group_by(["match_type", "from_version", "model"]).len(name="count")
     return
 
 
@@ -201,7 +193,6 @@ def _(df, px, versions):
     new_annotations = []
     for ann in _fig.layout.annotations:
         if ann.xanchor != 'left': #< 0.5:  # Keep left-side annotations (likely column titles)
-            # print(ann, ann.x)
             new_annotations.append(ann)
 
     # add properly positioned row titles
@@ -230,9 +221,8 @@ def _(df, px, versions):
     _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
     _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
     _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
-    # _fig.write_image("results_per_match_type.pdf")
+    _fig.write_image("results_per_match_type.pdf")
     # _fig.write_image("results_per_match_type.png")
-    # _fig.write_image("results_per_match_type.svg")
     _fig
     return
 
@@ -270,7 +260,6 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
     _fig.update_layout(
         height=800,
         width=1600,
-        # title_text="Model Scores by Version",
         legend=dict(
             orientation="h",
             xanchor="center",
@@ -282,19 +271,13 @@ def _(COLOR_BY_MODEL, df, go, make_subplots, models, pl):
     _fig.update_xaxes(range=[0, 1], title="Cosine similarity distance")
     _fig.update_yaxes(showticklabels=False)
     # _fig.write_image("box_plot_model_scores_all_versions.png")
-    # _fig.write_image("box_plot_model_scores_all_versions.pdf")
+    _fig.write_image("box_plot_model_scores_all_versions.pdf")
     # _fig.write_image("box_plot_model_scores_all_versions.svg")
     _fig
     return
 
 
 @app.cell
-def _(df):
-    df.columns
-    return
-
-
-@app.cell
 def _(df, pl, px):
     _summary = (
         df.filter(pl.col("from_version").ne("icd-10-who"))
@@ -328,7 +311,7 @@ def _(df, pl, px):
         coloraxis_colorbar=dict(title="%"),
     )
     _fig.update_traces(texttemplate='%{z:.2f}')
-    # _fig.write_image("match_code_description_0.5_normalized.pdf")
+    _fig.write_image("match_code_description_0.5_normalized.pdf")
     # _fig.write_image("match_code_description_0.5_normalized.png")
     _fig
     return
@@ -337,39 +320,32 @@ def _(df, pl, px):
 @app.cell
 def _(df, pl, px):
     _summary = (
-        df.filter(pl.col("from_version").ne("icd-10-who"))
-        .group_by(["from_version", "model"])
-        .agg([
-            pl.len().alias("total_count_per_version"),
-            (pl.col("match_type").eq("match_code_and_description")).sum().alias("match_code_and_desc_count")
-        ])
-        .with_columns(
-            (
-                pl.col("match_code_and_desc_count") / pl.col("total_count_per_version")
-            ).alias("percent")
-        )
+        df.filter(pl.col("match_type").is_in(["match_code_and_description"]), pl.col("from_version").ne("icd-10-who"))
+        .group_by(["from_version", "model", "match_type"])
+        .agg(pl.len().alias("count"))
     )
     _fig = px.density_heatmap(
         _summary,
         x="model",
         y="from_version",
-        z="percent",
+        z="count",
+        facet_col="match_type",
         text_auto=True,
         color_continuous_scale="Blues",
         labels={
             "model": "Model",
-            "from_version": "From Version",
+            "from_version": "From version",
+            "count": "Count",
+            "match_type": "Match Type"
         },
     )
 
     _fig.update_layout(
         height=500,
         width=1000,
-        coloraxis_colorbar=dict(title="%"),
+        coloraxis_colorbar=dict(title="Count"),
     )
-    _fig.update_traces(texttemplate='%{z:.2f}')
-    # _fig.write_image("match_code_description_0.5_normalized.pdf")
-    # _fig.write_image("match_code_description_0.5_normalized.png")
+    _fig.write_image("models_heatmap.pdf")
     _fig
     return
 
