@@ -43,15 +43,41 @@ def _():
 @app.cell
 def _(pl, results_dir):
     df_matches = pl.read_csv(f"{results_dir}/*.csv").with_columns(
-        pl.col("from_icd_code").str.len_chars().alias("code_length")
+        pl.col("from_icd_code").str.len_chars().alias("code_length"),
+    ).with_columns(
+        pl.when(pl.col("code_length").is_in([1, 2]))
+            .then(pl.lit("chapter"))
+        .when(pl.col("from_icd_code").str.contains(r"[A-Z]\d{2}-[A-Z]\d{2}"))  # A00-A09
+            .then(pl.lit("block"))
+        .otherwise(pl.col("code_length")).alias("code_type")
     )
+    df_matches
     return (df_matches,)
 
 
 @app.cell
-def _(df_matches):
-    df_matches
-    return
+def _():
+    code_type_order = ["chapter", "block", "3", "4",  "5", "6", "7"]
+    return (code_type_order,)
+
+
+@app.cell
+def _(df_matches, pl):
+    who_codes = df_matches.filter(pl.col("from_version").eq("icd-10-who"))["from_icd_code"].unique().to_list()
+    who_codes
+    return (who_codes,)
+
+
+@app.cell
+def _(df_matches, pl):
+    _code_len_count = df_matches.filter(
+        pl.col("from_version").eq("icd-10-who"),
+        pl.col("threshold").eq(0.5),
+        pl.col("model").eq("jinaai/jina-embeddings-v3")  # all thresholds and models will have the same numbers
+    ).select(pl.col("code_type").value_counts()).unnest("code_type").to_dict()
+
+    who_count_per_code_len = {cl: ct for cl, ct in zip(_code_len_count['code_type'], _code_len_count['count'])}
+    return (who_count_per_code_len,)
 
 
 @app.cell(hide_code=True)
@@ -154,22 +180,17 @@ def _(mo):
 
 
 @app.cell
-def _():
-    evaluated_code_chars = {
-        "icd-10-cm": [3, 4, 5, 6],
-        "icd-10-gm": [3, 4, 5, 6, 7],
-        "cid-10-bra": [3, 4, 5, 6]
-    }
-    return (evaluated_code_chars,)
-
-
-@app.cell
-def _(df_matches, evaluated_code_chars, pl):
-    def filter_matches_by(version):
+def _(df_matches, pl):
+    def filter_matches_by(version, targeted_groups=None):
+        if targeted_groups:
+            return df_matches.filter(
+                pl.col("from_version").eq(version),
+                pl.col("to_version").eq("icd-10-who"),
+                pl.col("code_type").is_in(targeted_groups)
+            )   
         return df_matches.filter(
             pl.col("from_version").eq(version),
             pl.col("to_version").eq("icd-10-who"),
-            pl.col("code_length").is_in(evaluated_code_chars[version])
         )
     return (filter_matches_by,)
 
