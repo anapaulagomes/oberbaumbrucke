@@ -13,7 +13,7 @@ def _():
     from plotly.subplots import make_subplots
 
     from oberbaum.config import get_results_dir
-    return get_results_dir, go, make_subplots, pl, px
+    return get_results_dir, go, make_subplots, mo, pl, px
 
 
 @app.cell
@@ -39,7 +39,7 @@ def _():
 
     pio.templates['plotly'].layout.colorway = tableau20_hex
     pio.templates.default = 'plotly'
-    return
+    return (tableau20_hex,)
 
 
 @app.cell
@@ -62,9 +62,15 @@ def _():
 
 @app.cell
 def _(THRESHOLD, pl, results_dir):
-    df = pl.read_csv(f"{results_dir}/*.csv").filter(pl.col("threshold").eq(THRESHOLD))
+    df = pl.read_csv(f"{results_dir}/*.csv").filter(pl.col("threshold").eq(THRESHOLD)).sort("threshold")
     df
     return (df,)
+
+
+@app.cell
+def _(df, pl):
+    df.filter(pl.col("is_match").eq(False)).group_by("model").len().sort("len")
+    return
 
 
 @app.cell
@@ -74,8 +80,8 @@ def _(MODEL_NAME, df, pl):
 
 
 @app.cell
-def _(df):
-    df.describe()
+def _(df_filtered):
+    df_filtered.describe()
     return
 
 
@@ -140,20 +146,39 @@ def _(df_filtered, pl, px):
 
 
 @app.cell
-def _(THRESHOLD, df_filtered, pl, px, versions):
-    _grouped_df = df_filtered.filter(pl.col("threshold").eq(THRESHOLD)).group_by(["match_type", "from_version"]).len(name="count")
+def _(tableau20_hex):
+    match_type_colors = {
+        "match_code": "#ff9d9a",
+        "match_code_and_description": tableau20_hex[4],
+        "uphill_match": tableau20_hex[5],
+        "not_found": "#E15759",
+    }
+    return (match_type_colors,)
+
+
+@app.cell
+def _(THRESHOLD, df_filtered, match_type_colors, pl, px):
+    _grouped_df = df_filtered.filter(
+        pl.col("threshold").eq(THRESHOLD),
+        pl.col("from_version").ne("icd-10-who")
+    ).group_by(["match_type", "from_version"]).len(name="count")
     _fig = px.bar(
         _grouped_df,
-        x="match_type",
-        y="count",
+        y="match_type",
+        x="count",
         text="count",
-        facet_col="from_version",
+        color="match_type",
+        color_discrete_map=match_type_colors,
+        facet_row="from_version",
         facet_row_spacing=0.06,
-        category_orders={"from_version": versions, "match_type": ["match_code", "match_code_and_description", "uphill_match", "not_found"]}
+        category_orders={
+            "from_version": _grouped_df["from_version"].unique().to_list(),
+            "match_type": ["match_code", "match_code_and_description", "uphill_match", "not_found"]
+        }
     )
 
     _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', tickangle=45, tickfont={"size": 16}, title='')
-    _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 16})
+    _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 16}, title='')
     _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
 
     _fig.add_annotation(
@@ -173,8 +198,9 @@ def _(THRESHOLD, df_filtered, pl, px, versions):
         margin=dict(r=250),
         plot_bgcolor='rgba(0,0,0,0)',
         font_size=16,
+        showlegend=False
     )
-    _fig.write_image("results_per_match_type.pdf")
+    _fig.write_image("results_per_match_type_flipped_red_green.pdf")
     _fig
     return
 
@@ -318,16 +344,26 @@ def _(df, pl, px):
 
 
 @app.cell
+def _():
+    return
+
+
+@app.cell
 def _(df, pl, px):
     _summary = (
-        df.filter(pl.col("match_type").is_in(["match_code_and_description"]), pl.col("from_version").ne("icd-10-who"))
+        df.filter(
+            pl.col("match_type").is_in(["match_code_and_description"]),
+            pl.col("from_version").ne("icd-10-who"),
+            pl.col("threshold").eq(0.5)
+        )
         .group_by(["from_version", "model", "match_type"])
         .agg(pl.len().alias("count"))
     )
+
     _fig = px.density_heatmap(
         _summary,
-        x="model",
-        y="from_version",
+        y="model",
+        x="from_version",
         z="count",
         facet_col="match_type",
         text_auto=True,
@@ -341,12 +377,108 @@ def _(df, pl, px):
     )
 
     _fig.update_layout(
+        font_size=14,
         height=500,
         width=1000,
         coloraxis_colorbar=dict(title="Count"),
     )
-    _fig.write_image("models_heatmap.pdf")
+    _fig.write_image("models_heatmap_flipped.pdf")
     _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""## Versions comparison""")
+    return
+
+
+@app.cell
+def _():
+    code_type_order = ["chapter", "block", "3", "4",  "5", "6", "7"]
+    return (code_type_order,)
+
+
+@app.cell
+def _(df, models, pl):
+    _df = df.with_columns(
+        pl.col("from_icd_code").str.len_chars().alias("code_length"),
+    ).with_columns(
+        pl.when(pl.col("code_length").is_in([1, 2]))
+            .then(pl.lit("chapter"))
+        .when(pl.col("from_icd_code").str.contains(r"[A-Z]\d{2}-[A-Z]\d{2}"))  # A00-A09
+            .then(pl.lit("block"))
+        .otherwise(pl.col("code_length")).alias("code_type")
+    )
+    version_code_type = _df.filter(pl.col("model").eq(models[0]), pl.col("threshold").eq(0.5)).group_by(["from_version", "code_type"]).len()
+    version_code_type
+    return (version_code_type,)
+
+
+@app.cell
+def _(code_type_order, px, version_code_type, versions):
+    _fig = px.bar(
+        version_code_type,
+        x="code_type",
+        y="len",
+        color="from_version",
+        # log_y=True,
+        barmode="group",
+        category_orders={'code_type': code_type_order, 'from_version': versions},
+        labels={"from_version": "Version", "code_type": "Code type", "len": "count"}
+    )
+    # _fig.add_annotation(
+    #     x="6", #"icd-10-cm",
+    #     y=50814, # hard coded
+    #     text="Codes not available in XML files",
+    #     showarrow=False,
+    # )
+
+    base_value = 96
+    added_value = 50814
+    category_x = "6"
+
+    _fig.add_shape(
+        type="rect",
+        xref="x", yref="y",
+        x0=6.0,
+        x1=6.2,
+        y0=base_value,
+        y1=base_value + added_value,
+        fillcolor="rgba(0,0,0,0)",
+        line=dict(color="darkorange", width=1, dash="dash"),
+    )
+
+    _fig.add_annotation(
+        x=6.2, # Center of the new shape (1.0 + 0.2)
+        y=base_value + (added_value/2),
+        text="+50.814",
+        showarrow=False,
+        font=dict(color="white")
+    )
+
+    _fig.update_layout(
+        font_size=16,
+        plot_bgcolor='rgba(0,0,0,0)',
+        legend={"yanchor": "top", "y": 0.85, "xanchor": "right", "x": 0.25}
+    )
+    _fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Nr. of codes')
+    _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
+    _fig.write_image("icd10_code_types.pdf")
+
+    _fig
+    return
+
+
+@app.cell
+def _(df_filtered, pl):
+    df_filtered.filter(pl.col("from_version").eq("icd-10-cm")).count()
+    return
+
+
+@app.cell
+def _():
+    97584 - 46770
     return
 
 

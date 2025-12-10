@@ -44,6 +44,22 @@ def _():
 
 
 @app.cell
+def _():
+    import plotly.io as pio
+
+    tableau20_hex = [
+        '#1F77B4', '#AEC7E8', '#FF7F0E', '#FFBB78', '#2CA02C', '#98DF8A',
+        '#D62728', '#FF9896', '#9467BD', '#C5B0D5', '#8C564B', '#C49C94',
+        '#E377C2', '#F7B6D2', '#7F7F7F', '#C7C7C7', '#BCBD22', '#DBDB8D',
+        '#17BECF', '#9EDAE5'
+    ]
+
+    pio.templates['plotly'].layout.colorway = tableau20_hex
+    pio.templates.default = 'plotly'
+    return (pio,)
+
+
+@app.cell
 def _(mo):
     mo.md("""# ICD-10 labels to embeddings""")
     return
@@ -116,8 +132,7 @@ def _(example_model, util):
 
 
 @app.cell
-def _():
-    import plotly.io as pio
+def _(pio):
     pio.kaleido.scope.mathjax = None
     return
 

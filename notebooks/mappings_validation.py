@@ -272,7 +272,14 @@ def _(pl):
 
 
 @app.cell
-def _(px):
+def _(df_matches):
+    models = df_matches["model"].unique().sort()
+    models
+    return (models,)
+
+
+@app.cell
+def _(models, px):
     def plot_sens_spec_f1_score(metrics_df, version):
         sorted = metrics_df.sort("threshold")
         thresholds = sorted["threshold"].unique().to_list()
@@ -283,7 +290,8 @@ def _(px):
             facet_col="model",
             width=1600,
             height=800,
-            facet_col_wrap=3
+            facet_col_wrap=3,
+            category_orders={"model": models}
         )
         _fig_thresh.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
         _fig_thresh.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
@@ -417,15 +425,17 @@ def _(code_type_order, go, pl):
             marker_pattern_shape="/",
             showlegend=True
         ))
-
         fig.update_layout(
+            font_size=16,
+            width=1400,
+            height=800,
             yaxis_type="log",
             barmode="group",
             plot_bgcolor='rgba(0,0,0,0)',
             legend={"yanchor": "top", "y": 0.9, "xanchor": "right", "x": 0.28}
         )
 
-        fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey')
+        fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Nr. of codes')
         fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', categoryorder='array', categoryarray=code_type_order)
 
         return fig
@@ -467,12 +477,19 @@ def _(metrics_gm, plot_sens_spec_f1_score):
 
 
 @app.cell
-def _(calculate_metrics_by, matches_gm, omop_gm, pl, plot_sens_spec_f1_score):
+def _(calculate_metrics_by, matches_gm, omop_gm, pl):
     _version = "icd-10-gm"
     _matches_by_targeted_groups_gm = matches_gm.filter(pl.col("code_type").is_in(["3", "4"]))
-    _fig = plot_sens_spec_f1_score(
-        calculate_metrics_by(_version, _matches_by_targeted_groups_gm, omop_gm), _version
-    )
+    metrics_gm_3_and_4 = calculate_metrics_by(_version, _matches_by_targeted_groups_gm, omop_gm)
+    metrics_gm_3_and_4
+    return
+
+
+@app.cell
+def _(metrics_cm_3_and_4, plot_sens_spec_f1_score):
+    _version = "icd-10-gm"
+
+    _fig = plot_sens_spec_f1_score(metrics_cm_3_and_4, _version)
     _fig.write_image("sensitivity_specificitity_f1_icd-10-gm-3-and-4.pdf")
     _fig
     return
@@ -539,6 +556,36 @@ def _(best_metrics_per_model_threshold, metrics_cm):
 
 
 @app.cell
+def _(metrics_gm):
+    metrics_gm
+    return
+
+
+@app.cell
+def _(metrics_cm):
+    metrics_cm
+    return
+
+
+@app.cell
+def _(metrics_cm_3_and_4):
+    metrics_cm_3_and_4
+    return
+
+
+@app.cell
+def _(best_metrics_per_model_threshold, metrics_cm_3_and_4):
+    best_metrics_per_model_threshold(metrics_cm_3_and_4)
+    return
+
+
+@app.cell
+def _(best_model_per_threshold, metrics_cm_3_and_4):
+    best_model_per_threshold(metrics_cm_3_and_4)
+    return
+
+
+@app.cell
 def _(metrics_cm, plot_sens_spec_f1_score):
     _fig = plot_sens_spec_f1_score(metrics_cm, "icd-10-cm")
     _fig.write_image("sensitivity_specificitity_f1_icd-10-cm.pdf")
@@ -547,11 +594,18 @@ def _(metrics_cm, plot_sens_spec_f1_score):
 
 
 @app.cell
-def _(calculate_metrics_by, matches_cm, omop_cm, pl, plot_sens_spec_f1_score):
+def _(calculate_metrics_by, matches_cm, omop_cm, pl):
     _version = "icd-10-cm"
     _matches_by_targeted_groups_cm = matches_cm.filter(pl.col("code_type").is_in(["3", "4"]))
-    _metrics = calculate_metrics_by(_version, _matches_by_targeted_groups_cm, omop_cm)
-    _fig = plot_sens_spec_f1_score(_metrics, _version)
+    metrics_cm_3_and_4 = calculate_metrics_by(_version, _matches_by_targeted_groups_cm, omop_cm)
+    metrics_cm_3_and_4
+    return (metrics_cm_3_and_4,)
+
+
+@app.cell
+def _(metrics_cm_3_and_4, plot_sens_spec_f1_score):
+    _version = "icd-10-cm"
+    _fig = plot_sens_spec_f1_score(metrics_cm_3_and_4, _version)
     _fig.write_image("sensitivity_specificitity_f1_icd-10-cm-3-and-4.pdf")
     _fig
     return
@@ -573,7 +627,7 @@ def _(comparison, matches_cm, omop_cm):
 @app.cell
 def _(df_comparison_cm, plot_comparison_with_texture):
     _fig = plot_comparison_with_texture(df_comparison_cm, "icd-10-cm")
-    _fig.write_image("comparison_code_len_icd-10-cm.pdf")
+    _fig.write_image("comparison_code_type_icd-10-cm.pdf")
     _fig
     return
 
