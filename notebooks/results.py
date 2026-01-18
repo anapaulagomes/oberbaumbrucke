@@ -21,8 +21,7 @@ def _(get_results_dir):
     from dotenv import load_dotenv
 
     load_dotenv()
-    results_dir = get_results_dir("artifacts")
-    results_dir
+    results_dir = f"{get_results_dir()}/charts"
     return (results_dir,)
 
 
@@ -61,8 +60,8 @@ def _():
 
 
 @app.cell
-def _(THRESHOLD, pl, results_dir):
-    df = pl.read_csv(f"{results_dir}/*.csv").filter(pl.col("threshold").eq(THRESHOLD)).sort("threshold")
+def _(THRESHOLD, get_results_dir, pl):
+    df = pl.read_csv(f"{get_results_dir('artifacts')}/*.csv").filter(pl.col("threshold").eq(THRESHOLD)).sort("threshold")
     df
     return (df,)
 
@@ -157,11 +156,19 @@ def _(tableau20_hex):
 
 
 @app.cell
-def _(THRESHOLD, df_filtered, match_type_colors, pl, px):
+def _(THRESHOLD, df_filtered, match_type_colors, pl, px, results_dir):
+    labels = {
+        "match_code": "Code",
+        "match_code_and_description": "Code and Description",
+        "uphill_match": "Uphill",
+        "not_found": "Not found"
+    }
+
     _grouped_df = df_filtered.filter(
         pl.col("threshold").eq(THRESHOLD),
-        pl.col("from_version").ne("icd-10-who")
+        pl.col("from_version").ne("icd-10-who"),
     ).group_by(["match_type", "from_version"]).len(name="count")
+
     _fig = px.bar(
         _grouped_df,
         y="match_type",
@@ -177,9 +184,12 @@ def _(THRESHOLD, df_filtered, match_type_colors, pl, px):
         }
     )
 
-    _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', tickangle=45, tickfont={"size": 16}, title='')
-    _fig.update_yaxes(showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 16}, title='')
-    _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))  # remove col= sign
+    _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', tickfont={"size": 25}, title='')
+    _fig.update_yaxes(
+        showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 25}, title='',
+        tickmode = 'array', tickvals = list(labels.keys()), ticktext = list(labels.values()),
+    )
+    _fig.for_each_annotation(lambda a: a.update(font_size=25, text=a.text.split("=")[-1].upper()))  # remove col= sign
 
     _fig.add_annotation(
         showarrow=False,
@@ -189,7 +199,7 @@ def _(THRESHOLD, df_filtered, match_type_colors, pl, px):
         yref='paper',
         y=-0.25,
         text='Match type',
-        font={"size": 20}
+        font={"size": 25}
     )
 
     _fig.update_layout(
@@ -197,10 +207,10 @@ def _(THRESHOLD, df_filtered, match_type_colors, pl, px):
         width=1800,
         margin=dict(r=250),
         plot_bgcolor='rgba(0,0,0,0)',
-        font_size=16,
-        showlegend=False
+        font_size=25,
+        showlegend=False,
     )
-    _fig.write_image("results_per_match_type_flipped_red_green.pdf")
+    _fig.write_image(f"{results_dir}/results_per_match_type_flipped_red_green.pdf")
     _fig
     return
 

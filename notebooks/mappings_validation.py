@@ -426,7 +426,7 @@ def _(code_type_order, go, pl):
             showlegend=True
         ))
         fig.update_layout(
-            font_size=16,
+            font_size=25,
             width=1400,
             height=800,
             yaxis_type="log",
@@ -434,6 +434,7 @@ def _(code_type_order, go, pl):
             plot_bgcolor='rgba(0,0,0,0)',
             legend={"yanchor": "top", "y": 0.9, "xanchor": "right", "x": 0.28}
         )
+        fig.for_each_annotation(lambda a: a.update(text=a.text.upper()))  # remove col= sign
 
         fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Nr. of codes')
         fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', categoryorder='array', categoryarray=code_type_order)
