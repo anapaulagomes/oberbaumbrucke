@@ -189,6 +189,7 @@ def _(THRESHOLD, df_filtered, match_type_colors, pl, px, results_dir):
         showticklabels=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', tickfont={"size": 25}, title='',
         tickmode = 'array', tickvals = list(labels.keys()), ticktext = list(labels.values()),
     )
+    _fig.for_each_trace(lambda t: t.update(name=t.name.upper()))
     _fig.for_each_annotation(lambda a: a.update(font_size=25, text=a.text.split("=")[-1].upper()))  # remove col= sign
 
     _fig.add_annotation(
@@ -210,7 +211,7 @@ def _(THRESHOLD, df_filtered, match_type_colors, pl, px, results_dir):
         font_size=25,
         showlegend=False,
     )
-    _fig.write_image(f"{results_dir}/results_per_match_type_flipped_red_green.pdf")
+    _fig.write_image(f"{results_dir}/results_per_match_type_flipped_red_green2.pdf")
     _fig
     return
 
@@ -380,12 +381,12 @@ def _(df, pl, px):
         color_continuous_scale="Blues",
         labels={
             "model": "Model",
-            "from_version": "From version",
+            "from_version": "Version",
             "count": "Count",
             "match_type": "Match Type"
         },
     )
-
+    _fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1].replace("_", " ").title().replace("And", "and")))
     _fig.update_layout(
         font_size=14,
         height=500,
@@ -426,55 +427,60 @@ def _(df, models, pl):
 
 
 @app.cell
-def _(code_type_order, px, version_code_type, versions):
+def _(versions):
+    versions
+    return
+
+
+@app.cell
+def _(versions):
+    upper_versions = [version.upper() for version in versions]
+    return
+
+
+@app.cell
+def _(code_type_order, go, pl, px, version_code_type, versions):
+    base_value = 96
+    added_value = 50814
+
     _fig = px.bar(
         version_code_type,
         x="code_type",
         y="len",
         color="from_version",
-        # log_y=True,
         barmode="group",
         category_orders={'code_type': code_type_order, 'from_version': versions},
         labels={"from_version": "Version", "code_type": "Code type", "len": "count"}
     )
-    # _fig.add_annotation(
-    #     x="6", #"icd-10-cm",
-    #     y=50814, # hard coded
-    #     text="Codes not available in XML files",
-    #     showarrow=False,
-    # )
 
-    base_value = 96
-    added_value = 50814
-    category_x = "6"
+    _fig.for_each_trace(lambda t: t.update(name=t.name.upper()))
 
-    _fig.add_shape(
-        type="rect",
-        xref="x", yref="y",
-        x0=6.0,
-        x1=6.2,
-        y0=base_value,
-        y1=base_value + added_value,
-        fillcolor="rgba(0,0,0,0)",
-        line=dict(color="darkorange", width=1, dash="dash"),
-    )
+    existing_bar_height = version_code_type.filter(pl.col('code_type').eq("7"), pl.col('from_version').eq("icd-10-cm"))['len'][0]
 
-    _fig.add_annotation(
-        x=6.2, # Center of the new shape (1.0 + 0.2)
-        y=base_value + (added_value/2),
-        text="+50.814",
-        showarrow=False,
-        font=dict(color="white")
-    )
+    _fig.add_trace(go.Bar(
+        x=["7"],
+        y=[added_value],
+        base=existing_bar_height,
+        width=0.2,
+        offsetgroup=2,
+        offset=0.003,
+        marker=dict(
+            color="#FF7F0E",
+            pattern_shape="/"
+        ),
+        showlegend=False
+    ))
 
     _fig.update_layout(
-        font_size=16,
+        width=1200,
+        height=800,
+        font_size=25,
         plot_bgcolor='rgba(0,0,0,0)',
-        legend={"yanchor": "top", "y": 0.85, "xanchor": "right", "x": 0.25}
+        legend={"yanchor": "top", "y": 0.85, "xanchor": "right", "x": 0.38, "bordercolor": "black", "borderwidth": 1, "title": ""}
     )
-    _fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Nr. of codes')
+    _fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Number of codes')
     _fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey')
-    _fig.write_image("icd10_code_types.pdf")
+    _fig.write_image("results/charts/icd10_code_types.pdf")
 
     _fig
     return

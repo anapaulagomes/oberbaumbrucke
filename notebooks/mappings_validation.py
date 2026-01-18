@@ -394,7 +394,7 @@ def _(code_type_order, go, pl):
         fig.add_trace(go.Bar(
             x=df_comparison["code_type"],
             y=df_comparison["total_from_version"],
-            name=str(version),
+            name=str(version).upper(),
             offsetgroup=0,  #position of the group
             # marker_color='#636EFA' # Plotly Blue
         ))
@@ -402,7 +402,7 @@ def _(code_type_order, go, pl):
         fig.add_trace(go.Bar(
             x=df_comparison["code_type"],
             y=df_comparison["total_to_version"],
-            name="icd-10-who",
+            name="ICD-10-WHO",
             offsetgroup=1,
             # marker_color='#EF553B' # Plotly Red
         ))
@@ -410,7 +410,7 @@ def _(code_type_order, go, pl):
         fig.add_trace(go.Bar(
             x=df_comparison["code_type"],
             y=df_comparison["match_base"],
-            name="validated matches",
+            name="Validated matches",
             offsetgroup=2,
             # marker_color='#00CC96' # Plotly Green
         ))
@@ -418,7 +418,7 @@ def _(code_type_order, go, pl):
         fig.add_trace(go.Bar(
             x=df_comparison["code_type"],
             y=df_comparison["uphill"],
-            name="validated matches w/ uphill",
+            name="Validated matches w/ uphill",
             offsetgroup=2, # Same group as match_base
             base=df_comparison["match_base"], # Stacks this bar on top of the base
             # marker_color='#00CC96', # Same color as the base
@@ -432,11 +432,11 @@ def _(code_type_order, go, pl):
             yaxis_type="log",
             barmode="group",
             plot_bgcolor='rgba(0,0,0,0)',
-            legend={"yanchor": "top", "y": 0.9, "xanchor": "right", "x": 0.28}
+            legend={"yanchor": "top", "y": 1, "xanchor": "right", "x": 0.38, "bordercolor": "black", "borderwidth": 1}
         )
         fig.for_each_annotation(lambda a: a.update(text=a.text.upper()))  # remove col= sign
 
-        fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Nr. of codes')
+        fig.update_yaxes(zeroline=True, showgrid=True, gridwidth=1, gridcolor='lightgrey', title='Number of codes')
         fig.update_xaxes(zeroline=True, linewidth=1, linecolor='lightgrey', categoryorder='array', categoryarray=code_type_order)
 
         return fig
