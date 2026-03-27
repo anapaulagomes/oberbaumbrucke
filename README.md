@@ -1,6 +1,6 @@
 # Oberbaumbrücke[^1]
 
-[![Tests](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml/badge.svg)](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml)
+[![DOI](https://zenodo.org/badge/960290910.svg)](https://doi.org/10.5281/zenodo.19249566) [![Tests](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml/badge.svg)](https://github.com/anapaulagomes/oberbaumbrucke/actions/workflows/ci.yml)
 
 A multilingual bridge between ICD-10 versions.
 
