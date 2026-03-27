@@ -8,9 +8,8 @@ A multilingual bridge between ICD-10 versions.
 
 This project consists of three main components:
 
-1. ICD-10 modelled as a graph (currently available for WHO, Brazil, Germany and USA)
+1. ICD-10 modelled as a graph (currently available for WHO, Brazil, Germany and USA, but easily extendable for other national versions)
 2. Comparison of semantic similarity between ICD-10 codes using different multilingual embedding models
-3. Comparison of the ICD-10 versions through its graph structure using Maximum Common Embedded Subtree (MCES)
 
 ## Usage
 
